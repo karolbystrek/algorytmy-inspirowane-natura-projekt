@@ -1,0 +1,14 @@
+[
+  {"name":"area:data","color":"1d76db","description":"OSM, graf pieszy, audyt i snapshoty"},
+  {"name":"area:model","color":"5319e7","description":"Funkcja celu, popyt, kandydaci i kontrakty"},
+  {"name":"area:abc","color":"fbca04","description":"Dyskretny Artificial Bee Colony"},
+  {"name":"area:experiments","color":"0e8a16","description":"Baseline'y, protokół i analiza wyników"},
+  {"name":"area:visualization","color":"c2e0c6","description":"Mapa, trasy, interfejs i budynki 3D"},
+  {"name":"area:integration","color":"006b75","description":"Uruchomienie, CI i integracja modułów"},
+  {"name":"type:feature","color":"a2eeef","description":"Nowa funkcja lub moduł"},
+  {"name":"type:bug","color":"d73a4a","description":"Błąd poprawności lub działania"},
+  {"name":"type:docs","color":"0075ca","description":"Dokumentacja, research i raport"},
+  {"name":"priority:P0","color":"b60205","description":"Blokuje minimum bieżącego etapu"},
+  {"name":"priority:P1","color":"d93f0b","description":"Obowiązkowe w planowanym zakresie"},
+  {"name":"priority:P2","color":"c5def5","description":"Rozszerzenie po ukończeniu minimum"}
+]

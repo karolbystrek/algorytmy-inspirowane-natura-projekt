@@ -1,0 +1,223 @@
+{
+  "problem_sha256": "208cf1c417509c0fbbc2ebca415e680b21b1e3802a4b4627cfc52bde81119930",
+  "parameters": {
+    "command": "benchmark",
+    "problem": "data/processed/agh-pilot/problem.json",
+    "output": "outputs/demo",
+    "p": 4,
+    "budget": 1000,
+    "runs": 30,
+    "scenario": "aggregate",
+    "threshold": 250,
+    "foods": 12,
+    "limit": 30,
+    "exact": true
+  },
+  "versions": {
+    "python": "3.12.13",
+    "numpy": "2.5.4"
+  },
+  "rng": "numpy.random.default_rng (PCG64), independent seeds 0..runs-1",
+  "timing_scope": "Solver including objective evaluations; excludes loading, OSM and reports",
+  "comparison_note": "Same cap; greedy may stop early; exact has its own budget.",
+  "summary": {
+    "greedy": {
+      "runs": 1,
+      "best_m": 343.64535416666666,
+      "mean_m": 343.64535416666666,
+      "std_m": 0,
+      "median_m": 343.64535416666666,
+      "q25_m": 343.64535416666666,
+      "q75_m": 343.64535416666666,
+      "mean_coverage": 0.4583333333333333,
+      "mean_elapsed_s": 0.003234703000089212,
+      "min_evaluations": 426,
+      "max_evaluations": 426,
+      "mean_gap_percent": 0.0
+    },
+    "random": {
+      "runs": 30,
+      "best_m": 346.5233333333333,
+      "mean_m": 366.79131527777776,
+      "std_m": 10.4635568244238,
+      "median_m": 366.56772916666665,
+      "q25_m": 364.16536458333337,
+      "q75_m": 373.94299479166665,
+      "mean_coverage": 0.36249999999999993,
+      "mean_elapsed_s": 0.013169100666649078,
+      "min_evaluations": 1000,
+      "max_evaluations": 1000,
+      "mean_gap_percent": 6.735420930464665
+    },
+    "abc": {
+      "runs": 30,
+      "best_m": 343.64535416666666,
+      "mean_m": 343.8372194444445,
+      "std_m": 0.7301667174536052,
+      "median_m": 343.64535416666666,
+      "q25_m": 343.64535416666666,
+      "q75_m": 343.64535416666666,
+      "mean_coverage": 0.45694444444444454,
+      "mean_elapsed_s": 0.029342041533376082,
+      "min_evaluations": 1000,
+      "max_evaluations": 1000,
+      "mean_gap_percent": 0.055832350256295946
+    },
+    "exact": {
+      "runs": 1,
+      "best_m": 343.64535416666666,
+      "mean_m": 343.64535416666666,
+      "std_m": 0,
+      "median_m": 343.64535416666666,
+      "q25_m": 343.64535416666666,
+      "q75_m": 343.64535416666666,
+      "mean_coverage": 0.4583333333333333,
+      "mean_elapsed_s": 0.1932023350000236,
+      "min_evaluations": 27405,
+      "max_evaluations": 27405,
+      "mean_gap_percent": 0.0
+    }
+  },
+  "best_solutions": {
+    "greedy": {
+      "selection": [
+        16,
+        18,
+        21,
+        22
+      ],
+      "objective": 343.64535416666666,
+      "evaluations": 426,
+      "elapsed_s": 0.003234703000089212,
+      "seed": "",
+      "candidate_ids": [
+        "candidate-16",
+        "candidate-18",
+        "candidate-21",
+        "candidate-22"
+      ],
+      "scenario_metrics": {
+        "morning": {
+          "mean_distance_m": 296.50075,
+          "coverage": 0.4791666666666666,
+          "max_distance_m": 1225.532
+        },
+        "day": {
+          "mean_distance_m": 351.7542291666667,
+          "coverage": 0.4583333333333334,
+          "max_distance_m": 1225.532
+        },
+        "evening": {
+          "mean_distance_m": 382.68108333333333,
+          "coverage": 0.4375,
+          "max_distance_m": 1225.532
+        }
+      }
+    },
+    "random": {
+      "selection": [
+        16,
+        18,
+        22,
+        26
+      ],
+      "objective": 346.5233333333333,
+      "evaluations": 1000,
+      "elapsed_s": 0.01286040300010427,
+      "seed": 21,
+      "candidate_ids": [
+        "candidate-16",
+        "candidate-18",
+        "candidate-22",
+        "candidate-26"
+      ],
+      "scenario_metrics": {
+        "morning": {
+          "mean_distance_m": 332.41506250000003,
+          "coverage": 0.43749999999999994,
+          "max_distance_m": 813.571
+        },
+        "day": {
+          "mean_distance_m": 358.0590833333333,
+          "coverage": 0.39583333333333337,
+          "max_distance_m": 813.571
+        },
+        "evening": {
+          "mean_distance_m": 349.0958541666666,
+          "coverage": 0.47916666666666663,
+          "max_distance_m": 813.571
+        }
+      }
+    },
+    "abc": {
+      "selection": [
+        16,
+        18,
+        21,
+        22
+      ],
+      "objective": 343.64535416666666,
+      "evaluations": 1000,
+      "elapsed_s": 0.02882173200032412,
+      "seed": 0,
+      "candidate_ids": [
+        "candidate-16",
+        "candidate-18",
+        "candidate-21",
+        "candidate-22"
+      ],
+      "scenario_metrics": {
+        "morning": {
+          "mean_distance_m": 296.50075,
+          "coverage": 0.4791666666666666,
+          "max_distance_m": 1225.532
+        },
+        "day": {
+          "mean_distance_m": 351.7542291666667,
+          "coverage": 0.4583333333333334,
+          "max_distance_m": 1225.532
+        },
+        "evening": {
+          "mean_distance_m": 382.68108333333333,
+          "coverage": 0.4375,
+          "max_distance_m": 1225.532
+        }
+      }
+    },
+    "exact": {
+      "selection": [
+        16,
+        18,
+        21,
+        22
+      ],
+      "objective": 343.64535416666666,
+      "evaluations": 27405,
+      "elapsed_s": 0.1932023350000236,
+      "seed": "",
+      "candidate_ids": [
+        "candidate-16",
+        "candidate-18",
+        "candidate-21",
+        "candidate-22"
+      ],
+      "scenario_metrics": {
+        "morning": {
+          "mean_distance_m": 296.50075,
+          "coverage": 0.4791666666666666,
+          "max_distance_m": 1225.532
+        },
+        "day": {
+          "mean_distance_m": 351.7542291666667,
+          "coverage": 0.4583333333333334,
+          "max_distance_m": 1225.532
+        },
+        "evening": {
+          "mean_distance_m": 382.68108333333333,
+          "coverage": 0.4375,
+          "max_distance_m": 1225.532
+        }
+      }
+    }
+  }
+}
