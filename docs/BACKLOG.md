@@ -24,3 +24,15 @@ Zadania odwołują się do roboczych ról **Osoba A–F** z [roadmapy](ROADMAP.m
 | X03 | Dyskretny Firefly / zainteresowana osoba | po I03, P2 | I03 | ten sam kontrakt, reprezentacja i protokół; ukończone minimum |
 
 Proponowane etykiety to `area:*`, `type:*` i `priority:*` z [.github/labels.json](../.github/labels.json). Właściciela i recenzenta uzgadniamy przy rozpoczęciu zadania. Zadanie przekraczające 1–2 krótkie sesje warto rozbić na konkretny produkt, np. „lista wejść”, „warstwa poprawek”, „test spójności”.
+
+## Propozycje po dodatkowym researchu
+
+Poniższe pozycje wymagają wyboru przez zespół. Wskazane role są robocze; rozszerzenia X04/X05 nie są warunkiem pierwszego pokazu. Szacunki i źródła opisuje [research uzupełniający](RESEARCH_EXTENSIONS.md).
+
+| ID / powiązanie | Propozycja / rola | Kiedy | Kryterium odbioru |
+|---|---|---|---|
+| E03 — doprecyzowanie | P90 i wyniki kategorii / Osoba E + Osoba C | do 27.11 | ważony P90, średnie i pokrycie grup, koszt stałego układu wobec optimów scenariuszy; jawny opis założonych wag |
+| E04 — nowe | Wpływ listy kandydatów i popytu / Osoba E + Osoba C | po D03/M02, do 27.11 | trzy ustalone zagnieżdżone listy kandydatów; oddzielna zmiana punktów popytu i wspólna lista oceny; bez powielania wag wielu wejść |
+| D03/V03 — doprecyzowanie | Źródła lokalne i wysokości / Osoba B + Osoba F | do 20.11 | weryfikacja funkcji budynków z wykazem AGH; sprawdzenie kontekstu ZTP; zachowane tagi wysokości, wysokość w metrach i `height_source` |
+| X04 — opcjonalne | Wzorzec MILP / Osoba E | po M02 | zgodność z enumeracją pilota; osobny limit czasu, status, dolna granica i luka; układ oceniony wspólną funkcją celu |
+| X05 — opcjonalne | Trzy instancje OR-Library / Osoba E + Osoba D | po minimum E03 | zweryfikowany import krawędzi i przeliczenie sumy/średniej; znane optima, parametry i porównywalny budżet heurystyk |

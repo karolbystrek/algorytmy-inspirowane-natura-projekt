@@ -11,6 +11,7 @@ Projekt na przedmiot **Algorytmy inteligentne inspirowane naturą**, zespół 6 
 | [Roadmapa](docs/ROADMAP.md) | etapy, proponowane role 6 osób, zależności i kryteria ukończenia |
 | [Spotkanie 09.11](docs/MEETING_2026-11-09.md) | co pokazać, scenariusz prezentacji, pytania i plan awaryjny |
 | [Research](docs/RESEARCH.md) | źródła naukowe i techniczne oraz decyzje dla projektu |
+| [Dodatkowy research](docs/RESEARCH_EXTENSIONS.md) | co jeszcze warto dodać, priorytety, źródła lokalne i nowe obserwacje z pilota |
 | [Architektura](docs/ARCHITECTURE.md) | diagramy kontekstu, komponentów i przebiegu eksperymentu |
 | [Model i dane](docs/DATA_MODEL.md) | funkcja celu, reprezentacja ABC, kontrakty i ograniczenia |
 | [Eksperymenty](docs/EXPERIMENTS.md) | uczciwe porównanie metod, budżety, ziarna i metryki |

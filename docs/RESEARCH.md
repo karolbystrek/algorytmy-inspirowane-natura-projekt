@@ -37,3 +37,7 @@ Wybieramy Python 3.12, NumPy, OSMnx/NetworkX/GeoPandas/Shapely, pliki JSON/CSV/G
 To decyzja wykonawcza dla 6 osób i terminu początku grudnia: dane oraz algorytm mają niezależne testy, a interfejs powstaje na stałym kontrakcie. Nie potrzebujemy bazy danych, GPU ani infrastruktury kolejkowej w podstawowym zakresie.
 
 Na pierwsze spotkanie wystarczy empiryczny dowód, że cały łańcuch działa: realna sieć OSM, mały model p-median, wyniki porównania, kontrola optimum oraz mapa. Największym zagrożeniem jakości jest jakość punktów i dojść, więc następny etap przeznaczamy na ich audyt. Jest to wniosek projektowy z przeglądu i zakresu prac, a nie twierdzenie o przewadze konkretnej metody.
+
+## Uzupełnienie: co jeszcze warto uwzględnić
+
+[Dodatkowy research](RESEARCH_EXTENSIONS.md) ocenia wpływ doboru punktów, metryki najdłuższych dojść, opcjonalny solver MILP, benchmark OR-Library i źródła AGH/ZTP. Zawiera nowe obliczenia na zamrożonym pilocie, propozycje kosztu oraz wskazanie, które elementy już są w roadmapie.

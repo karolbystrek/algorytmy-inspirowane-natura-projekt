@@ -84,3 +84,9 @@ gantt
 | 27.11 brakuje kompletu badań | zamrażamy parametry; obowiązkowo 3 wartości `p`, agregacja i ocena trzech scenariuszy, reszta do ograniczeń | Osoba E |
 
 Za ukończony uznajemy element po review, poprawnym uruchomieniu i opisaniu ograniczeń. Dobre wyniki ABC nie są warunkiem zaliczenia etapu; poprawność i uczciwe porównanie są.
+
+## Zalecane uzupełnienia po dodatkowym researchu
+
+[Research uzupełniający](RESEARCH_EXTENSIONS.md) wskazuje trzy niewielkie dodatki: P90 i wyniki kategorii popytu w raporcie, ocenę wpływu listy kandydatów/popytu (E04) oraz zachowanie tagów wysokości potrzebnych w V03. Szacowany koszt **5–9 h** można pokryć z planowanej rezerwy 30 h; pozostałoby **21–25 h**. Zespół potwierdza wybór przed etapem M4, bez zmiany terminu 4 grudnia.
+
+Źródła AGH i mapa ZTP wspierają istniejący audyt D03. MILP (X04) i zewnętrzny benchmark OR-Library (X05) pozostają opcjonalne. Na 9 listopada są już gotowe dodatkowe obliczenia pilota: P90, najdłuższe dojście, koszt stałego układu w scenariuszach oraz porównanie p=3/4/5.

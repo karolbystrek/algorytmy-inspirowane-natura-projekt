@@ -43,3 +43,9 @@ Dla metod losowych: najlepszy wynik, średnia, odchylenie standardowe próby (`d
 Luka do optimum: `100 × (F - F*) / F*`; dla `F*=0` raportujemy różnicę bezwzględną zamiast dzielenia przez zero. Jeśli optimum nie zostało policzone, podajemy „najlepszy znaleziony”, bez procentowej luki. Przed ewentualnym testem statystycznym trzeba ustalić pytanie i korektę wielokrotnych porównań; sam wynik pilota nie uzasadnia twierdzenia o ogólnej przewadze ABC.
 
 Wersje, ziarna, hash i parametry są w `results.json`, wszystkie przebiegi w `runs.csv`, historia w `history.csv`. Zmiana danych lub parametrów oznacza nowy katalog wyników; nie mieszamy starych i nowych serii.
+
+## Zalecane uzupełnienia po dodatkowym researchu
+
+Przed końcową serią warto sprawdzić również **dobór listy kandydatów i punktów popytu**, przy stałej liście użytej do oceny wariantów (E04). W raporcie proponujemy ważony percentyl 90 oraz średnie i pokrycie wewnątrz kategorii popytu. Osobne optima scenariuszy pozwalają podać koszt używania jednego stałego układu: `F_s(S_agregowane) - F_s*`, także procentowo przy dodatnim `F_s*`.
+
+[Dodatkowy research](RESEARCH_EXTENSIONS.md) opisuje kryteria, szacunki i opcjonalne rozszerzenia MILP/OR-Library. P90 oraz wyniki grupowe policzono już dla zapisanego pilota w [diagnostics.json](../reports/pilot/diagnostics.json); standardowy runner jeszcze ich nie eksportuje. Zachowujemy główny cel p-median i dotychczasowe warunki porównania metod.
