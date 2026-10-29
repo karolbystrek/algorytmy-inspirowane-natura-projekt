@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.png binary
+data/processed/** linguist-generated=true
+reports/pilot/*.csv linguist-generated=true
+reports/pilot/*.json linguist-generated=true
+reports/pilot/*.svg linguist-generated=true

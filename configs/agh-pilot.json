@@ -1,0 +1,11 @@
+{
+  "name": "agh-pilot-v1",
+  "bbox_wgs84": [19.902, 50.063, 19.923, 50.073],
+  "routing_buffer_m": 250,
+  "crs_metric": "EPSG:2180",
+  "candidate_count": 30,
+  "demand_count": 18,
+  "candidate_building_clearance_m": 3,
+  "scenario_mixture": {"morning": 1, "day": 1, "evening": 1},
+  "note": "Provisional study boundary; candidates and demand proxies require field review."
+}

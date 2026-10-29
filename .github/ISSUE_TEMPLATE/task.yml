@@ -1,0 +1,22 @@
+name: Zadanie projektu
+description: Zadanie z konkretnym rezultatem i kryterium odbioru
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Rezultat
+      description: Co ma powstać i dlaczego jest potrzebne?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Kryteria odbioru
+      description: Jak inna osoba potwierdzi ukończenie?
+    validations:
+      required: true
+  - type: input
+    id: dependency
+    attributes:
+      label: Zależności i kamień milowy
+      placeholder: np. D01, M2 — 13.11.2026
