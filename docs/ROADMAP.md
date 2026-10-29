@@ -13,16 +13,16 @@ Pełny zakres obowiązkowy na grudzień: zweryfikowany obszar, ręcznie sprawdze
 
 ## Proponowany podział 6 osób
 
-Nie ma jeszcze uzgodnionych ról. Poniższe przypisanie jest **propozycją do przyjęcia lub zamiany przez zespół**, bez założenia znajomości kompetencji. Każdy właściciel dostarcza kod, krótki opis i przekazuje wynik innej osobie do przeglądu.
+Nie ma jeszcze uzgodnionych ról. **Osoba A–F to robocze oznaczenia sześciu ról, bez przypisania do konkretnych członków zespołu.** Zespół ustali obsadę później. Każda rola obejmuje dostarczenie kodu, krótkiego opisu i przekazanie wyniku innej osobie do przeglądu.
 
 | Osoba | Odpowiedzialność | Do 06.11 | Dalej | Recenzent |
 |---|---|---|---|---|
-| Jan Banasik | Integracja i odtwarzalność | uruchomienie z czystego klona, CI, scalenie demo | integracja mapy, pakiet końcowy, próba prezentacji | Karol |
-| Karol Bystrek | Dane OSM i graf pieszy | granica obszaru, kontrola spójności i przejść | audyt wejść, bram i odłączonych części, wersja danych v2 | Patryk |
-| Patryk Chamera | Model popytu i kandydaci | opisana lista punktów, wagi i ograniczenia | weryfikacja terenowa, scenariusze, analiza wrażliwości | Karol |
-| Patrick Bajorski | Algorytm ABC | reprezentacja, zamiany, fazy pszczół, ziarna | dobór parametrów i badanie wpływu operatorów | Mateusz |
-| Mateusz Bielówka | Baseline’y i eksperymenty | losowanie, greedy, kontrola optimum | 30 uruchomień, statystyki, wykresy i porównania | Patrick |
-| Gabriel Filipowicz | Wizualizacja | czytelna mapa 2D i makieta widoku wyników | TypeScript + MapLibre, dojścia, przełączanie scenariuszy, 3D | Jan |
+| Osoba A | Integracja i odtwarzalność | uruchomienie z czystego klona, CI, scalenie demo | integracja mapy, pakiet końcowy, próba prezentacji | Osoba B |
+| Osoba B | Dane OSM i graf pieszy | granica obszaru, kontrola spójności i przejść | audyt wejść, bram i odłączonych części, wersja danych v2 | Osoba C |
+| Osoba C | Model popytu i kandydaci | opisana lista punktów, wagi i ograniczenia | weryfikacja terenowa, scenariusze, analiza wrażliwości | Osoba B |
+| Osoba D | Algorytm ABC | reprezentacja, zamiany, fazy pszczół, ziarna | dobór parametrów i badanie wpływu operatorów | Osoba E |
+| Osoba E | Baseline’y i eksperymenty | losowanie, greedy, kontrola optimum | 30 uruchomień, statystyki, wykresy i porównania | Osoba D |
+| Osoba F | Wizualizacja | czytelna mapa 2D i makieta widoku wyników | TypeScript + MapLibre, dojścia, przełączanie scenariuszy, 3D | Osoba A |
 
 Założenie szacunkowe: **4–6 h/osobę/tydzień**, łącznie około **120–180 h** do początku grudnia. Dostępność nie została potwierdzona. Planujemy około 120 h pracy obowiązkowej i 30 h rezerwy przy wariancie 5 h/osobę/tydzień. W pierwszym tygodniu trzeba skonfrontować szacunki z realną dostępnością; przy mniejszej liczbie godzin ograniczamy rozmiar obszaru i liczbę eksperymentów pomocniczych.
 
@@ -62,10 +62,10 @@ gantt
 
 ## Najbliższe przekazania
 
-1. **30.10:** wszyscy uruchamiają pilotaż; Jan potwierdza CI; Karol i Patryk sprawdzają granicę oraz 5 przykładowych połączeń na mapie.
-2. **02.11:** zamrażamy kontrakt `problem.json` i identyfikatory punktów. Gabriel może pracować na zapisanych wynikach bez oczekiwania na rozwój algorytmu.
-3. **03.11:** Karol i Patryk przekazują wersjonowane dane i listę ograniczeń. Jeśli audyt całego obszaru nie jest gotowy, zostaje mniejszy, jawnie opisany pilotaż.
-4. **04.11:** Patrick i Mateusz pokazują wyniki na tej samej macierzy; sprawdzają budżet oraz małe optimum.
+1. **30.10:** wszyscy uruchamiają pilotaż; Osoba A potwierdza CI; Osoba B i Osoba C sprawdzają granicę oraz 5 przykładowych połączeń na mapie.
+2. **02.11:** zamrażamy kontrakt `problem.json` i identyfikatory punktów. Osoba F może pracować na zapisanych wynikach bez oczekiwania na rozwój algorytmu.
+3. **03.11:** Osoba B i Osoba C przekazują wersjonowane dane i listę ograniczeń. Jeśli audyt całego obszaru nie jest gotowy, zostaje mniejszy, jawnie opisany pilotaż.
+4. **04.11:** Osoba D i Osoba E pokazują wyniki na tej samej macierzy; sprawdzają budżet oraz małe optimum.
 5. **05.11:** wspólne porównanie 30 ziaren, mapa, scenariusze, zebrane pytania do prowadzącego.
 6. **06.11:** zamrożenie demo, uruchomienie na drugim laptopie, zapis wykresów i kopii offline. Próba 10-minutowego wystąpienia.
 7. **09.11:** demo według [scenariusza spotkania](MEETING_2026-11-09.md). Po uwagach aktualizujemy backlog i decyzje, bez dokładania nowych algorytmów przed audytem danych.
@@ -76,11 +76,11 @@ gantt
 
 | Ryzyko / sygnał | Reakcja | Właściciel |
 |---|---|---|
-| Overpass nie odpowiada | korzystamy z zamrożonego snapshotu; nowe pobranie poza CI i demo | Karol |
-| Wejście lub ścieżka nie istnieje w OSM | sprawdzenie terenu i lokalna poprawka z uzasadnieniem; nie dodajemy fikcyjnej trasy | Karol + Patryk |
-| ABC przegrywa z greedy | raportujemy wynik, analizujemy operator i eksplorację; nie zmieniamy metryki pod zwycięzcę | Patrick + Mateusz |
-| 13.11 nadal brak sprawdzonych danych | zmniejszamy obszar, zamrażamy listę do ręcznego audytu | Jan |
-| 20.11 interfejs opóźniony | statyczne wyniki JSON, lokalne GeoJSON; API i optymalizacja na żywo zostają poza minimum | Gabriel |
-| 27.11 brakuje kompletu badań | zamrażamy parametry; obowiązkowo 3 wartości `p`, agregacja i ocena trzech scenariuszy, reszta do ograniczeń | Mateusz |
+| Overpass nie odpowiada | korzystamy z zamrożonego snapshotu; nowe pobranie poza CI i demo | Osoba B |
+| Wejście lub ścieżka nie istnieje w OSM | sprawdzenie terenu i lokalna poprawka z uzasadnieniem; nie dodajemy fikcyjnej trasy | Osoba B + Osoba C |
+| ABC przegrywa z greedy | raportujemy wynik, analizujemy operator i eksplorację; nie zmieniamy metryki pod zwycięzcę | Osoba D + Osoba E |
+| 13.11 nadal brak sprawdzonych danych | zmniejszamy obszar, zamrażamy listę do ręcznego audytu | Osoba A |
+| 20.11 interfejs opóźniony | statyczne wyniki JSON, lokalne GeoJSON; API i optymalizacja na żywo zostają poza minimum | Osoba F |
+| 27.11 brakuje kompletu badań | zamrażamy parametry; obowiązkowo 3 wartości `p`, agregacja i ocena trzech scenariuszy, reszta do ograniczeń | Osoba E |
 
 Za ukończony uznajemy element po review, poprawnym uruchomieniu i opisaniu ograniczeń. Dobre wyniki ABC nie są warunkiem zaliczenia etapu; poprawność i uczciwe porównanie są.
