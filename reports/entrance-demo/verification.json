@@ -1,0 +1,16 @@
+{
+  "dataset_id": "agh-entrance-demo-v1",
+  "source_sha256": "66bc00bb492bd8b3416f2137a26ee0d3abd0e0d459b6b788f4d22776e040b436",
+  "problem_sha256": "60354600e2f444fdb2e676c44b11a1605aa31f833ee6bafc64e2cf0dda365d54",
+  "routes_sha256": "91a24c11dccec9af2efa29424588d418e0dd3cca9956e2cfc72f09a7c29b5119",
+  "counts": {
+    "entrances": 5,
+    "candidates": 10,
+    "selected_stations": 3,
+    "routes": 5
+  },
+  "route_lengths_match_matrix": true,
+  "all_pairs_reachable": true,
+  "field_review": "pending — deferred by user",
+  "offline_inputs": true
+}

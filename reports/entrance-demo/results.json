@@ -1,0 +1,174 @@
+{
+  "problem_sha256": "60354600e2f444fdb2e676c44b11a1605aa31f833ee6bafc64e2cf0dda365d54",
+  "parameters": {
+    "problem": "outputs/entrance-demo/dataset/problem.json",
+    "output": "outputs/entrance-demo",
+    "p": 3,
+    "budget": 500,
+    "runs": 30,
+    "scenario": "aggregate",
+    "threshold": 250,
+    "foods": 12,
+    "limit": 30,
+    "exact": true
+  },
+  "versions": {
+    "python": "3.12.13",
+    "numpy": "2.5.4"
+  },
+  "rng": "numpy.random.default_rng (PCG64), independent seeds 0..runs-1",
+  "timing_scope": "Solver including objective evaluations; excludes loading, OSM and reports",
+  "comparison_note": "Same cap; greedy may stop early; exact has its own budget.",
+  "summary": {
+    "greedy": {
+      "runs": 1,
+      "best_m": 50.29069493496652,
+      "mean_m": 50.29069493496652,
+      "std_m": 0,
+      "median_m": 50.29069493496652,
+      "q25_m": 50.29069493496652,
+      "q75_m": 50.29069493496652,
+      "mean_coverage": 1.0,
+      "mean_elapsed_s": 0.0003404180006327806,
+      "min_evaluations": 48,
+      "max_evaluations": 48,
+      "mean_gap_percent": 0.0
+    },
+    "random": {
+      "runs": 30,
+      "best_m": 50.29069493496652,
+      "mean_m": 50.29069493496651,
+      "std_m": 7.226896453227138e-15,
+      "median_m": 50.29069493496652,
+      "q25_m": 50.29069493496652,
+      "q75_m": 50.29069493496652,
+      "mean_coverage": 1.0,
+      "mean_elapsed_s": 0.005298051300057219,
+      "min_evaluations": 500,
+      "max_evaluations": 500,
+      "mean_gap_percent": 0.0
+    },
+    "abc": {
+      "runs": 30,
+      "best_m": 50.29069493496652,
+      "mean_m": 50.29069493496651,
+      "std_m": 7.226896453227138e-15,
+      "median_m": 50.29069493496652,
+      "q25_m": 50.29069493496652,
+      "q75_m": 50.29069493496652,
+      "mean_coverage": 1.0,
+      "mean_elapsed_s": 0.01221339570007937,
+      "min_evaluations": 500,
+      "max_evaluations": 500,
+      "mean_gap_percent": 0.0
+    },
+    "exact": {
+      "runs": 1,
+      "best_m": 50.29069493496652,
+      "mean_m": 50.29069493496652,
+      "std_m": 0,
+      "median_m": 50.29069493496652,
+      "q25_m": 50.29069493496652,
+      "q75_m": 50.29069493496652,
+      "mean_coverage": 1.0,
+      "mean_elapsed_s": 0.0005838489996676799,
+      "min_evaluations": 120,
+      "max_evaluations": 120,
+      "mean_gap_percent": 0.0
+    }
+  },
+  "best_solutions": {
+    "greedy": {
+      "selection": [
+        0,
+        1,
+        6
+      ],
+      "objective": 50.29069493496652,
+      "evaluations": 48,
+      "elapsed_s": 0.0003404180006327806,
+      "seed": "",
+      "candidate_ids": [
+        "S01",
+        "S02",
+        "S07"
+      ],
+      "scenario_metrics": {
+        "uniform": {
+          "mean_distance_m": 50.29069493496652,
+          "coverage": 1.0,
+          "max_distance_m": 85.74192223802753
+        }
+      }
+    },
+    "random": {
+      "selection": [
+        0,
+        1,
+        6
+      ],
+      "objective": 50.29069493496652,
+      "evaluations": 500,
+      "elapsed_s": 0.005982835999930103,
+      "seed": 0,
+      "candidate_ids": [
+        "S01",
+        "S02",
+        "S07"
+      ],
+      "scenario_metrics": {
+        "uniform": {
+          "mean_distance_m": 50.29069493496652,
+          "coverage": 1.0,
+          "max_distance_m": 85.74192223802753
+        }
+      }
+    },
+    "abc": {
+      "selection": [
+        0,
+        1,
+        6
+      ],
+      "objective": 50.29069493496652,
+      "evaluations": 500,
+      "elapsed_s": 0.012268565999875136,
+      "seed": 0,
+      "candidate_ids": [
+        "S01",
+        "S02",
+        "S07"
+      ],
+      "scenario_metrics": {
+        "uniform": {
+          "mean_distance_m": 50.29069493496652,
+          "coverage": 1.0,
+          "max_distance_m": 85.74192223802753
+        }
+      }
+    },
+    "exact": {
+      "selection": [
+        0,
+        1,
+        6
+      ],
+      "objective": 50.29069493496652,
+      "evaluations": 120,
+      "elapsed_s": 0.0005838489996676799,
+      "seed": "",
+      "candidate_ids": [
+        "S01",
+        "S02",
+        "S07"
+      ],
+      "scenario_metrics": {
+        "uniform": {
+          "mean_distance_m": 50.29069493496652,
+          "coverage": 1.0,
+          "max_distance_m": 85.74192223802753
+        }
+      }
+    }
+  }
+}

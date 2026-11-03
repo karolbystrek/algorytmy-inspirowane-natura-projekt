@@ -43,7 +43,7 @@ class Problem:
 
     @classmethod
     def load(cls, path: str | Path):
-        data = json.loads(Path(path).read_text())
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
         if data.get("schema_version") != 1:
             raise ValueError("Expected schema_version 1")
         return cls(

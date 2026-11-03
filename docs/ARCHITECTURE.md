@@ -3,6 +3,9 @@
 ## Stan bieżący i docelowy
 
 **Zaimplementowane w pilotażu:** przygotowanie OSM, wersjonowany kontrakt plików, model i trzy heurystyki, pełny przegląd, runner eksperymentów, wykresy/mapa statyczna, testy i CI.
+**Demonstrator 5/10/3 z 3 listopada:** `demo_data.py` waliduje źródło i buduje graf z konkretnymi
+wejściami; `demo.py` uruchamia wspólny runner, eksportuje sekwencje krawędzi pięciu tras i raport
+offline. Weryfikacja terenowa jest odroczona. Polecenie: `uv run --all-extras agh-stations demo`.
 **Planowane do 4 grudnia:** audyt wejść i kandydatów, lokalne poprawki danych, scenariusze docelowe, interfejs TypeScript/MapLibre z trasami i budynkami 3D. FastAPI pozostaje opcjonalne.
 
 ## Kontekst
@@ -77,7 +80,10 @@ sequenceDiagram
 
 Pierwsza wersja interaktywna czyta `problem.json`, `map.geojson` i `results.json` z katalogu statycznego. Kontrolki wybierają już policzone `p`, scenariusz i metodę. Widok wyświetla kandydatów, popyt, wybrane stacje, rzeczywiste trasy po grafie, wynik w metrach, pokrycie i źródło danych. Zapisane wyniki ułatwiają powtórzenie demonstracji na laptopie.
 
-Do rysowania tras trzeba zachować sekwencje krawędzi lub wygenerować `routes.geojson` dla wybranego rozwiązania. `map.geojson` pilota zachowuje `u`, `v` i długości, ale bieżący raport **jeszcze nie rysuje tras**. Nie wolno zastępować ich prostymi odcinkami opisanymi jako najkrótsze dojścia.
+Demonstrator 5/10/3 zapisuje `routes.geojson` z sekwencjami węzłów, krawędziami, długościami,
+hashem problemu i ID stacji. Raport sprawdza powiązanie tras z wynikiem, a następnie rysuje je
+na mapie. Pilot 18/30 zachowuje dotychczasową mapę. Nie dodajemy prostych łączników od środka
+budynku ani nie podpisujemy ich jako najkrótszych dojść.
 
 Jeśli po 20.11 potrzebna będzie optymalizacja z przeglądarki, proponowany kontrakt FastAPI to `POST /runs` (dataset ID, p, metoda, scenariusz, limit, seed), `GET /runs/{id}` (status, wynik) i `GET /datasets/{id}` (manifest). To projekt kontraktu, nie istniejące endpointy. Jeden proces obliczeniowy i pliki wystarczą na małą demonstrację. Każde żądanie musi mieć limit ocen i walidację parametrów. Nie uruchamiamy pobierania OSM w żądaniu użytkownika.
 

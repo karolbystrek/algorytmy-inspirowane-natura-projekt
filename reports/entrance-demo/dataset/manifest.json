@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "dataset_id": "agh-entrance-demo-v1",
+  "source_sha256": "66bc00bb492bd8b3416f2137a26ee0d3abd0e0d459b6b788f4d22776e040b436",
+  "config_sha256": "e5a80e9d6c56a160123c79fab98cef143362d41b2f638472f5dde8094a0180cf",
+  "files_sha256": {
+    "problem.json": "60354600e2f444fdb2e676c44b11a1605aa31f833ee6bafc64e2cf0dda365d54",
+    "map.geojson": "9a73045b487d1a900f7cdc955a071fcec1e93595ab6e1234d5944ac5d8bd0469"
+  },
+  "source": {
+    "schema_version": 1,
+    "dataset_id": "agh-entrance-demo-source-v1",
+    "bbox_wgs84": [
+      19.9032,
+      50.0671,
+      19.908,
+      50.07
+    ],
+    "attribution": "© OpenStreetMap contributors",
+    "license": "https://opendatacommons.org/licenses/odbl/1-0/",
+    "graph_osm_base_utc": "2026-10-29T17:47:06Z",
+    "buildings_osm_base_utc": "2026-10-29T17:52:10Z",
+    "lineage_sha256": {
+      "99a7e0f642ec-walk.graphml": "4855e3b71465f2fbddaea94fc0053a87571abfb55f3ec8a52d660f61589b5c3b",
+      "f2a625f085d004ddc67fc14a9195aa137209d265.json": "3876091b064e4ba98c73b989660d2e0a9fcc8d3a6d33a14916b3de6035caccd5",
+      "1847b24cef7fb37350deba20284443b2dcef244c.json": "4eb29292620b8f808f2cfcac0c0c36cc5ba7da908ee2b2ee02ab23abef7c34d2"
+    },
+    "extraction": "Induced graph for nodes within bbox, with intersecting building polygons; original OSM way and node tags retained."
+  },
+  "quality": {
+    "entrances": 5,
+    "candidates": 10,
+    "nodes": 436,
+    "edges": 984,
+    "excluded": {
+      "node_access_or_barrier": 10,
+      "edge_access_or_type": 84,
+      "building_interior": 12
+    },
+    "all_pairs_reachable": true,
+    "field_confirmed_points": 0
+  },
+  "verification": {
+    "desk_review": "map_checked",
+    "field_review": "pending",
+    "field_review_scope": "Deferred by user on 2026-11-03; today's demonstrator uses map sources only.",
+    "building_reference": "https://www.miasteczko.agh.edu.pl/strefa-mieszkanca/domy-studenckie.html",
+    "desk_checked_at": "2026-11-03",
+    "desk_checks": [
+      "OSM entrance node belongs to referenced building and walking graph",
+      "Building identity checked against the AGH dormitory list",
+      "Candidates checked on rendered map and excluded from 3 m footprint buffers",
+      "Routing excludes explicit prohibitions, unverified gates and solid interiors; mapped paths below roof canopies remain allowed"
+    ]
+  }
+}

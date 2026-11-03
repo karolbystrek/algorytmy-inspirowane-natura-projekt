@@ -1,0 +1,123 @@
+{
+  "dataset_id": "agh-entrance-demo-v1",
+  "source": "data/processed/agh-entrance-demo/source.json",
+  "p": 3,
+  "budget": 500,
+  "runs": 30,
+  "crs_metric": "EPSG:2180",
+  "building_clearance_m": 3,
+  "minimum_candidate_spacing_m": 20,
+  "demand": [
+    {
+      "id": "D01",
+      "name": "DS Olimp",
+      "building_id": "way/231815508",
+      "node_id": "9788952915",
+      "weight": 1
+    },
+    {
+      "id": "D02",
+      "name": "DS Babilon",
+      "building_id": "way/231815501",
+      "node_id": "9788980525",
+      "weight": 1
+    },
+    {
+      "id": "D03",
+      "name": "DS Filutek",
+      "building_id": "way/231815504",
+      "node_id": "2520230210",
+      "weight": 1
+    },
+    {
+      "id": "D04",
+      "name": "DS Strumyk",
+      "building_id": "way/231815516",
+      "node_id": "2520230205",
+      "weight": 1
+    },
+    {
+      "id": "D05",
+      "name": "DS Kapitol",
+      "building_id": "way/231815506",
+      "node_id": "5365576847",
+      "weight": 1
+    }
+  ],
+  "candidates": [
+    {
+      "id": "S01",
+      "node_id": "14093171586",
+      "name": "Punkt 1 — okolice DS Olimp",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Olimp; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej."
+    },
+    {
+      "id": "S02",
+      "node_id": "13752891124",
+      "name": "Punkt 2 — okolice DS Kapitol",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Kapitol; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej."
+    },
+    {
+      "id": "S03",
+      "node_id": "2550232807",
+      "name": "Punkt 3 — okolice DS Filutek",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Filutek; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej."
+    },
+    {
+      "id": "S04",
+      "node_id": "11911971545",
+      "name": "Punkt 4 — okolice DS Strumyk",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Strumyk; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej."
+    },
+    {
+      "id": "S05",
+      "node_id": "13520399705",
+      "name": "Punkt 5 — okolice DS Babilon",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Babilon; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej."
+    },
+    {
+      "id": "S06",
+      "node_id": "2134207664",
+      "name": "Punkt 6 — okolice DS Kapitol",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Kapitol; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej."
+    },
+    {
+      "id": "S07",
+      "node_id": "2520230211",
+      "name": "Punkt 7 — okolice DS Filutek",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Filutek; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej."
+    },
+    {
+      "id": "S08",
+      "node_id": "13519840705",
+      "name": "Punkt 8 — okolice DS Olimp",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Olimp; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej."
+    },
+    {
+      "id": "S09",
+      "node_id": "258234457",
+      "name": "Punkt 9 — okolice DS Kapitol",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Kapitol; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej."
+    },
+    {
+      "id": "S10",
+      "node_id": "13520399934",
+      "name": "Punkt 10 — okolice DS Olimp",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Olimp; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej."
+    }
+  ],
+  "verification": {
+    "desk_review": "map_checked",
+    "field_review": "pending",
+    "field_review_scope": "Deferred by user on 2026-11-03; today's demonstrator uses map sources only.",
+    "building_reference": "https://www.miasteczko.agh.edu.pl/strefa-mieszkanca/domy-studenckie.html",
+    "desk_checked_at": "2026-11-03",
+    "desk_checks": [
+      "OSM entrance node belongs to referenced building and walking graph",
+      "Building identity checked against the AGH dormitory list",
+      "Candidates checked on rendered map and excluded from 3 m footprint buffers",
+      "Routing excludes explicit prohibitions, unverified gates and solid interiors; mapped paths below roof canopies remain allowed"
+    ]
+  },
+  "source_sha256": "66bc00bb492bd8b3416f2137a26ee0d3abd0e0d459b6b788f4d22776e040b436"
+}
