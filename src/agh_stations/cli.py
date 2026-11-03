@@ -65,7 +65,7 @@ def benchmark(args):
                 }
                 del solutions[method]["history"]
     for name, records in (("runs.csv", rows), ("history.csv", histories)):
-        with (output / name).open("w", newline="") as handle:
+        with (output / name).open("w", newline="", encoding="utf-8") as handle:
             writer = csv.DictWriter(handle, fieldnames=list(records[0]), lineterminator="\n")
             writer.writeheader()
             writer.writerows(records)
@@ -88,9 +88,10 @@ def benchmark(args):
         }
         if "exact" in solutions:
             optimum = solutions["exact"]["objective"]
-            summary[method]["mean_gap_percent"] = (
-                100 * (summary[method]["mean_m"] - optimum) / optimum if optimum else None
-            )
+            delta = summary[method]["mean_m"] - optimum
+            if np.isclose(delta, 0, atol=1e-10, rtol=0):
+                delta = 0.0
+            summary[method]["mean_gap_percent"] = 100 * delta / optimum if optimum else None
     metadata = {
         "problem_sha256": hashlib.sha256(Path(args.problem).read_bytes()).hexdigest(),
         "parameters": {k: v for k, v in vars(args).items() if k != "func"},
@@ -101,7 +102,9 @@ def benchmark(args):
         "summary": summary,
         "best_solutions": solutions,
     }
-    (output / "results.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
+    (output / "results.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     print(json.dumps(summary, indent=2))
 
 
@@ -142,6 +145,18 @@ def main():
         render(args.results, args.dataset)
 
     report.set_defaults(func=report_command)
+    demo = sub.add_parser("demo", help="Offline 5-entrance, 10-candidate, 3-station demonstrator")
+    demo.add_argument("--config", default="configs/agh-entrance-demo.json")
+    demo.add_argument("--output", default="outputs/entrance-demo")
+    demo.add_argument("--runs", type=int)
+    demo.add_argument("--budget", type=int)
+
+    def demo_command(args):
+        from agh_stations.demo import run_demo
+
+        run_demo(args.config, args.output, args.runs, args.budget)
+
+    demo.set_defaults(func=demo_command)
     args = parser.parse_args()
     try:
         args.func(args)

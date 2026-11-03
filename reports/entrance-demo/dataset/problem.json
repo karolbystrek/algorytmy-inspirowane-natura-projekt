@@ -1,0 +1,277 @@
+{
+  "schema_version": 1,
+  "dataset_id": "agh-entrance-demo-v1",
+  "demand": [
+    {
+      "id": "D01",
+      "name": "DS Olimp",
+      "building_id": "way/231815508",
+      "node_id": "9788952915",
+      "weight": 1,
+      "lon": 19.9042613,
+      "lat": 50.0688793,
+      "field_review": "pending",
+      "location_method": "osm_entrance_node",
+      "entrance_tag": "main",
+      "source_url": "https://www.openstreetmap.org/node/9788952915",
+      "building_url": "https://www.openstreetmap.org/way/231815508"
+    },
+    {
+      "id": "D02",
+      "name": "DS Babilon",
+      "building_id": "way/231815501",
+      "node_id": "9788980525",
+      "weight": 1,
+      "lon": 19.9048595,
+      "lat": 50.0692204,
+      "field_review": "pending",
+      "location_method": "osm_entrance_node",
+      "entrance_tag": "main",
+      "source_url": "https://www.openstreetmap.org/node/9788980525",
+      "building_url": "https://www.openstreetmap.org/way/231815501"
+    },
+    {
+      "id": "D03",
+      "name": "DS Filutek",
+      "building_id": "way/231815504",
+      "node_id": "2520230210",
+      "weight": 1,
+      "lon": 19.9056407,
+      "lat": 50.0693205,
+      "field_review": "pending",
+      "location_method": "osm_entrance_node",
+      "entrance_tag": "main",
+      "source_url": "https://www.openstreetmap.org/node/2520230210",
+      "building_url": "https://www.openstreetmap.org/way/231815504"
+    },
+    {
+      "id": "D04",
+      "name": "DS Strumyk",
+      "building_id": "way/231815516",
+      "node_id": "2520230205",
+      "weight": 1,
+      "lon": 19.9054868,
+      "lat": 50.0688943,
+      "field_review": "pending",
+      "location_method": "osm_entrance_node",
+      "entrance_tag": "main",
+      "source_url": "https://www.openstreetmap.org/node/2520230205",
+      "building_url": "https://www.openstreetmap.org/way/231815516"
+    },
+    {
+      "id": "D05",
+      "name": "DS Kapitol",
+      "building_id": "way/231815506",
+      "node_id": "5365576847",
+      "weight": 1,
+      "lon": 19.9071877,
+      "lat": 50.0678128,
+      "field_review": "pending",
+      "location_method": "osm_entrance_node",
+      "entrance_tag": "main",
+      "source_url": "https://www.openstreetmap.org/node/5365576847",
+      "building_url": "https://www.openstreetmap.org/way/231815506"
+    }
+  ],
+  "candidates": [
+    {
+      "id": "S01",
+      "node_id": "14093171586",
+      "name": "Punkt 1 — okolice DS Olimp",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Olimp; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej.",
+      "lon": 19.9042623,
+      "lat": 50.0687691,
+      "field_review": "pending",
+      "status": "map_checked_field_pending",
+      "source_url": "https://www.openstreetmap.org/node/14093171586"
+    },
+    {
+      "id": "S02",
+      "node_id": "13752891124",
+      "name": "Punkt 2 — okolice DS Kapitol",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Kapitol; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej.",
+      "lon": 19.9077979,
+      "lat": 50.0679931,
+      "field_review": "pending",
+      "status": "map_checked_field_pending",
+      "source_url": "https://www.openstreetmap.org/node/13752891124"
+    },
+    {
+      "id": "S03",
+      "node_id": "2550232807",
+      "name": "Punkt 3 — okolice DS Filutek",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Filutek; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej.",
+      "lon": 19.9064237,
+      "lat": 50.0697867,
+      "field_review": "pending",
+      "status": "map_checked_field_pending",
+      "source_url": "https://www.openstreetmap.org/node/2550232807"
+    },
+    {
+      "id": "S04",
+      "node_id": "11911971545",
+      "name": "Punkt 4 — okolice DS Strumyk",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Strumyk; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej.",
+      "lon": 19.9059486,
+      "lat": 50.0683491,
+      "field_review": "pending",
+      "status": "map_checked_field_pending",
+      "source_url": "https://www.openstreetmap.org/node/11911971545"
+    },
+    {
+      "id": "S05",
+      "node_id": "13520399705",
+      "name": "Punkt 5 — okolice DS Babilon",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Babilon; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej.",
+      "lon": 19.9042642,
+      "lat": 50.0698564,
+      "field_review": "pending",
+      "status": "map_checked_field_pending",
+      "source_url": "https://www.openstreetmap.org/node/13520399705"
+    },
+    {
+      "id": "S06",
+      "node_id": "2134207664",
+      "name": "Punkt 6 — okolice DS Kapitol",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Kapitol; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej.",
+      "lon": 19.9064474,
+      "lat": 50.0674434,
+      "field_review": "pending",
+      "status": "map_checked_field_pending",
+      "source_url": "https://www.openstreetmap.org/node/2134207664"
+    },
+    {
+      "id": "S07",
+      "node_id": "2520230211",
+      "name": "Punkt 7 — okolice DS Filutek",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Filutek; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej.",
+      "lon": 19.9054034,
+      "lat": 50.0693547,
+      "field_review": "pending",
+      "status": "map_checked_field_pending",
+      "source_url": "https://www.openstreetmap.org/node/2520230211"
+    },
+    {
+      "id": "S08",
+      "node_id": "13519840705",
+      "name": "Punkt 8 — okolice DS Olimp",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Olimp; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej.",
+      "lon": 19.9034957,
+      "lat": 50.0693315,
+      "field_review": "pending",
+      "status": "map_checked_field_pending",
+      "source_url": "https://www.openstreetmap.org/node/13519840705"
+    },
+    {
+      "id": "S09",
+      "node_id": "258234457",
+      "name": "Punkt 9 — okolice DS Kapitol",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Kapitol; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej.",
+      "lon": 19.9071007,
+      "lat": 50.0685378,
+      "field_review": "pending",
+      "status": "map_checked_field_pending",
+      "source_url": "https://www.openstreetmap.org/node/258234457"
+    },
+    {
+      "id": "S10",
+      "node_id": "13520399934",
+      "name": "Punkt 10 — okolice DS Olimp",
+      "reason": "Propozycja na istniejącym ciągu pieszym w pobliżu DS Olimp; poza buforem 3 m budynków, bez tagu bariery. Miejsce i dostępność wymagają kontroli terenowej.",
+      "lon": 19.9034407,
+      "lat": 50.0683729,
+      "field_review": "pending",
+      "status": "map_checked_field_pending",
+      "source_url": "https://www.openstreetmap.org/node/13520399934"
+    }
+  ],
+  "distances_m": [
+    [
+      14.692525079135168,
+      543.8377088506195,
+      271.1237657381533,
+      575.8315739583811,
+      173.1141291702001,
+      569.4143905333807,
+      159.44360118597078,
+      125.25606611726006,
+      434.03751067459064,
+      100.71197501603969
+    ],
+    [
+      85.74192223802753,
+      480.2656757164412,
+      207.55173260397507,
+      512.2595408242031,
+      110.10294402953261,
+      505.8423573992027,
+      95.87156805179262,
+      201.82420465801994,
+      370.4654775404125,
+      177.28011355679956
+    ],
+    [
+      162.10927048746822,
+      401.7523020452813,
+      129.0383589328151,
+      433.7461671530432,
+      141.8216125595822,
+      427.3289837280428,
+      17.358194380632625,
+      248.18208447871484,
+      291.9521038692526,
+      253.64746180624027
+    ],
+    [
+      115.5442274950984,
+      450.67392097380065,
+      177.95997786133447,
+      482.66778608156255,
+      175.0869670216542,
+      476.25060265656214,
+      66.279813309152,
+      231.62650991509082,
+      340.87372279777196,
+      207.08241881387045
+    ],
+    [
+      508.9549802188716,
+      67.38101966788521,
+      359.0228710352332,
+      119.83629801169063,
+      424.8512082891891,
+      97.52655963711092,
+      364.203904112036,
+      531.2116802083218,
+      89.60999462341611,
+      582.0347927673968
+    ]
+  ],
+  "scenarios": {
+    "uniform": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ]
+  },
+  "scenario_mixture": {
+    "uniform": 1
+  },
+  "demand_is_assumed": true,
+  "verification": {
+    "desk_review": "map_checked",
+    "field_review": "pending",
+    "field_review_scope": "Deferred by user on 2026-11-03; today's demonstrator uses map sources only.",
+    "building_reference": "https://www.miasteczko.agh.edu.pl/strefa-mieszkanca/domy-studenckie.html",
+    "desk_checked_at": "2026-11-03",
+    "desk_checks": [
+      "OSM entrance node belongs to referenced building and walking graph",
+      "Building identity checked against the AGH dormitory list",
+      "Candidates checked on rendered map and excluded from 3 m footprint buffers",
+      "Routing excludes explicit prohibitions, unverified gates and solid interiors; mapped paths below roof canopies remain allowed"
+    ]
+  },
+  "routing_note": "Starts at OSM entrance nodes; no invented off-network connectors."
+}

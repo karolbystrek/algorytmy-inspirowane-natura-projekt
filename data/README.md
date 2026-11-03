@@ -1,5 +1,9 @@
 # Dane
 
+Nowy [demonstrator wejść 5/10/3](processed/agh-entrance-demo/README.md) używa odrębnego źródła
+z oznaczonymi wejściami OSM. Jedna komenda `uv run --all-extras agh-stations demo` odtwarza
+macierz, trasy i raport. Kontrola terenowa pozostaje odroczona.
+
 `processed/agh-pilot/` zawiera mały snapshot do demonstracji i testów offline:
 
 - `problem.json`: macierz dojść, punkty i założone wagi;
