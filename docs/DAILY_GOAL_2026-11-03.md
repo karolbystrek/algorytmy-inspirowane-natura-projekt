@@ -16,8 +16,8 @@ Wybrany obszar: okolice DS Olimp, Babilon, Filutek, Strumyk i Kapitol. Używamy 
 - [x] ABC, greedy i pełny przegląd wybierają po trzy różne miejsca.
 - [x] Pięć tras na mapie ma długości zgodne z macierzą i wynikiem modelu.
 - [x] Jedna komenda odtwarza porównanie i raport offline z zamrożonych danych.
-- [ ] Testy i niezależne uruchomienie w CI potwierdzają działanie.
-- [ ] Zmiany są w PR do `main`, z opisem ograniczeń.
+- [x] Testy i niezależne uruchomienie w CI potwierdzają działanie.
+- [x] Zmiany są w PR do `main`, z opisem ograniczeń.
 
 ## Iteracje
 
@@ -56,3 +56,14 @@ mała instancja kontrolna; nie wykazuje przewagi jednej metody i nie jest porów
 
 Każdy punkt i każda trasa zachowują status **teren: do potwierdzenia**, zgodnie z ustalonym
 zakresem na dziś. Tabela dotyczy grafu OSM z 29 października, wyciętego do opisanego obszaru.
+
+## Zamknięcie celu w uzgodnionym zakresie mapowym
+
+Implementacja i raport są w [PR #3 do main](https://github.com/karolbystrek/algorytmy-inspirowane-natura-projekt/pull/3).
+[CI dla implementacji](https://github.com/karolbystrek/algorytmy-inspirowane-natura-projekt/actions/runs/41610387587)
+zakończyło się sukcesem: 34 testy, lint, formatowanie, odtworzenie obu demonstratorów offline
+i zapis artefaktów. To niezależne uruchomienie na runnerze GitHub Actions; sprawdzenie na laptopie
+członka zespołu i fizyczna kontrola miejsc pozostają późniejszymi czynnościami.
+
+**Dzisiejszy cel mapowy zrealizowany.** Odroczenie terenu pozostaje jawne w danych, raporcie,
+szablonie kontroli i opisie PR. Nie jest traktowane jako wykonana weryfikacja terenowa.
