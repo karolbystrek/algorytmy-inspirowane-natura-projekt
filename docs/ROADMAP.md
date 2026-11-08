@@ -1,7 +1,13 @@
 # Roadmapa: od pilotażu do gotowego projektu
 
-Stan planu: **29.10.2026**. Pierwsze spotkanie: **poniedziałek 09.11.2026**.
+Plan bazowy: **29.10.2026**. Aktualny stan wykonania: **[08.11.2026](STATUS.md)**.
+Pierwsze spotkanie: **poniedziałek 09.11.2026**.
 Cel zespołu: zakończyć projekt **04.12.2026**; **15.12.2026 to granica rezerwy**, a nie planowany termin implementacji.
+
+**Aktualizacja 08.11:** model, CLI, zapis pilota i lokalne demo FastAPI + React/Leaflet
+działają. Część interaktywna M3 powstała wcześniej; trasy, 3D, audyt danych i końcowe
+badania pozostają otwarte. Poniższe daty i role opisują plan, a nie potwierdzenie
+wykonania przeglądów, uzgodnień lub próby na drugim komputerze.
 
 ## Decyzja o zakresie
 
