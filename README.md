@@ -4,10 +4,23 @@ Projekt na przedmiot **Algorytmy inteligentne inspirowane naturą**, zespół 6 
 
 **Pierwszy pokaz: 9 listopada 2026. Gotowy projekt: 4 grudnia; rezerwa do około 15 grudnia.**
 
+## Stan na 8 listopada
+
+**Działa pierwszy model i lokalne demo FastAPI + React:** wybór liczby stacji,
+scenariusza i parametrów, uruchamianie ABC z porównaniami, mapa offline, odtwarzanie
+popraw układu, wykres i eksport JSON. To techniczny pilot etapu M1 z gotową częścią
+interfejsu M3. Przed końcowym projektem pozostają audyt danych, trasy dojścia, 3D,
+pełne badania i raport. Próba na docelowym laptopie wymaga jeszcze potwierdzenia.
+
+**[Jak to działa, co osiągnęliśmy i co zostało →](docs/STATUS.md)**
+
+![Lokalne demo rozmieszczenia stacji](reports/demo/ui.jpg)
+
 ## Od czego zacząć
 
 | Dokument | Zawartość |
 |---|---|
+| [Stan projektu 08.11](docs/STATUS.md) | gotowe elementy, przebieg działania demo, wyniki pilota i rzeczywisty postęp względem planu |
 | [Roadmapa](docs/ROADMAP.md) | etapy, proponowane role 6 osób, zależności i kryteria ukończenia |
 | [Spotkanie 09.11](docs/MEETING_2026-11-09.md) | co pokazać, scenariusz prezentacji, pytania i plan awaryjny |
 | [Research](docs/RESEARCH.md) | źródła naukowe i techniczne oraz decyzje dla projektu |
@@ -19,9 +32,44 @@ Projekt na przedmiot **Algorytmy inteligentne inspirowane naturą**, zespół 6 
 
 ## Działający pilot
 
+### Demo FastAPI + React na prezentację
+
+Jednorazowe przygotowanie (wymaga internetu, Node.js 22+ i uv):
+
+```sh
+uv sync --locked --all-extras
+npm --prefix frontend ci
+npm --prefix frontend run build
+```
+
+Uruchomienie przygotowanego demo, również offline, z głównego katalogu repo:
+
+```sh
+uv run --locked --extra demo uvicorn agh_stations.api:app --host 127.0.0.1 --port 8001
+```
+
+Otwórz **http://127.0.0.1:8001**. Jeden serwer obsługuje API i zbudowany interfejs.
+Demo pozwala zmieniać `p` (1–12), scenariusz, budżet i ziarno; porównuje ABC,
+losowanie i greedy. Mapa Leaflet korzysta wyłącznie z lokalnej geometrii, bez kafelków,
+CDN i kluczy API. Przycisk odtwarzania i suwak pokazują zapis rzeczywistych popraw
+najlepszego układu po obliczeniach — nie transmisję roju na żywo. Eksport JSON zawiera
+parametry, hash danych, wyniki i kroki. To pojedyncze przebiegi, nie seria 30 ziaren.
+Dokładne optimum ma osobny budżet i limit 200 000 kombinacji (`p ≤ 5` w interfejsie).
+Trasy dojścia i 3D pozostają do zrobienia.
+
+Scenariusz pokazu: uruchom domyślne 4 stacje → odtwórz poprawy ABC → przełącz
+metody → zmień na 3 stacje i poranek → uruchom ponownie → omów zmianę wyniku.
+Przed prezentacją zbuduj interfejs i przećwicz na laptopie docelowym.
+
+Rozwój interfejsu: backend jak wyżej oraz w drugim terminalu `npm --prefix frontend run dev`.
+Vite działa na http://127.0.0.1:5173 i przekazuje `/api` do portu 8001.
+Dokumentacja API: http://127.0.0.1:8001/docs (jej zewnętrzne zasoby wymagają internetu).
+
+### Eksperymenty CLI
+
 Repo zawiera snapshot grafu OSM, 18 zastępczych punktów popytu i 30 kandydatów, model p-median, ABC, losowanie, greedy z lokalnymi zamianami, pełny przegląd oraz generator mapy i wykresów. Dane i założenia są opisane w [data/README.md](data/README.md).
 
-**To demonstrator modelu:** wagi popytu są założone, punkty reprezentują węzły grafu zamiast sprawdzonych wejść, a kandydaci wymagają weryfikacji w terenie. Interaktywna mapa, trasy i budynki 3D są zaplanowane w roadmapie.
+**To demonstrator modelu:** wagi popytu są założone, punkty reprezentują węzły grafu zamiast sprawdzonych wejść, a kandydaci wymagają weryfikacji w terenie. Interaktywne demo jest dostępne powyżej; trasy i budynki 3D pozostają w roadmapie.
 
 Wymagania: [uv](https://docs.astral.sh/uv/getting-started/installation/) i Python 3.12 (uv może pobrać interpreter). Po instalacji zależności poniższe obliczenia działają offline:
 
@@ -54,9 +102,11 @@ configs/                  granica obszaru i założenia przygotowania danych
 data/raw/                 lokalny cache, poza Git
 data/processed/agh-pilot/  zamrożone dane do obliczeń offline
 src/agh_stations/          model, solvery, przygotowanie OSM, CLI i wykresy
-tests/                    poprawność celu, budżetu i routingu ze snapshotu
+frontend/                 React/TypeScript, Leaflet i build interfejsu
+tests/                    model, budżety, routing ze snapshotu i kontrakt API
 docs/                     roadmapa, research, architektura i backlog
 reports/pilot/            zapis wyników i ilustracje pierwszego modelu
+reports/demo/             podgląd interfejsu prezentacyjnego
 outputs/                  nowe wyniki lokalne, poza Git
 .github/                  CI, szablony Issues/PR i definicje etykiet
 ```

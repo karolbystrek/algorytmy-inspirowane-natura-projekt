@@ -20,13 +20,14 @@ class Result:
 
 
 class Evaluator:
-    def __init__(self, problem, p, budget, scenario):
+    def __init__(self, problem, p, budget, scenario, on_improvement=None):
         self.problem, self.p, self.budget, self.scenario = problem, p, budget, scenario
         self.calls = 0
         self.best = float("inf")
         self.selection = ()
         self.history = []
         self.started = perf_counter()
+        self.on_improvement = on_improvement
 
     def evaluate(self, selection):
         if self.calls >= self.budget:
@@ -36,6 +37,8 @@ class Evaluator:
         if len(selection) == self.p and value < self.best:
             self.best, self.selection = value, tuple(sorted(selection))
             self.history.append((self.calls, self.best))
+            if self.on_improvement is not None:
+                self.on_improvement(self.calls, self.best, self.selection)
         return value
 
     def result(self):
@@ -47,7 +50,15 @@ class Evaluator:
 
 
 def solve(
-    problem: Problem, method, p, budget=1000, seed=0, scenario="aggregate", foods=12, limit=30
+    problem: Problem,
+    method,
+    p,
+    budget=1000,
+    seed=0,
+    scenario="aggregate",
+    foods=12,
+    limit=30,
+    on_improvement=None,
 ):
     n = len(problem.candidate_ids)
     if not isinstance(p, int) or not 1 <= p <= n:
@@ -60,7 +71,7 @@ def solve(
         raise ValueError("foods must be >= 2 and limit >= 1")
     problem.weights(scenario)  # Validate before starting the clock.
     rng = np.random.default_rng(seed)
-    evaluator = Evaluator(problem, p, budget, scenario)
+    evaluator = Evaluator(problem, p, budget, scenario, on_improvement)
 
     def random_selection():
         return tuple(sorted(int(i) for i in rng.choice(n, size=p, replace=False)))

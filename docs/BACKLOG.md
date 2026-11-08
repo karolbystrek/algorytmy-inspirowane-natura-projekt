@@ -1,5 +1,11 @@
 # Backlog do Issues
 
+**Stan techniczny 08.11:** [aktualny opis projektu](STATUS.md). V01 ma działający
+widok mapy i wyników, V02 jest częściowo zrealizowane w React/Leaflet (docelowe dane
+i wizualizacja nadal wymagają pracy), a X02 ma implementację lokalnego synchronicznego
+API. V03, audyt danych i końcowe badania pozostają otwarte. Poniższa tabela zachowuje
+plan bazowy; nie potwierdza review ani organizacyjnego odbioru zadań.
+
 Zadania mają proponowanych właścicieli zgodnie z [roadmapą](ROADMAP.md). To lista planistyczna; nie utworzono automatycznych przypisań ani powiadomień do członków zespołu. `P0` oznacza blokadę etapu, `P1` pozostałe minimum, `P2` rozszerzenie.
 
 | ID | Zadanie / proponowany właściciel | Termin / priorytet | Zależności | Kryterium odbioru |

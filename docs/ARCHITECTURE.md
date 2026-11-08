@@ -3,7 +3,9 @@
 ## Stan bieżący i docelowy
 
 **Zaimplementowane w pilotażu:** przygotowanie OSM, wersjonowany kontrakt plików, model i trzy heurystyki, pełny przegląd, runner eksperymentów, wykresy/mapa statyczna, testy i CI.
-**Planowane do 4 grudnia:** audyt wejść i kandydatów, lokalne poprawki danych, scenariusze docelowe, interfejs TypeScript/MapLibre z trasami i budynkami 3D. FastAPI pozostaje opcjonalne.
+**Demo prezentacyjne:** FastAPI (`api.py`) + React/TypeScript (`frontend/`), mapa Leaflet z lokalnej geometrii OSM, kontrolki parametrów, porównanie pojedynczych przebiegów, eksport JSON i odtwarzanie rzeczywistych popraw układu. Po buildzie frontend i API obsługuje jeden proces na porcie 8001. `GET /api/dataset`, `GET /api/map`, `GET /api/health` oraz synchroniczny `POST /api/run`; maksymalnie 20 000 ocen/metodę, jeden eksperyment naraz, pełny przegląd do 200 000 kombinacji. API weryfikuje hashe snapshotu. Nie pobiera OSM ani kafelków.
+
+**Planowane do 4 grudnia:** audyt wejść i kandydatów, lokalne poprawki danych, scenariusze docelowe, trasy i budynki 3D; MapLibre pozostaje opcją dla warstwy 3D.
 
 ## Kontekst
 
@@ -15,10 +17,12 @@ flowchart LR
     FILES --> MODEL[Model p-median i ABC]
     MODEL --> RESULTS[Wyniki CSV i JSON]
     RESULTS --> REPORT[Raport i wykresy offline]
-    FILES -. planowane .-> UI[Przeglądarka: MapLibre i 3D]
-    RESULTS -. planowane .-> UI
-    UI -.-> TEACHER[Prowadzący i zespół]
+    FILES --> API[FastAPI: lokalne dane i obliczenia]
+    API --> MODEL
+    API <--> UI[Przeglądarka: React i Leaflet 2D]
+    UI --> TEACHER[Prowadzący i zespół]
     REPORT --> TEACHER
+    UI -. planowane .-> FUTURE[Trasy dojścia i budynki 3D]
 ```
 
 ## Komponenty i przepływ danych
@@ -40,8 +44,13 @@ flowchart TD
     RUN --> OUT[runs.csv, history.csv, results.json]
     OUT --> PLOT[report.py: mapa i zbieżność]
     MAP --> PLOT
-    OUT -. docelowo .-> WEB[TypeScript + MapLibre]
-    MAP -. docelowo .-> WEB
+    VALID --> API[api.py: jeden eksperyment z przeglądarki]
+    ABC --> API
+    BASE --> API
+    EXACT --> API
+    MAP --> API
+    API <--> WEB[React/TypeScript + Leaflet]
+    WEB -. planowane .-> FUTURE[Trasy po grafie i 3D]
 ```
 
 Zewnętrzne zapytania występują tylko w przygotowaniu danych. Domyślny benchmark i raport działają offline. Macierz `D[n_popyt, n_kandydaci]` oddziela koszt routingu od optymalizacji; identyfikatory i kolejność są częścią kontraktu. Jeden evaluator liczy wszystkie wywołania celu, w tym inicjalizację, powtórzenia, częściowe układy greedy i zwiadowczynie.
@@ -73,13 +82,24 @@ sequenceDiagram
     R-->>U: Mapa i wykres zbieżności
 ```
 
-## Docelowy interfejs i ewentualne API
+## Interfejs demonstracyjny i dalsze rozszerzenia
 
-Pierwsza wersja interaktywna czyta `problem.json`, `map.geojson` i `results.json` z katalogu statycznego. Kontrolki wybierają już policzone `p`, scenariusz i metodę. Widok wyświetla kandydatów, popyt, wybrane stacje, rzeczywiste trasy po grafie, wynik w metrach, pokrycie i źródło danych. Zapisane wyniki ułatwiają powtórzenie demonstracji na laptopie.
+Bieżący interfejs React/TypeScript korzysta z synchronicznego FastAPI i Leaflet.
+Przeglądarka wysyła parametry do `POST /api/run`, który uruchamia te same solvery co CLI.
+Wynik zawiera metryki, finalne stacje i zapis kolejnych popraw z numerami ocen.
+Odtwarzanie jest wizualizacją tego zapisu po zakończeniu obliczeń. Nie przedstawia całej
+populacji pszczół ani transmisji obliczeń w czasie rzeczywistym.
 
-Do rysowania tras trzeba zachować sekwencje krawędzi lub wygenerować `routes.geojson` dla wybranego rozwiązania. `map.geojson` pilota zachowuje `u`, `v` i długości, ale bieżący raport **jeszcze nie rysuje tras**. Nie wolno zastępować ich prostymi odcinkami opisanymi jako najkrótsze dojścia.
+Dane i geometria są lokalne, weryfikowane hashem. Po zbudowaniu interfejsu jeden proces
+obsługuje frontend i API. Mapa pokazuje budynki, graf pieszy, popyt i kandydatów. Pozwala
+przybliżać, przesuwać i oglądać wybrane stacje; nie rysuje jeszcze tras.
 
-Jeśli po 20.11 potrzebna będzie optymalizacja z przeglądarki, proponowany kontrakt FastAPI to `POST /runs` (dataset ID, p, metoda, scenariusz, limit, seed), `GET /runs/{id}` (status, wynik) i `GET /datasets/{id}` (manifest). To projekt kontraktu, nie istniejące endpointy. Jeden proces obliczeniowy i pliki wystarczą na małą demonstrację. Każde żądanie musi mieć limit ocen i walidację parametrów. Nie uruchamiamy pobierania OSM w żądaniu użytkownika.
+Do rysowania tras trzeba zachować sekwencje krawędzi lub wygenerować `routes.geojson`
+dla wybranego rozwiązania. `map.geojson` zachowuje `u`, `v` i długości. Nie zastępujemy
+najkrótszych dojść prostymi odcinkami. Budynki 3D i MapLibre pozostają osobnym etapem.
+
+Ewentualne asynchroniczne `POST /runs` i `GET /runs/{id}` pozostają propozycją na
+większe eksperymenty; małe prezentacyjne przebiegi obsługuje obecny endpoint synchroniczny.
 
 ## Decyzje i uzasadnienie
 
@@ -90,7 +110,7 @@ Jeśli po 20.11 potrzebna będzie optymalizacja z przeglądarki, proponowany kon
 | Pliki + manifest | mały zespół, łatwe eksperymenty i odtwarzanie | jeśli wyniki przekroczą wygodny rozmiar repo |
 | Lokalny Python, bez GPU | obliczenia macierzowe i mały obszar | po pomiarze wąskiego gardła |
 | 3D w warstwie prezentacji | wysokości nie wpływają na funkcję celu | przy dodaniu wysokości/schodów do kosztu ruchu |
-| Statyczny odczyt wyników przed API | niezależny rozwój mapy i badań | po ukończeniu podstawowego scenariusza interfejsu |
+| Lokalne synchroniczne API dla demo | ponowne użycie solverów CLI i jeden serwer na prezentację | przy większych eksperymentach wymagających zadań w tle |
 
 ## Kontrole jakości
 
