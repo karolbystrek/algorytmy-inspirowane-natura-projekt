@@ -2,7 +2,7 @@
   "dataset_id": "agh-v2-draft",
   "schema_version": 1,
   "source": {
-    "retrieved_at_utc": "2026-11-09T16:19:02.386407+00:00",
+    "retrieved_at_utc": "2026-11-09T18:30:49.442963+00:00",
     "extract_file": "malopolskie-latest.osm.pbf",
     "extract_sha256": "9dac9421ce50ef70593cfd8868ebf5de26a8b504a6fb8a4639cd890a05bf7b75",
     "osm_data_timestamp": "2026-11-08T21:21:00Z",
@@ -24,7 +24,24 @@
       "day": 1,
       "evening": 1
     },
-    "category_weights": {
+    "demand_intensity_per_1000m2": {
+      "dorm": {
+        "morning": 26,
+        "day": 7,
+        "evening": 26
+      },
+      "teaching": {
+        "morning": 9,
+        "day": 15,
+        "evening": 3
+      },
+      "other": {
+        "morning": 7.5,
+        "day": 15,
+        "evening": 22.5
+      }
+    },
+    "fixed_category_totals_for_sensitivity": {
       "dorm": {
         "morning": 4,
         "day": 1,
@@ -43,6 +60,10 @@
     },
     "demand": {
       "min_footprint_m2": 150,
+      "default_levels_by_leisure": {
+        "sports_hall": 1,
+        "swimming_pool": 1
+      },
       "other_amenity": [
         "library",
         "doctors",
@@ -100,10 +121,10 @@
     "assumed_building_height_m": 9,
     "note": "Draft: built automatically from OSM tags. No point has been checked on site."
   },
-  "config_sha256": "c7790fd87fa34e4303ba761a27344234816a537e3c59d8651ec1ac5674a49bb6",
+  "config_sha256": "9d5941f7bed1d25f54376ddb89533782ac9125dc9d4f368910ec8750614fcb89",
   "files_sha256": {
-    "problem.json": "ab1cde6ff245d32227cf53b441453a19fd3e7e0595d4a143abb49cbb93d07d52",
-    "map.geojson": "eb5cf132af036a80d5ca316fc3eb5542708f86c0eb9622b887e19d3d107ff610"
+    "problem.json": "feddef0290d0ff3eb1e1a9af503e1538949ff8932ba348673d5e1d7978b971b0",
+    "map.geojson": "38cbb906702a4e38772c32393535453190d6e2b0f6f0a5746f272d3a88da30d5"
   },
   "versions": {
     "python": "3.12.12",
@@ -153,6 +174,11 @@
       "other": 8,
       "teaching": 71
     },
+    "demand_share_by_category": {
+      "dorm": 0.4773,
+      "other": 0.064,
+      "teaching": 0.4587
+    },
     "demand_with_osm_entrances": 54,
     "demand_without_verified_connector": 7,
     "max_connector_m": 22.064,
@@ -172,7 +198,7 @@
   },
   "limitations": [
     "No point has been checked on site; every status is requires_review.",
-    "Demand weights are assumptions: category totals split by floor area.",
+    "Demand weights are assumptions: floor area times an intensity per function.",
     "Connector legs are straight lines from an entrance to the walking graph.",
     "Buildings without an OSM entrance use the point on the outline nearest the graph.",
     "Largest strongly connected component only; audit excluded components.",

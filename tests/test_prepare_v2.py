@@ -10,10 +10,12 @@ import pytest
 pytest.importorskip("osmnx")
 from agh_stations.model import Problem  # noqa: E402
 from agh_stations.prepare_v2 import (  # noqa: E402
+    assumed_levels,
     building_height,
     classify,
     crosses_footprint_legitimately,
     parse_number,
+    scenario_weights,
 )
 from agh_stations.routing import Router  # noqa: E402
 
@@ -46,6 +48,27 @@ DATA = Path(__file__).resolve().parents[1] / "data/processed/agh-v2"
 )
 def test_building_function_decides_the_demand_category(row, footprint, expected):
     assert classify(row, footprint, RULES) == expected
+
+
+@pytest.mark.parametrize(
+    ("row", "expected"),
+    [
+        ({"leisure": "sports_hall"}, (1, "function_default")),
+        ({"amenity": "library"}, (3.0, "category_median")),
+    ],
+)
+def test_levels_missing_in_osm_depend_on_the_building_function(row, expected):
+    rules = {"default_levels_by_leisure": {"sports_hall": 1}}
+    assert assumed_levels(row, 3.0, rules) == expected
+
+
+def test_a_category_share_follows_how_much_of_it_exists():
+    intensity = {"dorm": {"day": 10}, "other": {"day": 20}}
+    few = [{"category": "dorm", "floor_area_m2": 9000}, {"category": "other", "floor_area_m2": 100}]
+    many = [*few, {"category": "other", "floor_area_m2": 100}]
+    assert scenario_weights(few, intensity, ["day"])["day"] == [90.0, 2.0]
+    # A new building adds demand of its own and takes nothing away from the existing ones.
+    assert scenario_weights(many, intensity, ["day"])["day"] == [90.0, 2.0, 2.0]
 
 
 @pytest.mark.parametrize(
