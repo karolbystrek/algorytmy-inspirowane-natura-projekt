@@ -37,7 +37,7 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False):
     from shapely.geometry import Point, box, mapping
 
     config_path, output_dir, raw_dir = Path(config_path), Path(output_dir), Path(raw_dir)
-    config = json.loads(config_path.read_text())
+    config = json.loads(config_path.read_text(encoding="utf-8"))
     output_dir.mkdir(parents=True, exist_ok=True)
     raw_dir.mkdir(parents=True, exist_ok=True)
     ox.settings.use_cache = True
@@ -67,7 +67,7 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False):
     if not refresh and graph_path.exists() and buildings_path.exists() and source_path.exists():
         graph = ox.load_graphml(graph_path)
         buildings = gpd.read_file(buildings_path)
-        source = json.loads(source_path.read_text())
+        source = json.loads(source_path.read_text(encoding="utf-8"))
     else:
         if graph_path.exists() and not refresh:
             graph = ox.load_graphml(graph_path)
@@ -89,12 +89,12 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False):
             "endpoint": ox.settings.overpass_url,
             "snapshot_mode": "live cached responses; retrieved_at_utc is not a historical OSM date",
         }
-        source_path.write_text(json.dumps(source, indent=2) + "\n")
+        source_path.write_text(json.dumps(source, indent=2) + "\n", encoding="utf-8")
 
     if "cached_response_inventory" not in source:
         source["cached_response_inventory"] = []
         for path in sorted((raw_dir / "osmnx-cache").glob("*.json")):
-            response = json.loads(path.read_text())
+            response = json.loads(path.read_text(encoding="utf-8"))
             source["cached_response_inventory"].append(
                 {
                     "cache_file": path.name,
@@ -102,7 +102,7 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False):
                     "timestamp_osm_base": response.get("osm3s", {}).get("timestamp_osm_base"),
                 }
             )
-        source_path.write_text(json.dumps(source, indent=2) + "\n")
+        source_path.write_text(json.dumps(source, indent=2) + "\n", encoding="utf-8")
 
     def blocked(tags):
         foot = tags.get("foot")
@@ -225,7 +225,9 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False):
         "routing_note": "Graph-node proxies; building-to-graph access paths are NOT modelled.",
     }
     problem_path = output_dir / "problem.json"
-    problem_path.write_text(json.dumps(problem, ensure_ascii=False, indent=2) + "\n")
+    problem_path.write_text(
+        json.dumps(problem, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     features = []
     for _, row in buildings.iterrows():
         features.append(
@@ -268,7 +270,8 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False):
             ensure_ascii=False,
             separators=(",", ":"),
         )
-        + "\n"
+        + "\n",
+        encoding="utf-8",
     )
     manifest = {
         "dataset_id": config["name"],
@@ -319,6 +322,6 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False):
         ],
     }
     (output_dir / "manifest.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n"
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     print(json.dumps(manifest["quality"], indent=2))

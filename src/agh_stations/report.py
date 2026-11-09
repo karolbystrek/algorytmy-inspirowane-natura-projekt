@@ -16,16 +16,16 @@ def render(results_dir, dataset_dir):
     from matplotlib.collections import LineCollection
 
     results_dir, dataset_dir = Path(results_dir), Path(dataset_dir)
-    results = json.loads((results_dir / "results.json").read_text())
+    results = json.loads((results_dir / "results.json").read_text(encoding="utf-8"))
     problem_path = dataset_dir / "problem.json"
     if hashlib.sha256(problem_path.read_bytes()).hexdigest() != results["problem_sha256"]:
         raise ValueError("Results refer to a different problem snapshot")
-    manifest = json.loads((dataset_dir / "manifest.json").read_text())
+    manifest = json.loads((dataset_dir / "manifest.json").read_text(encoding="utf-8"))
     expected_map = manifest["files_sha256"]["map.geojson"]
     if hashlib.sha256((dataset_dir / "map.geojson").read_bytes()).hexdigest() != expected_map:
         raise ValueError("Map does not match the dataset manifest")
-    problem = json.loads(problem_path.read_text())
-    features = json.loads((dataset_dir / "map.geojson").read_text())["features"]
+    problem = json.loads(problem_path.read_text(encoding="utf-8"))
+    features = json.loads((dataset_dir / "map.geojson").read_text(encoding="utf-8"))["features"]
     selected_ids = set(results["best_solutions"]["abc"]["candidate_ids"])
     fig, ax = plt.subplots(figsize=(11, 8))
     walk_segments = []
@@ -93,7 +93,7 @@ def render(results_dir, dataset_dir):
     fig.savefig(results_dir / "map.svg")
     plt.close(fig)
 
-    with (results_dir / "history.csv").open() as handle:
+    with (results_dir / "history.csv").open(encoding="utf-8") as handle:
         histories = list(csv.DictReader(handle))
     fig, ax = plt.subplots(figsize=(9, 5))
     colors = {"abc": "#1654b8", "random": "#e78a27", "greedy": "#37864f"}
