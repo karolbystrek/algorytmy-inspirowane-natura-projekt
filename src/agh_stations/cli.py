@@ -10,6 +10,7 @@ from pathlib import Path
 
 import numpy as np
 
+from agh_stations import audit
 from agh_stations.model import Problem
 from agh_stations.solvers import exact, solve
 
@@ -65,7 +66,7 @@ def benchmark(args):
                 }
                 del solutions[method]["history"]
     for name, records in (("runs.csv", rows), ("history.csv", histories)):
-        with (output / name).open("w", newline="") as handle:
+        with (output / name).open("w", newline="", encoding="utf-8") as handle:
             writer = csv.DictWriter(handle, fieldnames=list(records[0]), lineterminator="\n")
             writer.writeheader()
             writer.writerows(records)
@@ -101,7 +102,9 @@ def benchmark(args):
         "summary": summary,
         "best_solutions": solutions,
     }
-    (output / "results.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
+    (output / "results.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     print(json.dumps(summary, indent=2))
 
 
@@ -132,6 +135,80 @@ def main():
         prepare(args.config, args.output, args.raw_dir, args.refresh)
 
     prep.set_defaults(func=prepare_command)
+    prep_v2 = sub.add_parser("prepare-v2", help="Build the v2 dataset; requires the geo extra")
+    prep_v2.add_argument("--config", default="configs/agh-v2.json")
+    prep_v2.add_argument("--output", default="data/processed/agh-v2")
+    prep_v2.add_argument("--raw-dir", default="data/raw")
+    prep_v2.add_argument("--refresh", action="store_true")
+    prep_v2.add_argument("--pbf", help="Local OSM extract to use instead of the Overpass service")
+
+    def prepare_v2_command(args):
+        from agh_stations.prepare_v2 import prepare as prepare_second
+
+        prepare_second(args.config, args.output, args.raw_dir, args.refresh, args.pbf)
+
+    prep_v2.set_defaults(func=prepare_v2_command)
+    develop = sub.add_parser("dev-instance", help="Generate the separate tuning instance")
+    develop.add_argument("--dataset", default="data/processed/agh-v2")
+    develop.add_argument("--output", default="data/processed/agh-development")
+
+    def develop_command(args):
+        from agh_stations.study import make_development_instance
+
+        make_development_instance(args.dataset, args.output)
+
+    develop.set_defaults(func=develop_command)
+    study_parser = sub.add_parser("study", help="Run the full protocol from docs/EXPERIMENTS.md")
+    study_parser.add_argument("--problem", default="data/processed/agh-v2/problem.json")
+    study_parser.add_argument(
+        "--development", default="data/processed/agh-development/problem.json"
+    )
+    study_parser.add_argument("--output", default="outputs/study")
+    study_parser.add_argument("--ps", default="3,5,8")
+    study_parser.add_argument("--budget", type=int, default=10_000)
+    study_parser.add_argument("--runs", type=int, default=30)
+    study_parser.add_argument("--tuning-runs", type=int, default=10)
+
+    def study_command(args):
+        from agh_stations.study import run
+
+        print(
+            json.dumps(
+                run(
+                    args.problem,
+                    args.development,
+                    args.output,
+                    tuple(int(p) for p in args.ps.split(",")),
+                    args.budget,
+                    args.runs,
+                    args.tuning_runs,
+                ),
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+
+    study_parser.set_defaults(func=study_command)
+    template = sub.add_parser("audit-template", help="Create the field-audit spreadsheet")
+    template.add_argument("--dataset", default="data/processed/agh-v2")
+    template.add_argument("--audit", default="data/audit/agh-v2-audit.csv")
+
+    def template_command(args):
+        print(audit.write_template(args.dataset, args.audit))
+
+    template.set_defaults(func=template_command)
+    apply_audit = sub.add_parser("apply-audit", help="Build a dataset from field-audit decisions")
+    apply_audit.add_argument("--dataset", default="data/processed/agh-v2")
+    apply_audit.add_argument("--audit", default="data/audit/agh-v2-audit.csv")
+    apply_audit.add_argument("--output", default="data/processed/agh-v2-audited")
+    apply_audit.add_argument(
+        "--strict", action="store_true", help="Keep only points marked as reviewed"
+    )
+
+    def apply_audit_command(args):
+        print(json.dumps(audit.apply(args.dataset, args.audit, args.output, args.strict), indent=2))
+
+    apply_audit.set_defaults(func=apply_audit_command)
     report = sub.add_parser("report", help="Render map and convergence; requires the report extra")
     report.add_argument("--results", default="outputs/demo")
     report.add_argument("--dataset", default="data/processed/agh-pilot")

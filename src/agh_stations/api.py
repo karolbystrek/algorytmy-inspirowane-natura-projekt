@@ -2,8 +2,8 @@
 
 import hashlib
 import json
+import os
 from functools import lru_cache
-from math import comb
 from pathlib import Path
 from threading import Lock
 from typing import Literal
@@ -15,37 +15,50 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 from agh_stations.model import Problem
-from agh_stations.solvers import exact, solve
+from agh_stations.routing import Router
+from agh_stations.solvers import greedy_construction_cost, optimal, solve
 
 ROOT = Path(__file__).resolve().parents[2]
-DATASET = ROOT / "data/processed/agh-pilot"
+DATASET = ROOT / "data/processed" / os.environ.get("AGH_DATASET", "agh-v2")
 FRONTEND = ROOT / "frontend/dist"
+ABC_FOODS = 8  # Chosen on the development instance, with abandonment limit foods * p.
+ScenarioName = Literal["aggregate", "morning", "day", "evening"]
 
 
 class RunRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    p: int = Field(default=4, ge=1, le=12, strict=True)
+    p: int = Field(default=4, ge=1, strict=True)
     budget: int = Field(default=1000, ge=500, le=20_000, strict=True)
     seed: int = Field(default=0, ge=0, le=2**32 - 1, strict=True)
-    scenario: Literal["aggregate", "morning", "day", "evening"] = "aggregate"
+    scenario: ScenarioName = "aggregate"
     include_exact: bool = True
+
+
+class RoutesRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    candidate_ids: list[str] = Field(min_length=1, max_length=2000)
+    scenario: ScenarioName = "aggregate"
+
+
+ASSUMED_HEIGHT_M = 9.0
 
 
 @lru_cache(maxsize=1)
 def dataset():
-    manifest = json.loads((DATASET / "manifest.json").read_text())
+    manifest = json.loads((DATASET / "manifest.json").read_text(encoding="utf-8"))
     for name, expected in manifest["files_sha256"].items():
         if hashlib.sha256((DATASET / name).read_bytes()).hexdigest() != expected:
             raise RuntimeError(f"Snapshot checksum mismatch: {name}")
-    raw = json.loads((DATASET / "problem.json").read_text())
+    raw = json.loads((DATASET / "problem.json").read_text(encoding="utf-8"))
     return raw, Problem.load(DATASET / "problem.json"), manifest
 
 
 @lru_cache(maxsize=1)
 def map_data():
     dataset()  # Verify the snapshot before serving its geometry.
-    raw = json.loads((DATASET / "map.geojson").read_text())
+    raw = json.loads((DATASET / "map.geojson").read_text(encoding="utf-8"))
     seen, features = set(), []
     for feature in raw["features"]:
         props = feature["properties"]
@@ -56,14 +69,19 @@ def map_data():
             if key in seen:
                 continue
             seen.add(key)
+        properties = {"kind": props["kind"]}
+        if props["kind"] == "building":
+            properties["height_m"] = props.get("height_m", ASSUMED_HEIGHT_M)
+            properties["height_source"] = props.get("height_source", "assumed")
         features.append(
-            {
-                "type": "Feature",
-                "geometry": feature["geometry"],
-                "properties": {"kind": props["kind"]},
-            }
+            {"type": "Feature", "geometry": feature["geometry"], "properties": properties}
         )
     return {"type": "FeatureCollection", "features": features}
+
+
+@lru_cache(maxsize=1)
+def router():
+    return Router(DATASET / "map.geojson", dataset()[0])
 
 
 app = FastAPI(title="AGH Station Lab", version="0.1.0")
@@ -94,13 +112,47 @@ def get_map():
     return map_data()
 
 
+@app.post("/api/routes")
+def routes(request: RoutesRequest):
+    """Walk from every demand point to its nearest selected station."""
+    _, problem, _ = dataset()
+    position = {identifier: j for j, identifier in enumerate(problem.candidate_ids)}
+    unknown = sorted(set(request.candidate_ids) - set(position))
+    if unknown:
+        raise HTTPException(422, f"Nieznane lokalizacje: {', '.join(unknown)}")
+    selected = sorted({position[identifier] for identifier in request.candidate_ids})
+    weights = problem.weights(request.scenario)
+    largest = float(weights.max())
+    features = []
+    for i, demand_id in enumerate(problem.demand_ids):
+        nearest = selected[int(problem.distances[i, selected].argmin())]
+        candidate_id = problem.candidate_ids[nearest]
+        coordinates, length = router().route(i, candidate_id)
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": {"type": "LineString", "coordinates": coordinates},
+                "properties": {
+                    "demand_id": demand_id,
+                    "candidate_id": candidate_id,
+                    "distance_m": length,
+                    "scale": float(weights[i]) / largest if largest else 0.0,
+                },
+            }
+        )
+    return {"type": "FeatureCollection", "features": features}
+
+
 @app.post("/api/run")
 def run(request: RunRequest):
     _, problem, manifest = dataset()
-    combinations = comb(len(problem.candidate_ids), request.p)
-    if request.include_exact and combinations > 200_000:
+    candidates = len(problem.candidate_ids)
+    if request.p > candidates:
+        raise HTTPException(422, f"Ten zestaw danych ma tylko {candidates} możliwych lokalizacji.")
+    needed = greedy_construction_cost(candidates, request.p)
+    if request.p < candidates and request.budget < needed:
         raise HTTPException(
-            422, "Pełny przegląd przekracza 200 000 układów. Wyłącz go lub wybierz p ≤ 5."
+            422, f"Metoda greedy potrzebuje przy {request.p} stacjach co najmniej {needed} ocen."
         )
     if not run_lock.acquire(blocking=False):
         raise HTTPException(429, "Trwają już obliczenia. Spróbuj ponownie za chwilę.")
@@ -125,6 +177,8 @@ def run(request: RunRequest):
                 budget=request.budget,
                 seed=request.seed,
                 scenario=request.scenario,
+                foods=ABC_FOODS,
+                limit=ABC_FOODS * request.p,
                 on_improvement=record,
             )
             methods[method] = {
@@ -136,14 +190,14 @@ def run(request: RunRequest):
             }
         reference = None
         if request.include_exact:
-            result = exact(problem, request.p, request.scenario)
+            result = optimal(problem, request.p, request.scenario)
             reference = {
                 "mean_distance_m": result.objective,
-                "evaluations": result.evaluations,
                 "elapsed_s": result.elapsed_s,
             }
         return {
             "parameters": request.model_dump(),
+            "abc": {"foods": ABC_FOODS, "limit": ABC_FOODS * request.p},
             "dataset_id": manifest["dataset_id"],
             "problem_sha256": manifest["files_sha256"]["problem.json"],
             "methods": methods,

@@ -31,7 +31,7 @@ import {
 
 const DEFAULTS: Parameters = {
     p: 4,
-    budget: 1000,
+    budget: 5000,
     seed: 0,
     scenario: "aggregate",
     include_exact: true,
@@ -132,6 +132,7 @@ export default function App() {
         }
     }
 
+    const maxStations = dataset?.candidates.length ?? DEFAULTS.p;
     const solution = run?.methods[method];
     const evaluation = Math.round(frame * (run?.parameters.budget ?? 1000));
     const step = solution?.steps
@@ -205,7 +206,8 @@ export default function App() {
                 <div className="page-heading">
                     <div>
                         <p className="eyebrow">
-                            Miasteczko studenckie AGH <span> / </span> Pilotaż
+                            Miasteczko studenckie AGH <span> / </span> Wersja
+                            robocza
                         </p>
                         <h1>Rozmieszczenie stacji</h1>
                         <p>
@@ -250,27 +252,22 @@ export default function App() {
                                 id="station-count"
                                 type="range"
                                 min="1"
-                                max="12"
+                                max={maxStations}
                                 value={params.p}
                                 disabled={busy}
                                 style={
                                     {
-                                        "--range-progress": `${((params.p - 1) / 11) * 100}%`,
+                                        "--range-progress": `${((params.p - 1) / Math.max(1, maxStations - 1)) * 100}%`,
                                     } as CSSProperties
                                 }
                                 onChange={(e) => {
                                     const p = +e.target.value;
-                                    setParams((v) => ({
-                                        ...v,
-                                        p,
-                                        include_exact:
-                                            p <= 5 && v.include_exact,
-                                    }));
+                                    setParams((v) => ({ ...v, p }));
                                 }}
                             />
                             <div className="range-extents">
                                 <span>1</span>
-                                <span>12 stacji</span>
+                                <span>{maxStations} stacji</span>
                             </div>
                             <label className="field-label" htmlFor="scenario">
                                 Scenariusz popytu
@@ -377,7 +374,7 @@ export default function App() {
                                         <input
                                             type="checkbox"
                                             checked={params.include_exact}
-                                            disabled={busy || params.p > 5}
+                                            disabled={busy}
                                             onChange={(e) =>
                                                 setParams((v) => ({
                                                     ...v,
@@ -389,14 +386,14 @@ export default function App() {
                                         <span>
                                             Oblicz dokładne optimum
                                             <small>
-                                                {params.p > 5
-                                                    ? "Dostępne dla maksymalnie 5 stacji."
-                                                    : "Pełny przegląd · osobny budżet"}
+                                                Programowanie całkowitoliczbowe
+                                                · poza budżetem ocen
                                             </small>
                                         </span>
                                     </label>
                                     <p className="algorithm-parameters">
-                                        ABC: 12 źródeł · limit porzucenia 30
+                                        ABC: {run?.abc.foods ?? 12} źródeł ·
+                                        limit porzucenia {run?.abc.limit ?? "—"}
                                     </p>
                                 </div>
                             </details>
@@ -431,11 +428,13 @@ export default function App() {
                             )}
                         </div>
                         <div className="dataset-note">
-                            <strong>Dane pilotażowe</strong>
+                            <strong>Zestaw {dataset?.id ?? "…"}</strong>
                             <p>
-                                30 możliwych lokalizacji
+                                {dataset?.candidates.length ?? "—"} możliwych
+                                lokalizacji
                                 <br />
-                                18 punktów popytu · graf pieszy OSM
+                                {dataset?.demand.length ?? "—"} punktów popytu ·
+                                graf pieszy OSM
                             </p>
                         </div>
                     </aside>
@@ -473,7 +472,7 @@ export default function App() {
                                     <small>ms</small>
                                 </strong>
                                 <span>
-                                    wybrana metoda · bez pełnego przeglądu
+                                    wybrana metoda · bez solvera optimum
                                 </span>
                             </div>
                         </div>
@@ -506,7 +505,12 @@ export default function App() {
                                     ))}
                                 </div>
                             </div>
-                            <CampusMap dataset={dataset} selected={selected} />
+                            <CampusMap
+                                dataset={dataset}
+                                selected={selected}
+                                weights={run?.demand_weights}
+                                scenario={run?.parameters.scenario ?? "aggregate"}
+                            />
                             <div className="playback">
                                 <button
                                     className="playback-play"
@@ -713,7 +717,7 @@ export default function App() {
                                     Dokładne optimum
                                     <small>
                                         {run?.exact
-                                            ? `${number(run.exact.evaluations, 0)} układów · osobny budżet`
+                                            ? `Solver MILP · ${number(run.exact.elapsed_s * 1000, 0)} ms`
                                             : "Dostępne w parametrach zaawansowanych"}
                                     </small>
                                 </span>
@@ -742,8 +746,8 @@ export default function App() {
                     <Info size={16} />
                     <p>
                         <strong>Model demonstracyjny.</strong> Wagi są założone,
-                        punkty popytu zastępują wejścia. Lokalizacje wymagają
-                        weryfikacji w terenie.
+                        a lokalizacje wymagają weryfikacji w terenie, dopóki
+                        audyt ich nie potwierdzi.
                     </p>
                 </footer>
             </main>
@@ -797,13 +801,14 @@ export default function App() {
                 <p>
                     Animacja odtwarza rzeczywiste poprawy po zakończeniu
                     obliczeń. Wykres porównuje pojedyncze przebiegi. Dokładne
-                    optimum ma osobny budżet.
+                    optimum liczy osobny solver, poza budżetem ocen.
                 </p>
                 <div className="dialog-note">
                     <Info size={17} />
                     <span>
-                        Mapa pokazuje geometrię OSM i lokalizacje. Odległości
-                        liczone są po grafie; trasy dojścia nie są rysowane.
+                        Zielone linie to trasy po grafie pieszym OSM do
+                        najbliższej stacji. Wielkość punktu popytu odpowiada
+                        założonej wadze w wybranym scenariuszu.
                     </span>
                 </div>
                 <button

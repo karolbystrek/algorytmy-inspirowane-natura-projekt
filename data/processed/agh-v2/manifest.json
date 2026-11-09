@@ -1,0 +1,181 @@
+{
+  "dataset_id": "agh-v2-draft",
+  "schema_version": 1,
+  "source": {
+    "retrieved_at_utc": "2026-11-09T16:19:02.386407+00:00",
+    "extract_file": "malopolskie-latest.osm.pbf",
+    "extract_sha256": "9dac9421ce50ef70593cfd8868ebf5de26a8b504a6fb8a4639cd890a05bf7b75",
+    "osm_data_timestamp": "2026-11-08T21:21:00Z",
+    "attribution": "© OpenStreetMap contributors",
+    "license": "https://opendatacommons.org/licenses/odbl/1-0/"
+  },
+  "config": {
+    "name": "agh-v2-draft",
+    "bbox_wgs84": [
+      19.902,
+      50.063,
+      19.923,
+      50.073
+    ],
+    "routing_buffer_m": 250,
+    "crs_metric": "EPSG:2180",
+    "scenario_mixture": {
+      "morning": 1,
+      "day": 1,
+      "evening": 1
+    },
+    "category_weights": {
+      "dorm": {
+        "morning": 4,
+        "day": 1,
+        "evening": 4
+      },
+      "teaching": {
+        "morning": 3,
+        "day": 5,
+        "evening": 1
+      },
+      "other": {
+        "morning": 1,
+        "day": 2,
+        "evening": 3
+      }
+    },
+    "demand": {
+      "min_footprint_m2": 150,
+      "other_amenity": [
+        "library",
+        "doctors",
+        "arts_centre"
+      ],
+      "other_leisure": [
+        "sports_hall",
+        "swimming_pool",
+        "music_venue"
+      ],
+      "retail_min_footprint_m2": 400,
+      "ignored_entrance_types": [
+        "emergency",
+        "service",
+        "garage",
+        "exit"
+      ],
+      "max_connector_m": 100,
+      "excluded_name_patterns": [
+        "Szkoła Masażu"
+      ]
+    },
+    "candidates": {
+      "spacing_m": 70,
+      "building_clearance_m": 3,
+      "max_walk_to_demand_m": 150,
+      "bike_infrastructure_snap_m": 25,
+      "forbidden_only_highways": [
+        "motorway",
+        "motorway_link",
+        "trunk",
+        "trunk_link",
+        "primary",
+        "primary_link",
+        "secondary",
+        "secondary_link",
+        "steps",
+        "corridor",
+        "elevator"
+      ]
+    },
+    "routing": {
+      "blocked_barriers": [
+        "full-height_turnstile"
+      ],
+      "unverified_gates": [
+        "gate",
+        "swing_gate",
+        "wicket_gate",
+        "hampshire_gate",
+        "chain"
+      ]
+    },
+    "assumed_level_height_m": 3,
+    "assumed_building_height_m": 9,
+    "note": "Draft: built automatically from OSM tags. No point has been checked on site."
+  },
+  "config_sha256": "c7790fd87fa34e4303ba761a27344234816a537e3c59d8651ec1ac5674a49bb6",
+  "files_sha256": {
+    "problem.json": "ab1cde6ff245d32227cf53b441453a19fd3e7e0595d4a143abb49cbb93d07d52",
+    "map.geojson": "eb5cf132af036a80d5ca316fc3eb5542708f86c0eb9622b887e19d3d107ff610"
+  },
+  "versions": {
+    "python": "3.12.12",
+    "osmnx": "2.1.1",
+    "networkx": "3.7",
+    "numpy": "2.5.4"
+  },
+  "quality": {
+    "raw_graph_nodes": 19222,
+    "retained_graph_nodes": 18173,
+    "retained_graph_edges": 39516,
+    "buildings": 1340,
+    "blocked_nodes_removed": 47,
+    "blocked_edges_removed": 202,
+    "component_sizes_before_largest_selection": [
+      18173,
+      35,
+      32,
+      32,
+      31,
+      18,
+      15,
+      14,
+      13,
+      13,
+      10,
+      10,
+      10,
+      9,
+      6,
+      6,
+      6,
+      6,
+      6,
+      5
+    ],
+    "candidate_count": 99,
+    "reviewed_candidate_count": 0,
+    "candidate_sources": {
+      "graph_node_near_demand": 50,
+      "osm_bicycle_parking": 47,
+      "osm_kick-scooter_parking": 2
+    },
+    "demand_count": 101,
+    "demand_by_category": {
+      "dorm": 22,
+      "other": 8,
+      "teaching": 71
+    },
+    "demand_with_osm_entrances": 54,
+    "demand_without_verified_connector": 7,
+    "max_connector_m": 22.064,
+    "demand_buildings_not_connected": [],
+    "building_height_sources": {
+      "height": 11,
+      "levels": 608,
+      "assumed": 721
+    },
+    "matrix_finite": true,
+    "blocked_barrier_nodes_removed": 24,
+    "indoor_or_conditional_edges_removed": 6,
+    "edges_inside_solid_buildings_removed": 912,
+    "canopies_not_treated_as_obstacles": 27,
+    "unverified_gate_nodes_kept_open": 597,
+    "pairs_unreachable_with_gates_closed": 2679
+  },
+  "limitations": [
+    "No point has been checked on site; every status is requires_review.",
+    "Demand weights are assumptions: category totals split by floor area.",
+    "Connector legs are straight lines from an entrance to the walking graph.",
+    "Buildings without an OSM entrance use the point on the outline nearest the graph.",
+    "Largest strongly connected component only; audit excluded components.",
+    "OSM rarely says whether a gate is locked; gates stay open in the main matrix."
+  ]
+}

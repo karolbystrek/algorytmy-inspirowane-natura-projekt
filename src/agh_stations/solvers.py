@@ -49,6 +49,11 @@ class Evaluator:
         )
 
 
+def greedy_construction_cost(candidate_count, p):
+    """Evaluations greedy spends before it has one complete layout."""
+    return sum(candidate_count - k for k in range(p))
+
+
 def solve(
     problem: Problem,
     method,
@@ -59,6 +64,8 @@ def solve(
     foods=12,
     limit=30,
     on_improvement=None,
+    peer_probability=0.5,
+    onlooker="inverse",
 ):
     n = len(problem.candidate_ids)
     if not isinstance(p, int) or not 1 <= p <= n:
@@ -69,6 +76,8 @@ def solve(
         raise ValueError(f"Unknown method: {method}")
     if foods < 2 or limit < 1:
         raise ValueError("foods must be >= 2 and limit >= 1")
+    if onlooker not in {"inverse", "rank", "none"} or not 0 <= peer_probability <= 1:
+        raise ValueError("onlooker must be inverse/rank/none and peer_probability within [0, 1]")
     problem.weights(scenario)  # Validate before starting the clock.
     rng = np.random.default_rng(seed)
     evaluator = Evaluator(problem, p, budget, scenario, on_improvement)
@@ -83,7 +92,7 @@ def solve(
             evaluator.evaluate(random_selection())
     elif method == "greedy":
         # Partial configurations count against the same cap but are never reported as incumbents.
-        construction_cost = sum(n - k for k in range(p))
+        construction_cost = greedy_construction_cost(n, p)
         if budget < construction_cost:
             raise ValueError(
                 f"Greedy construction requires at least {construction_cost} evaluations"
@@ -118,7 +127,8 @@ def solve(
             current = set(sources[index])
             difference = sorted(set(peer) - current)
             unused = sorted(set(range(n)) - current)
-            added = int(rng.choice(difference if difference and rng.random() < 0.5 else unused))
+            guided = difference and rng.random() < peer_probability
+            added = int(rng.choice(difference if guided else unused))
             removed = int(rng.choice(sorted(current)))
             neighbour = tuple(sorted((current - {removed}) | {added}))
             value = evaluator.evaluate(neighbour)
@@ -134,12 +144,17 @@ def solve(
                     return evaluator.result()
                 attempt(i)
             # Onlooker phase: fitness-proportional selection of promising sources.
-            fitness = 1 / (1 + np.asarray(values))
-            probabilities = fitness / fitness.sum()
-            for _ in range(source_count):
-                if evaluator.calls == budget:
-                    return evaluator.result()
-                attempt(int(rng.choice(source_count, p=probabilities)))
+            if onlooker != "none":
+                if onlooker == "inverse":
+                    fitness = 1 / (1 + np.asarray(values))
+                else:  # Rank fitness does not depend on the scale of the objective.
+                    fitness = np.empty(source_count)
+                    fitness[np.argsort(-np.asarray(values))] = np.arange(1.0, source_count + 1)
+                probabilities = fitness / fitness.sum()
+                for _ in range(source_count):
+                    if evaluator.calls == budget:
+                        return evaluator.result()
+                    attempt(int(rng.choice(source_count, p=probabilities)))
             # Scout phase: replace at most one abandoned source; keep the global best separately.
             i = int(np.argmax(trials))
             if trials[i] >= limit and evaluator.calls < budget:
@@ -161,3 +176,53 @@ def exact(problem: Problem, p, scenario="aggregate", max_combinations=200_000):
     for selection in combinations(range(n), p):
         evaluator.evaluate(selection)
     return evaluator.result()
+
+
+def optimal(problem: Problem, p, scenario="aggregate"):
+    """Prove the p-median optimum with an integer program, for instances too big to enumerate.
+
+    Variables: y_j (open candidate j) and x_ij (demand i served by j), with x_ij <= y_j.
+    ``evaluations`` is 0 because the solver never calls the objective used by the heuristics.
+    """
+    from scipy.optimize import Bounds, LinearConstraint, milp
+    from scipy.sparse import coo_matrix
+
+    n, m = problem.distances.shape
+    if not isinstance(p, int) or not 1 <= p <= m:
+        raise ValueError("Invalid p")
+    weights = problem.weights(scenario)
+    started = perf_counter()
+    cost = np.concatenate([np.zeros(m), (problem.distances * weights[:, None]).ravel()])
+    rows, columns, values = [0] * m, list(range(m)), [1.0] * m
+    lower, upper = [p], [p]
+    row = 1
+    for i in range(n):  # Every demand point is served exactly once.
+        rows += [row] * m
+        columns += [m + i * m + j for j in range(m)]
+        values += [1.0] * m
+        lower.append(1)
+        upper.append(1)
+        row += 1
+    for i in range(n):  # Service is allowed only from an open station.
+        for j in range(m):
+            rows += [row, row]
+            columns += [m + i * m + j, j]
+            values += [1.0, -1.0]
+            lower.append(-np.inf)
+            upper.append(0)
+            row += 1
+    matrix = coo_matrix((values, (rows, columns)), shape=(row, m + n * m)).tocsr()
+    outcome = milp(
+        cost,
+        constraints=LinearConstraint(matrix, lower, upper),
+        integrality=np.concatenate([np.ones(m), np.zeros(n * m)]),
+        bounds=Bounds(0, 1),
+        options={"mip_rel_gap": 0},
+    )
+    if not outcome.success:
+        raise RuntimeError(f"Integer program failed: {outcome.message}")
+    selection = tuple(int(j) for j in np.flatnonzero(outcome.x[:m] > 0.5))
+    if len(selection) != p:
+        raise RuntimeError("Integer program returned an infeasible station count")
+    objective = problem.objective(selection, scenario)
+    return Result(selection, objective, 0, perf_counter() - started, [(0, objective)])

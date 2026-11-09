@@ -1,0 +1,219 @@
+"""Protocol helpers: statistics, weight variants, and a complete miniature study."""
+
+import csv
+import json
+import socket
+
+import numpy as np
+import pytest
+
+from agh_stations.model import Problem
+from agh_stations.solvers import optimal, solve
+from agh_stations.study import (
+    choose_parameters,
+    gate_sensitivity,
+    group_metrics,
+    holm,
+    list_sensitivity,
+    run,
+    weight_variants,
+    weighted_quantile,
+)
+
+
+def write_problem(path, n, m, seed):
+    rng = np.random.default_rng(seed)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "dataset_id": f"test-{seed}",
+                "candidates": [
+                    {"id": f"c{j}", "lat": 50.0, "lon": 19.0, "status": "requires_review"}
+                    for j in range(m)
+                ],
+                "demand": [
+                    {"id": f"d{i}", "category": "dorm" if i % 2 else "teaching", "area_m2": 100.0}
+                    for i in range(n)
+                ],
+                "distances_m": rng.uniform(10, 900, size=(n, m)).round(3).tolist(),
+                "scenarios": {
+                    "morning": rng.integers(1, 5, n).tolist(),
+                    "day": rng.integers(1, 5, n).tolist(),
+                },
+                "scenario_mixture": {"morning": 1, "day": 1},
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_holm_matches_a_hand_calculated_example():
+    assert holm([0.01, 0.04, 0.03]) == pytest.approx([0.03, 0.06, 0.06])
+
+
+def test_parameters_are_chosen_by_lowest_average_gap():
+    rows = [
+        {"foods": 8, "limit_rule": "30", "mean_gap_percent": 2.0},
+        {"foods": 8, "limit_rule": "30", "mean_gap_percent": 4.0},
+        {"foods": 12, "limit_rule": "foods*p", "mean_gap_percent": 1.0},
+        {"foods": 12, "limit_rule": "foods*p", "mean_gap_percent": 1.5},
+    ]
+    assert choose_parameters(rows) == (12, "foods*p")
+
+
+def test_weight_variants_change_only_the_named_category():
+    raw = {
+        "demand": [{"category": "dorm"}, {"category": "teaching"}],
+        "scenarios": {"morning": [4, 3]},
+    }
+    variants = weight_variants(raw)
+    assert variants["jednolite"]["morning"] == [1.0, 1.0]
+    assert variants["dorm +25%"]["morning"] == [5.0, 3]
+    assert variants["teaching -25%"]["morning"] == [4, 2.25]
+
+
+def test_equal_split_within_category_removes_the_floor_area_assumption():
+    raw = {
+        "demand": [{"category": "dorm"}, {"category": "dorm"}, {"category": "other"}],
+        "scenarios": {"day": [9.0, 1.0, 2.0]},
+        "category_weights": {"dorm": {"day": 10}, "other": {"day": 2}},
+    }
+    assert weight_variants(raw)["równo w kategorii"]["day"] == [5.0, 5.0, 2.0]
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        {"onlooker": "rank"},
+        {"onlooker": "none"},
+        {"peer_probability": 0.0},
+    ],
+)
+def test_abc_variants_stay_feasible_and_within_budget(options):
+    problem = Problem(
+        [f"c{j}" for j in range(8)],
+        ["a", "b", "c"],
+        np.arange(24).reshape(3, 8) + 1,
+        {"s": [1, 2, 3]},
+        {"s": 1},
+    )
+    result = solve(problem, "abc", 3, budget=80, seed=1, **options)
+    assert result.evaluations == 80
+    assert len(set(result.selection)) == 3
+    assert result.objective >= optimal(problem, 3).objective - 1e-9
+
+
+def test_abc_rejects_unknown_variants():
+    problem = Problem(["a", "b"], ["x"], [[1, 2]], {"s": [1]}, {"s": 1})
+    with pytest.raises(ValueError, match="onlooker"):
+        solve(problem, "abc", 1, onlooker="other")
+
+
+@pytest.mark.parametrize(
+    ("values", "weights", "q", "expected"),
+    [
+        ([10, 20, 30], [1, 1, 1], 0.9, 30),
+        ([10, 20, 30], [90, 5, 5], 0.9, 10),
+        ([30, 10, 20], [1, 8, 1], 0.9, 20),
+        ([5], [1], 0.9, 5),
+    ],
+)
+def test_weighted_percentile_is_the_inverse_cumulative_demand(values, weights, q, expected):
+    assert weighted_quantile(values, weights, q) == expected
+
+
+def small_campus():
+    raw = {
+        "candidates": [
+            {"id": "a", "source": "osm_bicycle_parking"},
+            {"id": "b", "source": "graph_node_near_demand"},
+            {"id": "c", "source": "osm_bicycle_parking"},
+            {"id": "d", "source": "graph_node_near_demand"},
+        ],
+        "demand": [
+            {"id": "x", "category": "dorm", "location_method": "osm_entrances"},
+            {"id": "y", "category": "dorm", "location_method": "footprint_nearest_node"},
+            {"id": "z", "category": "other", "location_method": "osm_entrances"},
+        ],
+        "distances_m": [[10, 500, 300, 40], [400, 20, 200, 90], [700, 650, 30, 80]],
+        "distances_m_gates_closed": [
+            [10, None, 300, 40],
+            [None, None, None, None],
+            [700, 900, 60, 80],
+        ],
+        "scenarios": {"day": [2.0, 1.0, 1.0]},
+        "scenario_mixture": {"day": 1},
+    }
+    problem = Problem(
+        [c["id"] for c in raw["candidates"]],
+        [d["id"] for d in raw["demand"]],
+        raw["distances_m"],
+        {"day": np.asarray(raw["scenarios"]["day"])},
+        {"day": 1},
+    )
+    return problem, raw
+
+
+def test_group_metrics_report_every_category_and_the_whole():
+    problem, raw = small_campus()
+    rows = group_metrics(problem, raw, (2,))
+    assert [r["group"] for r in rows] == ["wszystkie", "dorm", "other"]
+    assert rows[0]["max_m"] >= rows[0]["weighted_p90_m"] >= 0
+    assert rows[2]["buildings"] == 1
+
+
+def test_shorter_point_lists_are_judged_on_the_complete_demand():
+    problem, raw = small_campus()
+    rows = list_sensitivity(problem, raw, (2,))
+    assert {r["change"] for r in rows} == {"kandydaci", "popyt"}
+    assert all(r["loss_percent"] >= -1e-9 for r in rows)
+    parking = next(r for r in rows if r["variant"] == "tylko istniejące parkingi z OSM")
+    assert parking["points"] == 2
+
+
+def test_closed_gates_report_buildings_cut_off_from_every_station():
+    problem, raw = small_campus()
+    row = gate_sensitivity(problem, raw, (2,))[0]
+    assert row["buildings_without_route"] == 1
+    assert row["demand_without_route"] == pytest.approx(0.25)
+    assert row["mean_closed_m"] >= row["mean_open_m"]
+    assert gate_sensitivity(problem, {k: v for k, v in raw.items() if "gates" not in k}, (2,)) == []
+
+
+def test_complete_miniature_study_writes_consistent_artifacts(tmp_path, monkeypatch):
+    def refuse_network(*args, **kwargs):
+        raise AssertionError("The study must run without any network access")
+
+    monkeypatch.setattr(socket.socket, "connect", refuse_network)
+    monkeypatch.setattr(socket, "create_connection", refuse_network)
+    problem = write_problem(tmp_path / "final" / "problem.json", 12, 20, 1)
+    development = write_problem(tmp_path / "dev" / "problem.json", 25, 40, 2)
+    output = tmp_path / "out"
+    run(problem, development, output, ps=(2, 3), budget=300, runs=3, tuning_runs=2, p_max=4)
+    for name in (
+        "abc_tuning.csv",
+        "abc_ablation.csv",
+        "runs.csv",
+        "comparison.csv",
+        "tests.csv",
+        "stations_curve.csv",
+        "scenarios.csv",
+        "thresholds.csv",
+        "weights.csv",
+        "candidates_to_check.csv",
+        "convergence.png",
+        "stations_curve.png",
+    ):
+        assert (output / name).stat().st_size > 0, name
+    with (output / "comparison.csv").open(encoding="utf-8") as handle:
+        comparison = list(csv.DictReader(handle))
+    assert {row["method"] for row in comparison} >= {"abc", "random"}
+    assert all(float(row["best_m"]) >= float(row["optimum_m"]) - 1e-6 for row in comparison)
+    metadata = json.loads((output / "study.json").read_text(encoding="utf-8"))
+    assert metadata["draft"] is True
+    with (output / "stations_curve.csv").open(encoding="utf-8") as handle:
+        distances = [float(row["mean_distance_m"]) for row in csv.DictReader(handle)]
+    assert all(a >= b - 1e-9 for a, b in zip(distances, distances[1:], strict=False))
