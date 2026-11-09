@@ -58,6 +58,31 @@ Wagi względnej aktywności w pilotażu:
 
 To ilustracyjne założenia o aktywności, bez jednostki „liczba studentów”. Funkcja budynku z OSM może być niepełna; sprawdzamy ją ręcznie przed raportem końcowym. Większy obrys służy jedynie do priorytetu próbkowania, nie jest pomiarem liczby mieszkańców. Pilot nie obsługuje godzin otwarcia i warunkowych ograniczeń; liczbę odpowiednich tagów i bram podaje manifest.
 
+## Dane v2 (`data/processed/agh-v2`)
+
+Zestaw v2 zastępuje pilota w badaniu końcowym. Pilot pozostaje niezmieniony, żeby jego wyniki dało się odtworzyć. Reguły są w `configs/agh-v2.json`, a generator uruchamia `uv run --extra geo agh-stations prepare-v2` (wymaga internetu).
+
+| Element | Pilot | v2 |
+|---|---|---|
+| Punkty popytu | 18 budynków, po 6 największych w kategorii | każdy budynek o funkcji generującej ruch i obrysie od 150 m² |
+| Położenie popytu | węzeł grafu najbliższy środkowi budynku, bez kosztu dojścia | wejścia z OSM (bez ewakuacyjnych, garażowych i serwisowych); bez wejścia: punkt obrysu najbliższy grafowi |
+| Odległość | tylko po grafie | prosty łącznik od wejścia do grafu + trasa po grafie; liczy się najlepsze wejście |
+| Kandydaci | 30 najbardziej oddalonych węzłów, wiele przy granicy | najpierw istniejące parkingi rowerowe, potem węzły do 150 m pieszo od popytu, co najmniej 70 m od siebie |
+| Wagi | równe w kategorii | suma kategorii z tabeli powyżej, dzielona między budynki według powierzchni użytkowej (obrys × kondygnacje) |
+
+Kategorie: `dorm` to `building=dormitory` lub `amenity=dormitory`. `teaching` to `building` lub `amenity` równe `university`/`college`. `other` to biblioteka, przychodnia, centrum kultury, hala sportowa, basen, klub oraz handel od 400 m². Stadion, garaże, zwykłe bloki i szkoły nie tworzą modelowanego popytu; reguły i wykluczenia są w konfiguracji.
+
+Łącznik jest odcinkiem prostym. Generator wybiera najbliższy węzeł, którego łącznik nie przecina innego budynku ani wnętrza własnego. Jeśli takiego nie ma, zapisuje `connector_verified=false`. Budynek bez dopuszczalnego łącznika do 100 m nie znika po cichu: trafia do `demand_buildings_not_connected` w manifeście. Kandydat nie może leżeć w odległości 3 m od budynku, na wodzie, boisku ani bieżni, w tunelu ani wyłącznie przy drodze głównej lub schodach. **Wszystkie punkty mają `status=requires_review`.** Wysokość budynku pochodzi kolejno z `height`, `building:levels × 3 m` lub wartości zastępczej 9 m; pole `height_source` zapisuje źródło.
+
+## Audyt terenowy
+
+```sh
+uv run agh-stations audit-template
+uv run agh-stations apply-audit
+```
+
+Pierwsza komenda tworzy `data/audit/agh-v2-audit.csv` (otwiera się w Excelu) i odmawia nadpisania istniejącego pliku. Dla każdego sprawdzonego punktu wpisujemy `status` (`reviewed` lub `rejected`), `reviewer`, `review_date` w formacie RRRR-MM-DD, a przy odrzuceniu także `reason`. Druga komenda buduje nowy katalog bez odrzuconych punktów i z nowymi hashami. Flaga `--strict` zostawia wyłącznie punkty `reviewed`; tej wersji używamy do badania końcowego. Nie ma potrzeby sprawdzać wszystkich kandydatów naraz: `candidates_to_check.csv` z badań porządkuje ich według częstości występowania w układach optymalnych. Po odrzuceniu ważnego punktu trzeba przeliczyć badania, bo najlepszy układ się zmieni.
+
 ## Audyt wymagany przed badaniem końcowym
 
 1. Zatwierdzić granicę i zachować wersję; obejrzeć odłączone składowe, bramy, przejścia przez ulice, schody i brakujące ścieżki.
