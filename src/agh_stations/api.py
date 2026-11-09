@@ -21,7 +21,7 @@ from agh_stations.solvers import optimal, solve
 ROOT = Path(__file__).resolve().parents[2]
 DATASET = ROOT / "data/processed" / os.environ.get("AGH_DATASET", "agh-pilot")
 FRONTEND = ROOT / "frontend/dist"
-ABC_FOODS = 12  # Abandonment limit is foods * p, the convention of the original ABC paper.
+ABC_FOODS = 8  # Chosen on the development instance, with abandonment limit foods * p.
 ScenarioName = Literal["aggregate", "morning", "day", "evening"]
 
 
