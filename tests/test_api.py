@@ -71,6 +71,65 @@ def test_station_count_is_limited_only_by_the_candidate_list(p):
     assert routes.status_code == 200
 
 
+def test_threshold_changes_coverage_but_not_the_walk():
+    near = client.post("/api/run", json={"p": 4, "budget": 1000, "threshold_m": 100}).json()
+    far = client.post("/api/run", json={"p": 4, "budget": 1000, "threshold_m": 900}).json()
+    assert far["threshold_m"] == 900
+    assert far["methods"]["abc"]["mean_distance_m"] == near["methods"]["abc"]["mean_distance_m"]
+    assert far["methods"]["abc"]["coverage"] >= near["methods"]["abc"]["coverage"]
+    assert client.post("/api/run", json={"threshold_m": 10}).status_code == 422
+
+
+def test_analysis_accounts_for_all_demand_and_agrees_with_the_objective():
+    _, problem, _ = dataset()
+    selected = ["candidate-16", "candidate-18", "candidate-21", "candidate-22"]
+    body = {"candidate_ids": selected, "scenario": "day", "threshold_m": 300}
+    response = client.post("/api/analysis", json=body)
+    assert response.status_code == 200
+    result = response.json()
+    indices = [problem.candidate_ids.index(name) for name in selected]
+    whole = next(g for g in result["groups"] if g["group"] == "all")
+    assert whole["mean_m"] == pytest.approx(problem.objective(indices, "day"))
+    parts = [g for g in result["groups"] if g["group"] != "all"]
+    assert sum(g["demand_share"] for g in parts) == pytest.approx(1)
+    assert sum(g["buildings"] for g in parts) == len(problem.demand_ids)
+    assert sum(s["demand_share"] for s in result["stations"]) == pytest.approx(1)
+    assert {b["station"] for b in result["buildings"]} <= set(selected)
+    for row in result["scenarios"]:
+        assert row["mean_m"] == pytest.approx(problem.objective(indices, row["scenario"]))
+        assert row["regret_percent"] >= -1e-9
+
+
+def test_curve_is_monotone_and_marks_the_optimum():
+    rows = client.post("/api/curve", json={"p_max": 6, "scenario": "morning"}).json()["rows"]
+    assert [r["p"] for r in rows] == [1, 2, 3, 4, 5, 6]
+    means = [r["mean_distance_m"] for r in rows]
+    assert all(a >= b - 1e-9 for a, b in zip(means, means[1:], strict=False))
+    assert rows[0]["gain_m"] is None and rows[1]["gain_m"] == pytest.approx(means[0] - means[1])
+
+
+def test_series_repeats_seeds_and_never_beats_the_optimum():
+    body = {"p": 3, "budget": 500, "seeds": 4}
+    result = client.post("/api/series", json=body).json()
+    assert len(result["methods"]["abc"]["values"]) == 4
+    assert len(result["methods"]["greedy"]["values"]) == 1
+    for summary in result["methods"].values():
+        assert summary["best_m"] >= result["optimum_m"] - 1e-9
+    assert client.post("/api/series", json={"seeds": 1}).status_code == 422
+
+
+def test_robust_layout_is_a_valid_layout():
+    result = client.post("/api/robust", json={"p": 3}).json()
+    assert len(set(result["candidate_ids"])) == 3
+    assert result["cost_on_aggregate_percent"] >= -1e-9
+
+
+def test_dataset_states_the_smallest_budget_for_greedy():
+    pools = client.get("/api/dataset").json()["pools"]
+    assert pools["all"]["greedy_min_budget"][1] == 30 + 29
+    assert len(pools["all"]["greedy_min_budget"]) == pools["all"]["count"]
+
+
 def test_budget_too_small_for_greedy_is_explained_instead_of_crashing(monkeypatch):
     monkeypatch.setattr(api, "greedy_construction_cost", lambda candidates, p: 900)
     response = client.post("/api/run", json={"p": 4, "budget": 500})

@@ -11,10 +11,15 @@ from agh_stations.model import Problem
 from agh_stations.solvers import optimal, solve
 from agh_stations.study import (
     choose_parameters,
+    choose_stages,
     gate_sensitivity,
     group_metrics,
     holm,
+    large_station_counts,
     list_sensitivity,
+    mixture_variants,
+    recommendation,
+    robust_layouts,
     run,
     weight_variants,
     weighted_quantile,
@@ -77,11 +82,108 @@ def test_weight_variants_change_only_the_named_category():
 
 def test_equal_split_within_category_removes_the_floor_area_assumption():
     raw = {
-        "demand": [{"category": "dorm"}, {"category": "dorm"}, {"category": "other"}],
+        "demand": [
+            {"category": "dorm", "floor_area_m2": 900, "area_m2": 300},
+            {"category": "dorm", "floor_area_m2": 100, "area_m2": 100},
+            {"category": "other", "floor_area_m2": 200, "area_m2": 200},
+        ],
         "scenarios": {"day": [9.0, 1.0, 2.0]},
-        "category_weights": {"dorm": {"day": 10}, "other": {"day": 2}},
+        "fixed_category_totals_for_sensitivity": {"dorm": {"day": 1}, "other": {"day": 3}},
     }
-    assert weight_variants(raw)["równo w kategorii"]["day"] == [5.0, 5.0, 2.0]
+    variants = weight_variants(raw)
+    assert variants["równo w kategorii"]["day"] == [5.0, 5.0, 2.0]
+    assert variants["bez pięter (tylko obrys budynku)"]["day"] == [3.0, 1.0, 2.0]
+    assert variants["stałe udziały kategorii (poprzednia reguła)"]["day"] == [0.9, 0.1, 3.0]
+
+
+def test_mixture_variants_count_one_time_of_day_twice():
+    raw = {"scenarios": {"a": [1], "b": [1]}, "scenario_mixture": {"a": 1, "b": 1}}
+    assert mixture_variants(raw)["mieszanina: b ×2"] == {"a": 1, "b": 2}
+    assert mixture_variants({"scenarios": {"a": [1]}, "scenario_mixture": {"a": 1}}) == {}
+
+
+def test_robust_layout_never_has_a_worse_worst_case_than_the_aggregate_layout():
+    rng = np.random.default_rng(3)
+    problem = Problem(
+        [f"c{j}" for j in range(14)],
+        [f"d{i}" for i in range(16)],
+        rng.uniform(10, 900, size=(16, 14)),
+        {"a": rng.uniform(0, 1, 16), "b": rng.uniform(0, 1, 16), "c": rng.uniform(0, 1, 16)},
+        {"a": 1, "b": 1, "c": 1},
+    )
+    row = robust_layouts(problem, (3,))[0]
+    assert row["proved_optimal"]
+    assert (
+        row["robust_layout_worst_regret_percent"]
+        <= row["aggregate_layout_worst_regret_percent"] + 1e-2
+    )
+    assert row["robust_cost_on_aggregate_percent"] >= -1e-9
+
+
+def random_problem(n=20, m=30, seed=5):
+    rng = np.random.default_rng(seed)
+    return Problem(
+        [f"c{j}" for j in range(m)],
+        [f"d{i}" for i in range(n)],
+        rng.uniform(10, 900, size=(n, m)),
+        {"s": np.ones(n)},
+        {"s": 1},
+    )
+
+
+def test_multistart_spends_the_whole_budget_and_stays_feasible():
+    problem = random_problem()
+    result = solve(problem, "multistart", 4, budget=900, seed=2)
+    assert result.evaluations == 900
+    assert len(set(result.selection)) == 4
+    assert result.objective >= optimal(problem, 4).objective - 1e-9
+
+
+def test_fixed_stations_stay_open_and_cost_at_least_nothing():
+    problem = random_problem()
+    first = optimal(problem, 3)
+    extended = optimal(problem, 6, fixed=first.selection)
+    assert set(first.selection) <= set(extended.selection)
+    assert extended.objective >= optimal(problem, 6).objective - 1e-9
+
+
+def test_stages_follow_coverage_and_the_value_of_the_last_station():
+    curve = [
+        {"p": 1, "coverage": 0.2, "gain_vs_previous_m": None},
+        {"p": 2, "coverage": 0.8, "gain_vs_previous_m": 50.0},
+        {"p": 3, "coverage": 0.9, "gain_vs_previous_m": 6.0},
+        {"p": 4, "coverage": 0.95, "gain_vs_previous_m": 1.0},
+    ]
+    assert choose_stages(curve) == (2, 3)
+
+
+def test_recommendation_marks_stages_and_serves_all_demand():
+    problem = random_problem()
+    raw = {
+        "candidates": [{"id": c} for c in problem.candidate_ids],
+        "demand": [{"id": d} for d in problem.demand_ids],
+    }
+    summary, stations = recommendation(problem, raw, 2, 5)
+    assert [row["p"] for row in summary] == [2, 5, 5]
+    assert sum(s["stage"] == 1 for s in stations) == 2
+    assert sum(s["demand_share"] for s in stations) == pytest.approx(1)
+    assert summary[1]["mean_distance_m"] >= summary[2]["mean_distance_m"] - 1e-9
+
+
+def test_large_p_rows_show_when_greedy_does_not_fit_in_the_budget():
+    rng = np.random.default_rng(4)
+    problem = Problem(
+        [f"c{j}" for j in range(30)],
+        [f"d{i}" for i in range(20)],
+        rng.uniform(10, 900, size=(20, 30)),
+        {"s": np.ones(20)},
+        {"s": 1},
+    )
+    rows = large_station_counts(problem, (8, 30), ((100, 2), (2000, 1)), 2, 8, "foods*p")
+    assert {(r["p"], r["budget"]) for r in rows} == {(8, 100), (8, 2000)}
+    tight, ample = rows
+    assert tight["greedy_gap_percent"] is None and tight["greedy_ran_out_of_budget"]
+    assert ample["greedy_gap_percent"] >= -1e-9
 
 
 @pytest.mark.parametrize(

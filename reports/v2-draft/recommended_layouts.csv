@@ -1,0 +1,4 @@
+layout,p,mean_distance_m,coverage,p90_distance_m,max_distance_m,loss_vs_free_optimum_percent,candidate_ids
+etap 1,6,183.71942241063346,0.7522620940345307,334.801,855.776,0.0,candidate-008;candidate-030;candidate-054;candidate-060;candidate-065;candidate-075
+etap 2 (rozbudowa etapu 1),15,109.27158862215838,0.9493854728994214,204.352,605.415,9.044153432785249,candidate-006;candidate-008;candidate-015;candidate-024;candidate-030;candidate-039;candidate-047;candidate-054;candidate-055;candidate-060;candidate-065;candidate-070;candidate-071;candidate-072;candidate-075
+optimum bez etapów,15,100.20857164938542,0.9414145241817565,214.964,605.415,0.0,candidate-005;candidate-006;candidate-010;candidate-015;candidate-020;candidate-024;candidate-030;candidate-039;candidate-047;candidate-052;candidate-054;candidate-055;candidate-070;candidate-071;candidate-072

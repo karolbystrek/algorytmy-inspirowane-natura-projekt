@@ -4,13 +4,19 @@
   "routing_buffer_m": 250,
   "crs_metric": "EPSG:2180",
   "scenario_mixture": {"morning": 1, "day": 1, "evening": 1},
-  "category_weights": {
+  "demand_intensity_per_1000m2": {
+    "dorm": {"morning": 26, "day": 7, "evening": 26},
+    "teaching": {"morning": 9, "day": 15, "evening": 3},
+    "other": {"morning": 7.5, "day": 15, "evening": 22.5}
+  },
+  "fixed_category_totals_for_sensitivity": {
     "dorm": {"morning": 4, "day": 1, "evening": 4},
     "teaching": {"morning": 3, "day": 5, "evening": 1},
     "other": {"morning": 1, "day": 2, "evening": 3}
   },
   "demand": {
     "min_footprint_m2": 150,
+    "default_levels_by_leisure": {"sports_hall": 1, "swimming_pool": 1},
     "other_amenity": ["library", "doctors", "arts_centre"],
     "other_leisure": ["sports_hall", "swimming_pool", "music_venue"],
     "retail_min_footprint_m2": 400,

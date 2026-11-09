@@ -6,9 +6,9 @@ Projekt na przedmiot **Algorytmy inteligentne inspirowane naturą**, zespół 6 
 
 ## Stan na 9 listopada
 
-**Działa cały łańcuch na danych v2:** 101 punktów popytu, 99 kandydatów, ABC i metody odniesienia, dokładne optimum, aplikacja z trasami dojścia i budynkami 3D oraz komenda pełnych badań. Wyniki są wersją roboczą, bo żaden punkt nie przeszedł jeszcze audytu terenowego. Próba na docelowym laptopie wymaga potwierdzenia.
+**Działa cały łańcuch na danych v2:** 101 punktów popytu, 99 kandydatów, ABC i metody odniesienia, dokładne optimum, aplikacja z trasami dojścia i budynkami 3D oraz komenda pełnych badań. Pełny raport zakłada, że audyt terenowy potwierdzi obecne dane, bo żaden punkt nie został jeszcze sprawdzony w terenie. Próba na docelowym laptopie wymaga potwierdzenia.
 
-**[Jak to działa, co osiągnęliśmy i co zostało →](docs/STATUS.md)** · **[Szkic raportu →](docs/REPORT_DRAFT.md)**
+**[Jak to działa, co osiągnęliśmy i co zostało →](docs/STATUS.md)** · **[Raport z projektu →](docs/REPORT.md)**
 
 ![Lokalne demo rozmieszczenia stacji](reports/demo/ui-v2.jpg)
 
@@ -46,13 +46,16 @@ uv run --locked --extra demo uvicorn agh_stations.api:app --host 127.0.0.1 --por
 ```
 
 Otwórz **http://127.0.0.1:8001**. Jeden serwer obsługuje API i zbudowany interfejs.
-Demo pozwala zmieniać `p` (od 1 do liczby kandydatów), scenariusz, budżet i ziarno; porównuje ABC,
-losowanie i greedy. Mapa MapLibre korzysta wyłącznie z lokalnej geometrii, bez kafelków,
-CDN i kluczy API, pokazuje trasy dojścia i wielkość popytu, a przycisk z kostką włącza
-budynki 3D (wymaga WebGL). Odtwarzanie pokazuje zapis rzeczywistych popraw najlepszego
-układu po obliczeniach — nie transmisję roju na żywo. Eksport JSON zawiera parametry,
-hash danych, wyniki i kroki. To pojedyncze przebiegi, nie seria 30 ziaren. Dokładne optimum
-liczy solver MILP poza budżetem ocen. Domyślnie używane są dane `agh-v2`; zmienna
+Demo pozwala zmieniać `p` (od 1 do liczby kandydatów), scenariusz, listę kandydatów, akceptowalne
+dojście, budżet i ziarno; porównuje ABC, losowanie i greedy. Mapa MapLibre korzysta wyłącznie
+z lokalnej geometrii, bez kafelków, CDN i kluczy API, pokazuje trasy dojścia w zasięgu i poza
+nim oraz wielkość popytu. Kliknięcie budynku lub stacji pokazuje szczegóły i trasy, a układ można
+zapamiętać i porównać z kolejnym. Przycisk z kostką włącza budynki 3D (wymaga WebGL). Odtwarzanie
+pokazuje zapis rzeczywistych popraw najlepszego układu po obliczeniach — nie transmisję roju na
+żywo. Pod mapą są krzywa wartości kolejnych stacji, wyniki grup budynków, strata układu w porach
+dnia, układ odporny, najdłuższe dojścia, obciążenie stacji i seria 10–30 ziaren. Eksport JSON
+zawiera parametry, hash danych, wyniki, kroki i analizy. Dokładne optimum liczy solver MILP poza
+budżetem ocen. Domyślnie używane są dane `agh-v2`; zmienna
 `AGH_DATASET=agh-pilot` przełącza na zestaw pilota.
 
 Scenariusz pokazu: uruchom domyślne 4 stacje → odtwórz poprawy ABC → przełącz
@@ -70,7 +73,7 @@ uv sync --locked --all-extras
 uv run agh-stations study --output outputs/study
 ```
 
-Protokół jest opisany w [EXPERIMENTS.md](docs/EXPERIMENTS.md), a zapis wersji roboczej znajduje się w [reports/v2-draft](reports/v2-draft). Przebudowa danych v2 wymaga wyciągu OSM (np. `malopolskie-latest.osm.pbf` z Geofabrik, poza repozytorium):
+Protokół jest opisany w [EXPERIMENTS.md](docs/EXPERIMENTS.md), a wyniki raportu znajdują się w [reports/v2-draft](reports/v2-draft). Przebudowa danych v2 wymaga wyciągu OSM (np. `malopolskie-latest.osm.pbf` z Geofabrik, poza repozytorium):
 
 ```sh
 uv run --extra geo agh-stations prepare-v2 --pbf ścieżka/malopolskie-latest.osm.pbf
@@ -115,7 +118,7 @@ configs/                  granica obszaru i założenia przygotowania danych
 data/raw/                 lokalny cache, poza Git
 data/processed/agh-pilot/  zamrożone dane do obliczeń offline
 src/agh_stations/          model, solvery, przygotowanie OSM, CLI i wykresy
-frontend/                 React/TypeScript, Leaflet i build interfejsu
+frontend/                 React/TypeScript, MapLibre i build interfejsu
 tests/                    model, budżety, routing ze snapshotu i kontrakt API
 docs/                     roadmapa, research, architektura i backlog
 reports/pilot/            zapis wyników i ilustracje pierwszego modelu

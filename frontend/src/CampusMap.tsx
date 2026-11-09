@@ -1,20 +1,30 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState, type ReactNode } from "react";
 import maplibregl, {
+    type ExpressionSpecification,
     type GeoJSONSource,
     type LngLatBoundsLike,
     type Map as MapLibre,
     type Marker,
 } from "maplibre-gl";
 import type { Feature, FeatureCollection } from "geojson";
-import { Box, LocateFixed, Minus, Plus, Square } from "lucide-react";
-import { request, type Dataset } from "./types";
+import {
+    Box,
+    LocateFixed,
+    Maximize,
+    Minimize,
+    Minus,
+    Plus,
+    Square,
+} from "lucide-react";
+import { request, stationLabel, type Dataset, type Focus } from "./types";
 
 const EMPTY: string[] = [];
 const NO_FEATURES: FeatureCollection = {
     type: "FeatureCollection",
     features: [],
 };
-const stationLabel = (id: string) => id.replace("candidate-", "");
+const COMPACT_PINS_ABOVE = 12; // Numbered pins start to cover each other past this count.
+const NOTHING: ExpressionSpecification = ["==", ["get", "demand_id"], ""];
 
 function boundsOf(dataset: Dataset): LngLatBoundsLike {
     const points = [...dataset.candidates, ...dataset.demand];
@@ -30,9 +40,26 @@ function boundsOf(dataset: Dataset): LngLatBoundsLike {
     ];
 }
 
-function pointFeatures(dataset: Dataset, weights?: number[]): FeatureCollection {
+function pointFeatures(
+    dataset: Dataset,
+    weights: number[] | undefined,
+    baseline: string[],
+): FeatureCollection {
     const largest = Math.max(...(weights ?? [1]), 1e-9);
     const features: Feature[] = [
+        ...dataset.candidates
+            .filter((point) => baseline.includes(point.id))
+            .map((point) => ({
+                type: "Feature" as const,
+                geometry: {
+                    type: "Point" as const,
+                    coordinates: [point.lon, point.lat],
+                },
+                properties: {
+                    kind: "baseline",
+                    label: `${point.id} · układ zapamiętany do porównania`,
+                },
+            })),
         ...dataset.candidates.map((point) => ({
             type: "Feature" as const,
             geometry: {
@@ -52,6 +79,7 @@ function pointFeatures(dataset: Dataset, weights?: number[]): FeatureCollection 
             },
             properties: {
                 kind: "demand",
+                id: point.id,
                 // Area, not radius, should follow demand: hence the square root.
                 scale: Math.sqrt((weights?.[index] ?? largest) / largest),
                 label: `${!point.name || /^(way|relation)\//.test(point.name) ? "Punkt popytu" : point.name} · waga założona`,
@@ -66,15 +94,29 @@ function CampusMap({
     selected = EMPTY,
     weights,
     scenario,
+    baseline = EMPTY,
+    threshold,
+    focus,
+    onFocus,
+    children,
 }: {
     dataset: Dataset | null;
     selected?: string[];
     weights?: number[];
     scenario: string;
+    baseline?: string[];
+    threshold: number;
+    focus: Focus | null;
+    onFocus: (focus: Focus | null) => void;
+    children?: ReactNode;
 }) {
+    const panel = useRef<HTMLElement>(null);
     const element = useRef<HTMLDivElement>(null);
     const map = useRef<MapLibre | null>(null);
     const markers = useRef<Marker[]>([]);
+    const focusHandler = useRef(onFocus);
+    focusHandler.current = onFocus;
+    const [fullscreen, setFullscreen] = useState(false);
     const [status, setStatus] = useState("Wczytywanie geometrii kampusu…");
     const [retry, setRetry] = useState(0);
     const [failed, setFailed] = useState(false);
@@ -190,6 +232,27 @@ function CampusMap({
                         },
                     });
                     instance.addLayer({
+                        id: "routes-focus",
+                        type: "line",
+                        source: "routes",
+                        filter: NOTHING,
+                        layout: { "line-cap": "round", "line-join": "round" },
+                        paint: { "line-color": "#14352b", "line-width": 4.5 },
+                    });
+                    instance.addLayer({
+                        id: "baseline",
+                        type: "circle",
+                        source: "points",
+                        filter: ["==", ["get", "kind"], "baseline"],
+                        paint: {
+                            "circle-radius": 11,
+                            "circle-color": "#ffffff",
+                            "circle-opacity": 0.65,
+                            "circle-stroke-color": "#4a7cc9",
+                            "circle-stroke-width": 2.5,
+                        },
+                    });
+                    instance.addLayer({
                         id: "candidates",
                         type: "circle",
                         source: "points",
@@ -218,7 +281,16 @@ function CampusMap({
                             "circle-stroke-width": 1.5,
                         },
                     });
-                    for (const layer of ["candidates", "demand"]) {
+                    instance.on("click", (event) => {
+                        const hit = instance.queryRenderedFeatures(event.point, {
+                            layers: ["demand"],
+                        })[0];
+                        const id = hit?.properties?.id;
+                        focusHandler.current(
+                            id ? { kind: "building", id } : null,
+                        );
+                    });
+                    for (const layer of ["baseline", "candidates", "demand"]) {
                         instance.on("mousemove", layer, (event) => {
                             const label =
                                 event.features?.[0]?.properties?.label;
@@ -265,26 +337,88 @@ function CampusMap({
     useEffect(() => {
         if (!ready || !map.current || !dataset) return;
         (map.current.getSource("points") as GeoJSONSource).setData(
-            pointFeatures(dataset, weights),
+            pointFeatures(dataset, weights, baseline),
         );
-    }, [dataset, weights, ready]);
+    }, [dataset, weights, baseline, ready]);
 
     useEffect(() => {
         const instance = map.current;
         if (!ready || !instance || !dataset) return;
         for (const marker of markers.current) marker.remove();
+        const compact = selected.length > COMPACT_PINS_ABOVE;
         markers.current = dataset.candidates
             .filter((point) => selected.includes(point.id))
             .map((point) => {
                 const pin = document.createElement("div");
-                pin.className = "station-pin";
-                pin.textContent = stationLabel(point.id);
+                pin.className = compact
+                    ? "station-pin compact"
+                    : "station-pin";
+                pin.dataset.station = point.id;
+                pin.textContent = compact ? "" : stationLabel(point.id);
                 pin.title = `${point.id} · wybrana stacja`;
+                pin.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    focusHandler.current({ kind: "station", id: point.id });
+                });
                 return new maplibregl.Marker({ element: pin })
                     .setLngLat([point.lon, point.lat])
                     .addTo(instance);
             });
     }, [dataset, selected, ready]);
+
+    useEffect(() => {
+        for (const marker of markers.current) {
+            const pin = marker.getElement();
+            pin.classList.toggle(
+                "focused",
+                focus?.kind === "station" && pin.dataset.station === focus.id,
+            );
+        }
+        const instance = map.current;
+        if (!ready || !instance) return;
+        instance.setFilter(
+            "routes-focus",
+            focus
+                ? [
+                      "==",
+                      [
+                          "get",
+                          focus.kind === "station"
+                              ? "candidate_id"
+                              : "demand_id",
+                      ],
+                      focus.id,
+                  ]
+                : NOTHING,
+        );
+        if (!focus?.pan || !dataset) return;
+        const point = (
+            focus.kind === "station" ? dataset.candidates : dataset.demand
+        ).find((item) => item.id === focus.id);
+        if (point)
+            instance.easeTo({
+                center: [point.lon, point.lat],
+                zoom: Math.max(instance.getZoom(), 16),
+                duration: 500,
+            });
+    }, [focus, selected, dataset, ready]);
+
+    useEffect(() => {
+        if (!ready || !map.current) return;
+        map.current.setPaintProperty("routes", "line-color", [
+            "case",
+            ["<=", ["get", "distance_m"], threshold],
+            "#24735c",
+            "#c2571f",
+        ]);
+    }, [threshold, ready]);
+
+    useEffect(() => {
+        const update = () =>
+            setFullscreen(document.fullscreenElement === panel.current);
+        document.addEventListener("fullscreenchange", update);
+        return () => document.removeEventListener("fullscreenchange", update);
+    }, []);
 
     const selectedKey = selected.join(",");
     useEffect(() => {
@@ -344,11 +478,25 @@ function CampusMap({
 
     return (
         <section
+            ref={panel}
             className="map-panel"
             aria-label="Interaktywna mapa kampusu AGH"
         >
             <div ref={element} className="campus-map" />
+            {children}
             <div className="map-controls">
+                <button
+                    onClick={() =>
+                        fullscreen
+                            ? document.exitFullscreen()
+                            : panel.current?.requestFullscreen()
+                    }
+                    aria-pressed={fullscreen}
+                    aria-label={fullscreen ? "Zamknij pełny ekran" : "Pełny ekran"}
+                    title={fullscreen ? "Zamknij pełny ekran" : "Pełny ekran"}
+                >
+                    {fullscreen ? <Minimize size={17} /> : <Maximize size={17} />}
+                </button>
                 <button
                     onClick={() => setThreeD((v) => !v)}
                     aria-pressed={threeD}
@@ -378,8 +526,16 @@ function CampusMap({
                     <i className="legend-station" /> Stacje
                 </span>
                 <span>
-                    <i className="legend-route" /> Dojścia
+                    <i className="legend-route" /> Dojście do {threshold} m
                 </span>
+                <span>
+                    <i className="legend-route far" /> Dłuższe
+                </span>
+                {baseline.length ? (
+                    <span>
+                        <i className="legend-baseline" /> Układ do porównania
+                    </span>
+                ) : null}
                 <span>
                     <i className="legend-demand" /> Popyt (większy = więcej)
                 </span>

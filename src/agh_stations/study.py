@@ -17,9 +17,9 @@ from scipy.sparse.csgraph import dijkstra
 from scipy.stats import mannwhitneyu
 
 from agh_stations.audit import write_json
-from agh_stations.model import Problem
+from agh_stations.model import Problem, weighted_quantile
 from agh_stations.routing import read_walk_edges, walking_matrix
-from agh_stations.solvers import greedy_construction_cost, optimal, solve
+from agh_stations.solvers import greedy_construction_cost, optimal, robust_optimal, solve
 
 THRESHOLDS = (150, 250, 350)
 FOODS = (8, 12, 24)
@@ -297,6 +297,192 @@ def scenario_regret(problem, ps, threshold=250):
     return rows
 
 
+def robust_layouts(problem, ps):
+    """E3: can one layout share the loss between times of day, and what does that cost?"""
+    rows = []
+    for p in ps:
+        fixed = optimal(problem, p).selection
+        result = robust_optimal(problem, p)
+        own = {name: optimal(problem, p, name).objective for name in problem.scenarios}
+        rows.append(
+            {
+                "p": p,
+                "aggregate_layout_worst_regret_percent": max(
+                    gap(problem.objective(fixed, name), value) for name, value in own.items()
+                ),
+                "robust_layout_worst_regret_percent": result["worst_regret_percent"],
+                "robust_cost_on_aggregate_percent": gap(
+                    problem.objective(result["selection"]), problem.objective(fixed)
+                ),
+                "common_stations": len(set(fixed) & set(result["selection"])),
+                "proved_optimal": result["proved"],
+                "candidate_ids": ";".join(problem.candidate_ids[i] for i in result["selection"]),
+            }
+        )
+    return rows
+
+
+def large_station_counts(problem, ps, budgets, runs, foods, rule):
+    """E1b: larger p, and whether greedy still fits in the budget that ABC is given."""
+    rows = []
+    m = len(problem.candidate_ids)
+    for budget, repeats in budgets:
+        for p in (p for p in ps if p < m):
+            optimum = optimal(problem, p).objective
+            limit = limit_value(rule, foods, p)
+            abc = [
+                solve(problem, "abc", p, budget, s, foods=foods, limit=limit).objective
+                for s in range(repeats)
+            ]
+            random = [solve(problem, "random", p, budget, s).objective for s in range(repeats)]
+            greedy = (
+                solve(problem, "greedy", p, budget)
+                if budget >= greedy_construction_cost(m, p)
+                else None
+            )
+            rows.append(
+                {
+                    "p": p,
+                    "budget": budget,
+                    "runs": repeats,
+                    "optimum_m": optimum,
+                    "abc_mean_gap_percent": gap(float(np.mean(abc)), optimum),
+                    "abc_best_gap_percent": gap(min(abc), optimum),
+                    "abc_optimum_hits": sum(v <= optimum + 1e-6 for v in abc),
+                    "random_mean_gap_percent": gap(float(np.mean(random)), optimum),
+                    "greedy_gap_percent": None
+                    if greedy is None
+                    else gap(greedy.objective, optimum),
+                    "greedy_evaluations": None if greedy is None else greedy.evaluations,
+                    "greedy_ran_out_of_budget": greedy is None or greedy.evaluations >= budget,
+                    "abc_runs_at_least_as_good_as_greedy": None
+                    if greedy is None
+                    else sum(v <= greedy.objective + 1e-6 for v in abc),
+                }
+            )
+    return rows
+
+
+def multistart_comparison(problem, ps, budget, runs, foods, rule):
+    """E1c: greedy stops early, so compare ABC with a local search spending the same budget."""
+    rows = []
+    for p in (p for p in ps if p < len(problem.candidate_ids)):
+        optimum = optimal(problem, p).objective
+        limit = limit_value(rule, foods, p)
+        abc = [
+            solve(problem, "abc", p, budget, s, foods=foods, limit=limit).objective
+            for s in range(runs)
+        ]
+        restarts = [solve(problem, "multistart", p, budget, s).objective for s in range(runs)]
+        rows.append(
+            {
+                "p": p,
+                "budget": budget,
+                "runs": runs,
+                "optimum_m": optimum,
+                "abc_mean_gap_percent": gap(float(np.mean(abc)), optimum),
+                "abc_optimum_hits": sum(v <= optimum + 1e-6 for v in abc),
+                "multistart_mean_gap_percent": gap(float(np.mean(restarts)), optimum),
+                "multistart_optimum_hits": sum(v <= optimum + 1e-6 for v in restarts),
+                "two_sided_p_value": float(mannwhitneyu(abc, restarts).pvalue)
+                if len({*abc, *restarts}) > 1
+                else 1.0,
+            }
+        )
+    return rows
+
+
+def candidate_count_curve(problem, raw, ps, fractions=(0.15, 0.25, 0.5, 0.75), subsets=20, seed=7):
+    """E4: how the optimum depends on the number of candidates, over random shorter lists."""
+    rng = np.random.default_rng(seed)
+    m = len(problem.candidate_ids)
+    rows = []
+    for p in ps:
+        full = optimal(problem, p).objective
+        for fraction in fractions:
+            size = max(p, int(fraction * m))
+            values = [
+                optimal(
+                    problem.restricted_to(sorted(int(j) for j in rng.permutation(m)[:size])), p
+                ).objective
+                for _ in range(subsets)
+            ]
+            rows.append(
+                {
+                    "p": p,
+                    "candidates": size,
+                    "subsets": subsets,
+                    "mean_optimum_m": float(np.mean(values)),
+                    "best_optimum_m": float(min(values)),
+                    "worst_optimum_m": float(max(values)),
+                    "mean_loss_vs_full_list_percent": gap(float(np.mean(values)), full),
+                }
+            )
+    return rows
+
+
+def choose_stages(curve, coverage_target=0.75, minimum_gain_m=5.0):
+    """Stage 1: fewest stations reaching the coverage target. Stage 2: last station worth 5 m."""
+    first = next((r["p"] for r in curve if r["coverage"] >= coverage_target), curve[-1]["p"])
+    worthwhile = [
+        r["p"]
+        for r in curve
+        if r["gain_vs_previous_m"] is not None and r["gain_vs_previous_m"] >= minimum_gain_m
+    ]
+    return first, max(first, max(worthwhile, default=first))
+
+
+def recommendation(problem, raw, stage_one, stage_two, threshold=250):
+    """A staged layout: build the first stations, then extend them without moving any."""
+    first = optimal(problem, stage_one)
+    extended = optimal(problem, stage_two, fixed=first.selection)
+    free = optimal(problem, stage_two)
+    weights = problem.weights()
+    summary = []
+    for name, result in (
+        ("etap 1", first),
+        ("etap 2 (rozbudowa etapu 1)", extended),
+        ("optimum bez etapów", free),
+    ):
+        summary.append(
+            {
+                "layout": name,
+                "p": len(result.selection),
+                **problem.metrics(result.selection, "aggregate", threshold),
+                "loss_vs_free_optimum_percent": gap(
+                    result.objective, optimal(problem, len(result.selection)).objective
+                ),
+                "candidate_ids": ";".join(problem.candidate_ids[i] for i in result.selection),
+            }
+        )
+    selected = list(extended.selection)
+    routes = problem.distances[:, selected]
+    assignment, nearest = routes.argmin(axis=1), routes.min(axis=1)
+    stations = []
+    for k, j in enumerate(selected):
+        mask = assignment == k
+        served = float(weights[mask].sum())
+        largest = int(np.flatnonzero(mask)[weights[mask].argmax()]) if mask.any() else None
+        candidate = raw["candidates"][j]
+        stations.append(
+            {
+                "id": candidate["id"],
+                "stage": 1 if j in first.selection else 2,
+                "lat": candidate.get("lat"),
+                "lon": candidate.get("lon"),
+                "source": candidate.get("source", ""),
+                "buildings": int(mask.sum()),
+                "demand_share": served,
+                "mean_m": float(weights[mask] @ nearest[mask] / served) if served else None,
+                "max_m": float(nearest[mask].max()) if mask.any() else None,
+                "largest_building": None
+                if largest is None
+                else raw["demand"][largest].get("name", raw["demand"][largest]["id"]),
+            }
+        )
+    return summary, sorted(stations, key=lambda s: (s["stage"], -s["demand_share"]))
+
+
 def threshold_sensitivity(problem, ps):
     """E4: same layout, different definition of “close enough”."""
     rows = []
@@ -313,6 +499,46 @@ def threshold_sensitivity(problem, ps):
     return rows
 
 
+def floor_area_variants(raw):
+    """E5: undo, one at a time, the assumptions behind weights based on floor area."""
+    demand = raw["demand"]
+    size = Counter(d["category"] for d in demand)
+    equal, footprint, fixed = {}, {}, {}
+    for name, weights in raw["scenarios"].items():
+        total = Counter()
+        area = Counter()
+        for item, weight in zip(demand, weights, strict=True):
+            total[item["category"]] += weight
+            area[item["category"]] += item["floor_area_m2"]
+        equal[name] = [total[d["category"]] / size[d["category"]] for d in demand]
+        footprint[name] = [
+            w * d["area_m2"] / d["floor_area_m2"] for w, d in zip(weights, demand, strict=True)
+        ]
+        if "fixed_category_totals_for_sensitivity" in raw:
+            totals = raw["fixed_category_totals_for_sensitivity"]
+            fixed[name] = [
+                totals[d["category"]][name] * d["floor_area_m2"] / area[d["category"]]
+                for d in demand
+            ]
+    variants = {"równo w kategorii": equal, "bez pięter (tylko obrys budynku)": footprint}
+    if fixed:
+        variants["stałe udziały kategorii (poprzednia reguła)"] = fixed
+    return variants
+
+
+def mixture_variants(raw):
+    """E5: the aggregate treats each time of day as equally busy; count one of them twice."""
+    if len(raw["scenarios"]) < 2:
+        return {}
+    return {
+        f"mieszanina: {scenario} ×2": {
+            name: value * (2 if name == scenario else 1)
+            for name, value in raw["scenario_mixture"].items()
+        }
+        for scenario in raw["scenarios"]
+    }
+
+
 def weight_variants(raw):
     """E5: every way of changing the assumed weights that the protocol asks about."""
     demand = raw["demand"]
@@ -327,14 +553,8 @@ def weight_variants(raw):
                 ]
                 for name, weights in raw["scenarios"].items()
             }
-    if "category_weights" in raw:  # Floor area already splits each category; undo that choice.
-        size = Counter(d["category"] for d in demand)
-        variants["równo w kategorii"] = {
-            name: [
-                raw["category_weights"][d["category"]][name] / size[d["category"]] for d in demand
-            ]
-            for name in raw["scenarios"]
-        }
+    if all("floor_area_m2" in d for d in demand):
+        variants |= floor_area_variants(raw)
     elif all("area_m2" in d for d in demand):
         mean_area = float(np.mean([d["area_m2"] for d in demand]))
         variants["skalowane powierzchnią"] = {
@@ -347,15 +567,17 @@ def weight_variants(raw):
 def weight_sensitivity(problem, raw, ps):
     """E5: re-optimize under changed weights and measure what the base layout would lose."""
     rows, layouts = [], []
+    changes = [(name, s, raw["scenario_mixture"]) for name, s in weight_variants(raw).items()]
+    changes += [(name, raw["scenarios"], m) for name, m in mixture_variants(raw).items()]
     for p in ps:
         base = optimal(problem, p).selection
-        for name, scenarios in weight_variants(raw).items():
+        for name, scenarios, mixture in changes:
             changed = Problem(
                 problem.candidate_ids,
                 problem.demand_ids,
                 problem.distances,
-                {k: np.asarray(v) for k, v in scenarios.items()},
-                dict(raw["scenario_mixture"]),
+                {k: np.asarray(v, dtype=float) for k, v in scenarios.items()},
+                dict(mixture),
             )
             result = optimal(changed, p)
             layouts.append(result.selection)
@@ -371,15 +593,6 @@ def weight_sensitivity(problem, raw, ps):
                 }
             )
     return rows, layouts
-
-
-def weighted_quantile(values, weights, q=0.9):
-    """Smallest value whose cumulative demand mass reaches q (inverse weighted CDF)."""
-    values, weights = np.asarray(values, dtype=float), np.asarray(weights, dtype=float)
-    order = np.argsort(values)
-    cumulative = np.cumsum(weights[order]) / weights.sum()
-    position = min(int(np.searchsorted(cumulative, q - 1e-12)), len(values) - 1)
-    return float(values[order][position])
 
 
 def group_metrics(problem, raw, ps, threshold=250):
@@ -420,6 +633,7 @@ def list_sensitivity(problem, raw, ps, threshold=250, seed=2026):
     candidate_sets = {
         "3/4 kandydatów": sorted(int(j) for j in order[: 3 * m // 4]),
         "1/2 kandydatów": sorted(int(j) for j in order[: m // 2]),
+        "1/4 kandydatów": sorted(int(j) for j in order[: m // 4]),
     }
     existing = [
         j for j, c in enumerate(raw["candidates"]) if str(c.get("source", "")).startswith("osm_")
@@ -494,24 +708,35 @@ def gate_sensitivity(problem, raw, ps):
     rows = []
     for p in ps:
         selection = list(optimal(problem, p).selection)
-        routes = closed[:, selection]
-        reachable = ~np.isnan(routes).all(axis=1)
-        nearest = np.full(len(weights), np.inf)
-        nearest[reachable] = np.nanmin(routes[reachable], axis=1)
-        share = weights[reachable] / weights[reachable].sum()
-        open_mean = float(share @ problem.nearest(selection)[reachable])
-        closed_mean = float(share @ nearest[reachable])
         rows.append(
-            {
-                "p": p,
-                "demand_without_route": float(weights[~reachable].sum()),
-                "buildings_without_route": int((~reachable).sum()),
-                "mean_open_m": open_mean,
-                "mean_closed_m": closed_mean,
-                "increase_percent": gap(closed_mean, open_mean),
-            }
+            {"p": p, **closed_gate_effect(closed, weights, problem.nearest(selection), selection)}
         )
     return rows
+
+
+def closed_gate_effect(closed, weights, open_nearest, selection):
+    """A layout's walk if every gate of unknown status were locked (NaN = no route)."""
+    routes = closed[:, selection]
+    reachable = ~np.isnan(routes).all(axis=1)
+    if not reachable.any():
+        return {
+            "demand_without_route": float(weights.sum()),
+            "buildings_without_route": len(weights),
+            "mean_open_m": None,
+            "mean_closed_m": None,
+            "increase_percent": None,
+        }
+    nearest = np.nanmin(routes[reachable], axis=1)
+    share = weights[reachable] / weights[reachable].sum()
+    open_mean = float(share @ open_nearest[reachable])
+    closed_mean = float(share @ nearest)
+    return {
+        "demand_without_route": float(weights[~reachable].sum()),
+        "buildings_without_route": int((~reachable).sum()),
+        "mean_open_m": open_mean,
+        "mean_closed_m": closed_mean,
+        "increase_percent": gap(closed_mean, open_mean),
+    }
 
 
 def field_priority(problem, raw, curve, layouts, ps):
@@ -590,22 +815,59 @@ def figures(output, summary, histories, curve, budget):
     fig.savefig(output / "convergence.png", dpi=160)
     plt.close(fig)
 
-    fig, left = plt.subplots(figsize=(7, 4))
+    fig, (left, right) = plt.subplots(1, 2, figsize=(10, 4), sharex=True)
     p_values = [row["p"] for row in curve]
-    left.plot(p_values, [row["mean_distance_m"] for row in curve], "o-", color="#1654b8")
+    left.plot(p_values, [row["mean_distance_m"] for row in curve], "o-", ms=3, color="#1654b8")
     left.set(xlabel="Liczba stacji p", ylabel="Średnie ważone dojście [m]")
-    right = left.twinx()
-    right.plot(p_values, [100 * row["coverage"] for row in curve], "s--", color="#e78a27")
-    right.set_ylabel("Popyt w zasięgu 250 m [%]")
+    right.plot(p_values, [100 * row["coverage"] for row in curve], "o-", ms=3, color="#1654b8")
+    right.set(xlabel="Liczba stacji p", ylabel="Popyt w zasięgu 250 m [%]")
     left.grid(alpha=0.25)
-    left.set_title("Korzyść z kolejnych stacji (układy optymalne)")
+    right.grid(alpha=0.25)
+    fig.suptitle("Korzyść z kolejnych stacji (układy optymalne)")
     fig.tight_layout()
     fig.savefig(output / "stations_curve.png", dpi=160)
     plt.close(fig)
 
 
-def layout_map(output, map_path, raw, curve, p):
-    """The proved-optimal layout for the middle p, with every candidate and demand point."""
+def large_p_figure(output, rows):
+    """Loss to the optimum as p grows, at the tightest budget of the larger-p experiment."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    budget = min(row["budget"] for row in rows)
+    chosen = [row for row in rows if row["budget"] == budget]
+    fig, ax = plt.subplots(figsize=(7, 4))
+    ax.plot(
+        [row["p"] for row in chosen],
+        [row["abc_mean_gap_percent"] for row in chosen],
+        "o-",
+        color="#1654b8",
+        label="ABC (średnia)",
+    )
+    finished = [row for row in chosen if row["greedy_gap_percent"] is not None]
+    ax.plot(
+        [row["p"] for row in finished],
+        [row["greedy_gap_percent"] for row in finished],
+        "s--",
+        color="#37864f",
+        label="Greedy + zamiany",
+    )
+    ax.set(
+        xlabel="Liczba stacji p",
+        ylabel="Strata do optimum [%]",
+        title=f"Większa liczba stacji, budżet {budget} ocen",
+    )
+    ax.grid(alpha=0.25)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(output / "large_p.png", dpi=160)
+    plt.close(fig)
+
+
+def layout_map(output, map_path, raw, layers, filename="layout_map.png"):
+    """Chosen layouts over every candidate and demand point; layers = (label, ids, color)."""
     import matplotlib
 
     matplotlib.use("Agg")
@@ -626,7 +888,6 @@ def layout_map(output, map_path, raw, curve, p):
     fig, ax = plt.subplots(figsize=(10, 7))
     ax.add_collection(PolyCollection(outlines, facecolors="#e0e5ed", edgecolors="#c3cad3", lw=0.3))
     ax.add_collection(LineCollection(walks, colors="#b3bac2", linewidths=0.35, zorder=1))
-    selected = set(next(r for r in curve if r["p"] == p)["candidate_ids"].split(";"))
     candidates, demand = raw["candidates"], raw["demand"]
     ax.scatter(
         [c["lon"] for c in candidates],
@@ -646,23 +907,24 @@ def layout_map(output, map_path, raw, curve, p):
         label="Punkty popytu (wagi założone)",
         zorder=3,
     )
-    chosen = [c for c in candidates if c["id"] in selected]
-    ax.scatter(
-        [c["lon"] for c in chosen],
-        [c["lat"] for c in chosen],
-        c="#1654b8",
-        s=130,
-        label=f"Układ optymalny, p = {p}",
-        zorder=4,
-    )
-    for point in chosen:
-        ax.annotate(
-            point["id"].removeprefix("candidate-"),
-            (point["lon"], point["lat"]),
-            xytext=(7, 7),
-            textcoords="offset points",
-            color="#1654b8",
+    for label, identifiers, color in layers:
+        chosen = [c for c in candidates if c["id"] in identifiers]
+        ax.scatter(
+            [c["lon"] for c in chosen],
+            [c["lat"] for c in chosen],
+            c=color,
+            s=130,
+            label=label,
+            zorder=4,
         )
+        for point in chosen:
+            ax.annotate(
+                point["id"].removeprefix("candidate-"),
+                (point["lon"], point["lat"]),
+                xytext=(7, 7),
+                textcoords="offset points",
+                color=color,
+            )
     ax.set_xlim(
         min(c["lon"] for c in candidates) - 0.002, max(c["lon"] for c in candidates) + 0.002
     )
@@ -673,10 +935,10 @@ def layout_map(output, map_path, raw, curve, p):
     ax.set(xlabel="Długość geograficzna [°]", ylabel="Szerokość geograficzna [°]")
     ax.legend(loc="upper right", fontsize=8)
     fig.text(
-        0.5, 0.01, "© OpenStreetMap contributors | ODbL | wersja robocza, bez audytu", ha="center"
+        0.5, 0.01, "© OpenStreetMap contributors | ODbL | stan przed audytem terenowym", ha="center"
     )
     fig.tight_layout(rect=(0, 0.03, 1, 1))
-    fig.savefig(output / "layout_map.png", dpi=160)
+    fig.savefig(output / filename, dpi=160)
     plt.close(fig)
 
 
@@ -688,7 +950,8 @@ def run(
     budget=10_000,
     runs=30,
     tuning_runs=10,
-    p_max=15,
+    p_max=40,
+    large_ps=(10, 15, 20, 25, 30, 40),
 ):
     problem_path, output = Path(problem_path), Path(output)
     output.mkdir(parents=True, exist_ok=True)
@@ -712,7 +975,29 @@ def run(
     write_rows(output / "tests.csv", tests)
     curve = station_curve(problem, min(p_max, len(problem.candidate_ids)))
     write_rows(output / "stations_curve.csv", curve)
+    large = large_station_counts(
+        problem,
+        large_ps,
+        ((budget, runs), (3 * budget, max(1, runs // 3))),
+        runs,
+        foods,
+        rule,
+    )
+    if large:
+        write_rows(output / "large_p.csv", large)
+        large_p_figure(output, large)
     write_rows(output / "scenarios.csv", scenario_regret(problem, ps))
+    write_rows(
+        output / "multistart.csv",
+        multistart_comparison(problem, sorted({*ps, *large_ps[:3]}), budget, runs, foods, rule),
+    )
+    write_rows(output / "candidate_count.csv", candidate_count_curve(problem, raw, ps))
+    stage_one, stage_two = choose_stages(curve)
+    summary_rows, station_rows = recommendation(problem, raw, stage_one, stage_two)
+    write_rows(output / "recommended_layouts.csv", summary_rows)
+    write_rows(output / "recommended_stations.csv", station_rows)
+    if len(problem.scenarios) > 1:
+        write_rows(output / "robust.csv", robust_layouts(problem, sorted({*ps, *large_ps[:2]})))
     write_rows(output / "thresholds.csv", threshold_sensitivity(problem, ps))
     write_rows(output / "groups.csv", group_metrics(problem, raw, ps))
     write_rows(output / "point_lists.csv", list_sensitivity(problem, raw, ps))
@@ -724,7 +1009,27 @@ def run(
     write_rows(output / "candidates_to_check.csv", field_priority(problem, raw, curve, layouts, ps))
     figures(output, summary, histories, curve, budget)
     if (problem_path.parent / "map.geojson").exists():
-        layout_map(output, problem_path.parent / "map.geojson", raw, curve, ps[len(ps) // 2])
+        p = ps[len(ps) // 2]
+        identifiers = set(next(r for r in curve if r["p"] == p)["candidate_ids"].split(";"))
+        layout_map(
+            output,
+            problem_path.parent / "map.geojson",
+            raw,
+            [(f"Układ optymalny, p = {p}", identifiers, "#1654b8")],
+        )
+        by_stage = {
+            stage: {row["id"] for row in station_rows if row["stage"] == stage} for stage in (1, 2)
+        }
+        layout_map(
+            output,
+            problem_path.parent / "map.geojson",
+            raw,
+            [
+                (f"Etap 1: {len(by_stage[1])} stacji", by_stage[1], "#1654b8"),
+                (f"Etap 2: dodatkowe {len(by_stage[2])} stacji", by_stage[2], "#c2571f"),
+            ],
+            "layout_recommended.png",
+        )
     reviewed = sum(c.get("status") == "reviewed" for c in raw["candidates"])
     write_json(
         output / "study.json",

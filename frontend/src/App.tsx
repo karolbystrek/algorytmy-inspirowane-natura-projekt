@@ -10,6 +10,7 @@ import {
     Info,
     LoaderCircle,
     Pause,
+    Pin,
     Play,
     RotateCcw,
     X,
@@ -17,16 +18,35 @@ import {
 import CampusMap from "./CampusMap";
 import Convergence from "./Convergence";
 import {
+    GroupsPanel,
+    ScenariosPanel,
+    SeriesPanel,
+    StationCurve,
+    StationLoad,
+    WorstBuildings,
+} from "./Insights";
+import {
+    buildingName,
+    categoryNames,
     methodColors,
+    methodLabels as LABELS,
     methodNames,
     number,
     request,
     scenarioNames,
+    stationLabel,
+    type Analysis,
+    type CurveRow,
     type Dataset,
+    type Focus,
+    type GroupRow,
     type Method,
     type Parameters,
+    type Pool,
+    type RobustResult,
     type Run,
     type Scenario,
+    type SeriesResult,
 } from "./types";
 
 const DEFAULTS: Parameters = {
@@ -35,9 +55,17 @@ const DEFAULTS: Parameters = {
     seed: 0,
     scenario: "aggregate",
     include_exact: true,
+    threshold_m: 250,
+    candidate_pool: "all",
 };
 const METHODS: Method[] = ["abc", "random", "greedy"];
-const LABELS = { abc: "ABC", random: "Losowanie", greedy: "Greedy" };
+const BUDGETS = [500, 1000, 5000, 10000, 20000];
+const CURVE_STATIONS = 40;
+const JSON_POST = {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+};
+type Baseline = { label: string; ids: string[] };
 
 export default function App() {
     const [dataset, setDataset] = useState<Dataset | null>(null);
@@ -49,6 +77,18 @@ export default function App() {
     const [playing, setPlaying] = useState(false);
     const [frame, setFrame] = useState(1);
     const [help, setHelp] = useState(false);
+    const [analysis, setAnalysis] = useState<Analysis | null>(null);
+    const [curve, setCurve] = useState<CurveRow[] | null>(null);
+    const [series, setSeries] = useState<SeriesResult | null>(null);
+    const [seeds, setSeeds] = useState(10);
+    const [seriesBusy, setSeriesBusy] = useState(false);
+    const [robust, setRobust] = useState<RobustResult | null>(null);
+    const [robustBusy, setRobustBusy] = useState(false);
+    const [focus, setFocus] = useState<Focus | null>(null);
+    const [baseline, setBaseline] = useState<Baseline | null>(null);
+    const [baselineSummary, setBaselineSummary] = useState<GroupRow | null>(
+        null,
+    );
     const helpDialog = useRef<HTMLDialogElement>(null);
     const activeRequest = useRef<AbortController | null>(null);
 
@@ -94,6 +134,132 @@ export default function App() {
         else helpDialog.current?.close();
     }, [help]);
 
+    const finalLayout = run?.methods[method].candidate_ids.join(",") ?? "";
+
+    useEffect(() => {
+        setFocus(null);
+        setSeries(null);
+        setRobust(null);
+    }, [run]);
+
+    // Only the final layout is analysed; replay frames change too quickly to be worth a request.
+    useEffect(() => {
+        if (!run || !finalLayout) return;
+        const controller = new AbortController();
+        setAnalysis(null);
+        request<Analysis>("analysis", {
+            ...JSON_POST,
+            body: JSON.stringify({
+                candidate_ids: finalLayout.split(","),
+                scenario: run.parameters.scenario,
+                threshold_m: run.parameters.threshold_m,
+                candidate_pool: run.parameters.candidate_pool,
+            }),
+            signal: controller.signal,
+        })
+            .then(setAnalysis)
+            .catch((e) => {
+                if (!controller.signal.aborted) setError(e.message);
+            });
+        return () => controller.abort();
+    }, [run, finalLayout]);
+
+    const curveKey = run
+        ? JSON.stringify({
+              scenario: run.parameters.scenario,
+              threshold_m: run.parameters.threshold_m,
+              candidate_pool: run.parameters.candidate_pool,
+              p_max: Math.max(CURVE_STATIONS, run.parameters.p),
+          })
+        : "";
+    useEffect(() => {
+        if (!curveKey) return;
+        const controller = new AbortController();
+        setCurve(null);
+        request<{ rows: CurveRow[] }>("curve", {
+            ...JSON_POST,
+            body: curveKey,
+            signal: controller.signal,
+        })
+            .then((result) => setCurve(result.rows))
+            .catch((e) => {
+                if (!controller.signal.aborted) setError(e.message);
+            });
+        return () => controller.abort();
+    }, [curveKey]);
+
+    // A remembered layout is always judged on the demand of the current run.
+    useEffect(() => {
+        if (!run || !baseline) {
+            setBaselineSummary(null);
+            return;
+        }
+        const controller = new AbortController();
+        request<Analysis>("analysis", {
+            ...JSON_POST,
+            body: JSON.stringify({
+                candidate_ids: baseline.ids,
+                scenario: run.parameters.scenario,
+                threshold_m: run.parameters.threshold_m,
+            }),
+            signal: controller.signal,
+        })
+            .then((result) => setBaselineSummary(result.groups[0]))
+            .catch((e) => {
+                if (!controller.signal.aborted) setError(e.message);
+            });
+        return () => controller.abort();
+    }, [run, baseline]);
+
+    async function runSeries() {
+        if (!run) return;
+        setSeriesBusy(true);
+        setError("");
+        try {
+            setSeries(
+                await request<SeriesResult>("series", {
+                    ...JSON_POST,
+                    body: JSON.stringify({
+                        p: run.parameters.p,
+                        budget: run.parameters.budget,
+                        scenario: run.parameters.scenario,
+                        candidate_pool: run.parameters.candidate_pool,
+                        seeds,
+                    }),
+                }),
+            );
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Seria nie powiodła się.");
+        } finally {
+            setSeriesBusy(false);
+        }
+    }
+
+    async function runRobust() {
+        if (!run) return;
+        setRobustBusy(true);
+        setError("");
+        try {
+            setRobust(
+                await request<RobustResult>("robust", {
+                    ...JSON_POST,
+                    body: JSON.stringify({
+                        p: run.parameters.p,
+                        candidate_pool: run.parameters.candidate_pool,
+                    }),
+                }),
+            );
+        } catch (e) {
+            setError(
+                e instanceof Error
+                    ? e.message
+                    : "Nie udało się policzyć układu odpornego.",
+            );
+        } finally {
+            setRobustBusy(false);
+        }
+    }
+
     async function calculate() {
         activeRequest.current?.abort();
         const controller = new AbortController();
@@ -132,7 +298,26 @@ export default function App() {
         }
     }
 
-    const maxStations = dataset?.candidates.length ?? DEFAULTS.p;
+    const pool = dataset?.pools[params.candidate_pool];
+    const maxStations = pool?.count ?? DEFAULTS.p;
+    const minBudget = pool?.greedy_min_budget[params.p - 1] ?? 0;
+
+    // Keep the settings valid: too small a budget would only produce an error from the server.
+    function changeSize(p: number, candidate_pool: Pool = params.candidate_pool) {
+        const options = dataset?.pools[candidate_pool];
+        const stations = Math.min(p, options?.count ?? p);
+        const needed = options?.greedy_min_budget[stations - 1] ?? 0;
+        setParams((v) => ({
+            ...v,
+            p: stations,
+            candidate_pool,
+            budget:
+                v.budget >= needed
+                    ? v.budget
+                    : (BUDGETS.find((b) => b >= needed) ?? v.budget),
+        }));
+    }
+
     const solution = run?.methods[method];
     const evaluation = Math.round(frame * (run?.parameters.budget ?? 1000));
     const step = solution?.steps
@@ -156,9 +341,23 @@ export default function App() {
     function download() {
         if (!run) return;
         const url = URL.createObjectURL(
-            new Blob([JSON.stringify(run, null, 2)], {
-                type: "application/json",
-            }),
+            new Blob(
+                [
+                    JSON.stringify(
+                        {
+                            ...run,
+                            selected_method: method,
+                            analysis,
+                            station_curve: curve,
+                            series,
+                            robust,
+                        },
+                        null,
+                        2,
+                    ),
+                ],
+                { type: "application/json" },
+            ),
         );
         const anchor = document.createElement("a");
         anchor.href = url;
@@ -171,7 +370,40 @@ export default function App() {
         setMethod(next);
         setPlaying(false);
         setFrame(1);
+        setFocus(null);
     }
+
+    function rememberLayout() {
+        if (!run || !solution) return;
+        setBaseline({
+            label: `${LABELS[method]} · ${scenarioNames[run.parameters.scenario]} · ${run.parameters.p} st.`,
+            ids: solution.candidate_ids,
+        });
+    }
+
+    const summary = analysis?.groups[0];
+    const common =
+        baseline && solution
+            ? baseline.ids.filter((id) => solution.candidate_ids.includes(id))
+                  .length
+            : 0;
+    const focusedBuilding =
+        focus?.kind === "building"
+            ? analysis?.buildings.find((b) => b.id === focus.id)
+            : undefined;
+    const focusedPoint =
+        focus?.kind === "building"
+            ? dataset?.demand.find((d) => d.id === focus.id)
+            : undefined;
+    const focusedStation =
+        focus?.kind === "station"
+            ? analysis?.stations.find((s) => s.id === focus.id)
+            : undefined;
+    const focusedCandidate =
+        focus?.kind === "station"
+            ? dataset?.candidates.find((c) => c.id === focus.id)
+            : undefined;
+    const threshold = run?.parameters.threshold_m ?? DEFAULTS.threshold_m;
 
     return (
         <div className="app-shell">
@@ -260,10 +492,7 @@ export default function App() {
                                         "--range-progress": `${((params.p - 1) / Math.max(1, maxStations - 1)) * 100}%`,
                                     } as CSSProperties
                                 }
-                                onChange={(e) => {
-                                    const p = +e.target.value;
-                                    setParams((v) => ({ ...v, p }));
-                                }}
+                                onChange={(e) => changeSize(+e.target.value)}
                             />
                             <div className="range-extents">
                                 <span>1</span>
@@ -296,6 +525,47 @@ export default function App() {
                                     ? "Równa mieszanina trzech pór dnia."
                                     : "Założone wagi dla wybranej pory dnia."}
                             </p>
+                            <label className="field-label" htmlFor="pool">
+                                Możliwe lokalizacje
+                            </label>
+                            <select
+                                id="pool"
+                                value={params.candidate_pool}
+                                disabled={busy}
+                                onChange={(e) =>
+                                    changeSize(params.p, e.target.value as Pool)
+                                }
+                            >
+                                <option value="all">
+                                    Wszystkie ({dataset?.pools.all?.count ?? "—"})
+                                </option>
+                                {dataset?.pools.existing ? (
+                                    <option value="existing">
+                                        Tylko istniejące parkingi (
+                                        {dataset.pools.existing.count})
+                                    </option>
+                                ) : null}
+                            </select>
+                            <label className="field-label" htmlFor="threshold">
+                                Akceptowalne dojście
+                            </label>
+                            <select
+                                id="threshold"
+                                value={params.threshold_m}
+                                disabled={busy}
+                                onChange={(e) =>
+                                    setParams((v) => ({
+                                        ...v,
+                                        threshold_m: +e.target.value,
+                                    }))
+                                }
+                            >
+                                {[150, 250, 350, 500].map((v) => (
+                                    <option key={v} value={v}>
+                                        do {v} m
+                                    </option>
+                                ))}
+                            </select>
 
                             <details className="advanced-settings">
                                 <summary>
@@ -320,14 +590,20 @@ export default function App() {
                                             }))
                                         }
                                     >
-                                        {[500, 1000, 5000, 10000, 20000].map(
-                                            (v) => (
-                                                <option key={v} value={v}>
-                                                    {number(v, 0)} ocen
-                                                </option>
-                                            ),
-                                        )}
+                                        {BUDGETS.map((v) => (
+                                            <option
+                                                key={v}
+                                                value={v}
+                                                disabled={v < minBudget}
+                                            >
+                                                {number(v, 0)} ocen
+                                            </option>
+                                        ))}
                                     </select>
+                                    <p className="field-hint">
+                                        Greedy przy {params.p} st. potrzebuje co
+                                        najmniej {number(minBudget, 0)} ocen.
+                                    </p>
                                     <div className="seed-row">
                                         <label
                                             className="field-label"
@@ -392,8 +668,11 @@ export default function App() {
                                         </span>
                                     </label>
                                     <p className="algorithm-parameters">
-                                        ABC: {run?.abc.foods ?? 12} źródeł ·
+                                        ABC: {run?.abc.foods ?? "—"} źródeł ·
                                         limit porzucenia {run?.abc.limit ?? "—"}
+                                        <br />
+                                        Dobrane na osobnej instancji
+                                        rozwojowej.
                                     </p>
                                 </div>
                             </details>
@@ -453,7 +732,7 @@ export default function App() {
                             </div>
                             <div className="metric">
                                 <span className="metric-label">
-                                    Pokrycie do 250 m
+                                    Pokrycie do {threshold} m
                                 </span>
                                 <strong>
                                     {step ? number(step.coverage * 100) : "—"}
@@ -463,17 +742,27 @@ export default function App() {
                             </div>
                             <div className="metric">
                                 <span className="metric-label">
-                                    Czas obliczeń
+                                    Dojście 90% popytu
                                 </span>
                                 <strong>
-                                    {solution
-                                        ? number(solution.elapsed_s * 1000, 0)
+                                    {step
+                                        ? number(step.p90_distance_m, 0)
                                         : "—"}
-                                    <small>ms</small>
+                                    <small>m</small>
                                 </strong>
-                                <span>
-                                    wybrana metoda · bez solvera optimum
+                                <span>percentyl ważony P90</span>
+                            </div>
+                            <div className="metric">
+                                <span className="metric-label">
+                                    Najdłuższe dojście
                                 </span>
+                                <strong>
+                                    {step
+                                        ? number(step.max_distance_m, 0)
+                                        : "—"}
+                                    <small>m</small>
+                                </strong>
+                                <span>najgorzej położony budynek</span>
                             </div>
                         </div>
 
@@ -510,7 +799,121 @@ export default function App() {
                                 selected={selected}
                                 weights={run?.demand_weights}
                                 scenario={run?.parameters.scenario ?? "aggregate"}
-                            />
+                                baseline={baseline?.ids}
+                                threshold={threshold}
+                                focus={focus}
+                                onFocus={setFocus}
+                            >
+                                {focusedBuilding ? (
+                                    <aside className="map-detail">
+                                        <h3>
+                                            {buildingName(focusedBuilding.name)}
+                                        </h3>
+                                        <dl>
+                                            <dt>Funkcja</dt>
+                                            <dd>
+                                                {categoryNames[
+                                                    focusedBuilding.category
+                                                ] ?? focusedBuilding.category}
+                                            </dd>
+                                            <dt>Pow. użytkowa</dt>
+                                            <dd>
+                                                {number(
+                                                    focusedPoint?.floor_area_m2 ??
+                                                        0,
+                                                    0,
+                                                )}{" "}
+                                                m²
+                                                {focusedPoint?.levels_source ===
+                                                "osm"
+                                                    ? ""
+                                                    : " (szac.)"}
+                                            </dd>
+                                            <dt>Udział w popycie</dt>
+                                            <dd>
+                                                {number(
+                                                    focusedBuilding.demand_share *
+                                                        100,
+                                                )}
+                                                %
+                                            </dd>
+                                            <dt>Dojście</dt>
+                                            <dd>
+                                                {number(
+                                                    focusedBuilding.distance_m,
+                                                    0,
+                                                )}{" "}
+                                                m
+                                            </dd>
+                                            <dt>Najbliższa stacja</dt>
+                                            <dd>
+                                                {stationLabel(
+                                                    focusedBuilding.station,
+                                                )}
+                                            </dd>
+                                        </dl>
+                                        <button
+                                            aria-label="Zamknij szczegóły"
+                                            onClick={() => setFocus(null)}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </aside>
+                                ) : null}
+                                {focusedStation ? (
+                                    <aside className="map-detail">
+                                        <h3>
+                                            Stacja{" "}
+                                            {stationLabel(focusedStation.id)}
+                                        </h3>
+                                        <dl>
+                                            <dt>Obsługiwany popyt</dt>
+                                            <dd>
+                                                {number(
+                                                    focusedStation.demand_share *
+                                                        100,
+                                                )}
+                                                %
+                                            </dd>
+                                            <dt>Budynki</dt>
+                                            <dd>{focusedStation.buildings}</dd>
+                                            <dt>Średnie dojście</dt>
+                                            <dd>
+                                                {focusedStation.mean_m === null
+                                                    ? "—"
+                                                    : `${number(focusedStation.mean_m, 0)} m`}
+                                            </dd>
+                                            <dt>Najdłuższe dojście</dt>
+                                            <dd>
+                                                {focusedStation.max_m === null
+                                                    ? "—"
+                                                    : `${number(focusedStation.max_m, 0)} m`}
+                                            </dd>
+                                            <dt>Pochodzenie</dt>
+                                            <dd>
+                                                {focusedCandidate?.source?.startsWith(
+                                                    "osm_",
+                                                )
+                                                    ? "parking w OSM"
+                                                    : "węzeł przy budynkach"}
+                                            </dd>
+                                            <dt>Audyt</dt>
+                                            <dd>
+                                                {focusedCandidate?.status ===
+                                                "reviewed"
+                                                    ? "sprawdzona"
+                                                    : "do sprawdzenia"}
+                                            </dd>
+                                        </dl>
+                                        <button
+                                            aria-label="Zamknij szczegóły"
+                                            onClick={() => setFocus(null)}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </aside>
+                                ) : null}
+                            </CampusMap>
                             <div className="playback">
                                 <button
                                     className="playback-play"
@@ -590,7 +993,53 @@ export default function App() {
                                         ? `${scenarioNames[run.parameters.scenario]} · p = ${run.parameters.p} · seed ${run.parameters.seed}`
                                         : "Przygotowanie danych"}
                                 </span>
+                                <button
+                                    className="pin-button"
+                                    disabled={!run}
+                                    onClick={rememberLayout}
+                                    title="Pokaż ten układ na mapie obok kolejnych wyników"
+                                >
+                                    <Pin size={12} /> Zapamiętaj układ
+                                </button>
                             </div>
+                            {baseline ? (
+                                <div className="compare-strip" role="status">
+                                    <strong>
+                                        Porównanie z: {baseline.label}
+                                    </strong>
+                                    {baselineSummary && summary ? (
+                                        <>
+                                            <span>
+                                                dojście{" "}
+                                                {number(baselineSummary.mean_m)}{" "}
+                                                m (obecny układ{" "}
+                                                {number(
+                                                    summary.mean_m -
+                                                        baselineSummary.mean_m,
+                                                )}{" "}
+                                                m)
+                                            </span>
+                                            <span>
+                                                pokrycie{" "}
+                                                {number(
+                                                    baselineSummary.coverage *
+                                                        100,
+                                                )}
+                                                %
+                                            </span>
+                                            <span>
+                                                wspólne stacje: {common} z{" "}
+                                                {solution?.candidate_ids.length}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <span>Liczenie…</span>
+                                    )}
+                                    <button onClick={() => setBaseline(null)}>
+                                        <X size={12} /> Usuń
+                                    </button>
+                                </div>
+                            ) : null}
                         </section>
                     </div>
 
@@ -654,7 +1103,7 @@ export default function App() {
                                     <tr>
                                         <th scope="col">Metoda</th>
                                         <th scope="col">Dojście</th>
-                                        <th scope="col">Oceny</th>
+                                        <th scope="col">Oceny · czas</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -707,6 +1156,11 @@ export default function App() {
                                                           0,
                                                       )
                                                     : "—"}
+                                                <small>
+                                                    {run
+                                                        ? ` · ${number(run.methods[m].elapsed_s * 1000, 0)} ms`
+                                                        : ""}
+                                                </small>
                                             </td>
                                         </tr>
                                     ))}
@@ -739,6 +1193,48 @@ export default function App() {
                                 Ocena metod wymaga wielu przebiegów.
                             </p>
                         </section>
+                    </div>
+
+                    <div className="insight-grid">
+                        <StationCurve
+                            rows={curve}
+                            p={run?.parameters.p ?? params.p}
+                            threshold={threshold}
+                            onPick={(p) => changeSize(p)}
+                        />
+                        <GroupsPanel
+                            analysis={analysis}
+                            threshold={threshold}
+                        />
+                        <ScenariosPanel
+                            analysis={analysis}
+                            robust={robust}
+                            robustBusy={robustBusy}
+                            onRobust={runRobust}
+                            onCompareRobust={() =>
+                                robust &&
+                                run &&
+                                setBaseline({
+                                    label: `Układ odporny · ${run.parameters.p} st.`,
+                                    ids: robust.candidate_ids,
+                                })
+                            }
+                            disabled={!run || busy || seriesBusy}
+                        />
+                        <WorstBuildings
+                            analysis={analysis}
+                            threshold={threshold}
+                            onFocus={setFocus}
+                        />
+                        <StationLoad analysis={analysis} onFocus={setFocus} />
+                        <SeriesPanel
+                            series={series}
+                            busy={seriesBusy}
+                            seeds={seeds}
+                            onSeeds={setSeeds}
+                            onRun={runSeries}
+                            disabled={!run || busy || robustBusy}
+                        />
                     </div>
                 </div>
 
@@ -806,9 +1302,10 @@ export default function App() {
                 <div className="dialog-note">
                     <Info size={17} />
                     <span>
-                        Zielone linie to trasy po grafie pieszym OSM do
-                        najbliższej stacji. Wielkość punktu popytu odpowiada
-                        założonej wadze w wybranym scenariuszu.
+                        Linie to trasy po grafie pieszym OSM do najbliższej
+                        stacji: zielone w zasięgu, pomarańczowe dłuższe.
+                        Wielkość punktu popytu odpowiada założonej wadze w
+                        wybranym scenariuszu.
                     </span>
                 </div>
                 <button

@@ -1,0 +1,6 @@
+p,aggregate_layout_worst_regret_percent,robust_layout_worst_regret_percent,robust_cost_on_aggregate_percent,common_stations,proved_optimal,candidate_ids
+3,12.28309170204912,10.41911954474286,3.1610004797429494,1,True,candidate-013;candidate-042;candidate-047
+5,11.547006032235995,10.07202870509989,1.1969563864446118,4,True,candidate-009;candidate-030;candidate-054;candidate-060;candidate-065
+8,11.890459187200369,9.566954781404547,1.439430078246128,5,True,candidate-005;candidate-008;candidate-030;candidate-039;candidate-054;candidate-060;candidate-065;candidate-070
+10,18.379181044896995,12.614447453117283,0.5240781039987928,8,True,candidate-005;candidate-006;candidate-008;candidate-010;candidate-015;candidate-030;candidate-039;candidate-054;candidate-070;candidate-071
+15,10.42288910619671,8.049196260875767,1.0282056841750478,13,True,candidate-005;candidate-006;candidate-010;candidate-015;candidate-020;candidate-024;candidate-030;candidate-039;candidate-052;candidate-054;candidate-055;candidate-071;candidate-072;candidate-077;candidate-097
