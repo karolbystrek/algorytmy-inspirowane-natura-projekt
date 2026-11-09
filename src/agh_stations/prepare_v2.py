@@ -74,6 +74,27 @@ def classify(row, footprint, rules):
     return None
 
 
+def assumed_levels(row, category_median, rules):
+    """Levels when OSM has none: a sports hall is one tall room, not a typical campus building."""
+    default = rules["default_levels_by_leisure"].get(text_value(row, "leisure"))
+    return (default, "function_default") if default else (category_median, "category_median")
+
+
+def scenario_weights(demand, intensity, scenarios):
+    """Trips per scenario: floor area times an intensity for the building's function.
+
+    A category's share of demand is a result of how much of it exists on campus. Fixing that
+    share in advance would give a few small buildings the weight of the whole category.
+    """
+    return {
+        scenario: [
+            round(intensity[item["category"]][scenario] * item["floor_area_m2"] / 1000, 6)
+            for item in demand
+        ]
+        for scenario in scenarios
+    }
+
+
 def building_height(row, config):
     """Height with its origin, so the map can mark what is only approximate."""
     height = parse_number(row.get("height"))
@@ -299,7 +320,9 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
             continue
         anchor = polygon.representative_point()
         lon, lat = wgs(anchor)
-        fallback_levels = float(np.median(known_levels[category] or [3.0]))
+        fallback_levels, fallback_source = assumed_levels(
+            row, float(np.median(known_levels[category] or [3.0])), config["demand"]
+        )
         demand.append(
             {
                 "id": identifier,
@@ -307,7 +330,7 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
                 "category": category,
                 "area_m2": round(footprint, 3),
                 "levels": levels or fallback_levels,
-                "levels_source": "osm" if levels else "category_median",
+                "levels_source": "osm" if levels else fallback_source,
                 "floor_area_m2": round(footprint * (levels or fallback_levels), 3),
                 "lon": lon,
                 "lat": lat,
@@ -441,21 +464,15 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
         return round(min(options), 3) if options else None
 
     closed_matrix = [[closed_distance(d, c) for c in candidates] for d in demand]
-    totals = {}
-    for item in demand:
-        totals[item["category"]] = totals.get(item["category"], 0.0) + item["floor_area_m2"]
-    scenarios = {
-        scenario: [
-            round(
-                config["category_weights"][item["category"]][scenario]
-                * item["floor_area_m2"]
-                / totals[item["category"]],
-                9,
+    intensity = config["demand_intensity_per_1000m2"]
+    scenarios = scenario_weights(demand, intensity, config["scenario_mixture"])
+    mixture_total = sum(config["scenario_mixture"].values())
+    share_of_demand = {category: 0.0 for category in sorted({d["category"] for d in demand})}
+    for scenario, weights in scenarios.items():
+        for item, weight in zip(demand, weights, strict=True):
+            share_of_demand[item["category"]] += (
+                config["scenario_mixture"][scenario] / mixture_total * weight / sum(weights)
             )
-            for item in demand
-        ]
-        for scenario in config["scenario_mixture"]
-    }
     problem = {
         "schema_version": 1,
         "dataset_id": config["name"],
@@ -465,7 +482,8 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
         "distances_m_gates_closed": closed_matrix,
         "scenarios": scenarios,
         "scenario_mixture": config["scenario_mixture"],
-        "category_weights": config["category_weights"],
+        "demand_intensity_per_1000m2": intensity,
+        "fixed_category_totals_for_sensitivity": config["fixed_category_totals_for_sensitivity"],
         "demand_is_assumed": True,
         "routing_note": "Distance = straight connector from entrance to graph + walking route.",
     }
@@ -563,7 +581,10 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
                 },
                 "demand_count": len(demand),
                 "demand_by_category": {
-                    category: count(demand, "category", category) for category in sorted(totals)
+                    category: count(demand, "category", category) for category in share_of_demand
+                },
+                "demand_share_by_category": {
+                    category: round(share, 4) for category, share in share_of_demand.items()
                 },
                 "demand_with_osm_entrances": count(demand, "location_method", "osm_entrances"),
                 "demand_without_verified_connector": sum(
@@ -587,7 +608,7 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
             },
             "limitations": [
                 "No point has been checked on site; every status is requires_review.",
-                "Demand weights are assumptions: category totals split by floor area.",
+                "Demand weights are assumptions: floor area times an intensity per function.",
                 "Connector legs are straight lines from an entrance to the walking graph.",
                 "Buildings without an OSM entrance use the point on the outline nearest the graph.",
                 "Largest strongly connected component only; audit excluded components.",
