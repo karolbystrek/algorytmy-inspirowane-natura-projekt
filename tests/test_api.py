@@ -44,7 +44,7 @@ def test_live_run_and_replay_match_the_model():
     "payload",
     [
         {"p": 0},
-        {"p": 13},
+        {"p": 31},
         {"p": 4.5},
         {"p": True},
         {"budget": 499},
@@ -56,6 +56,19 @@ def test_live_run_and_replay_match_the_model():
 )
 def test_invalid_or_excessive_requests_are_rejected(payload):
     assert client.post("/api/run", json=payload).status_code == 422
+
+
+@pytest.mark.parametrize("p", [13, 20, 30])
+def test_station_count_is_limited_only_by_the_candidate_list(p):
+    response = client.post("/api/run", json={"p": p, "budget": 1000})
+    assert response.status_code == 200
+    result = response.json()
+    assert len(result["methods"]["abc"]["candidate_ids"]) == p
+    assert result["methods"]["abc"]["mean_distance_m"] >= result["exact"]["mean_distance_m"] - 1e-9
+    routes = client.post(
+        "/api/routes", json={"candidate_ids": result["methods"]["abc"]["candidate_ids"]}
+    )
+    assert routes.status_code == 200
 
 
 def test_budget_too_small_for_greedy_is_explained_instead_of_crashing(monkeypatch):

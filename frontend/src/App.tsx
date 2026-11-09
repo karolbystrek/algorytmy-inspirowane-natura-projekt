@@ -132,6 +132,7 @@ export default function App() {
         }
     }
 
+    const maxStations = dataset?.candidates.length ?? DEFAULTS.p;
     const solution = run?.methods[method];
     const evaluation = Math.round(frame * (run?.parameters.budget ?? 1000));
     const step = solution?.steps
@@ -251,12 +252,12 @@ export default function App() {
                                 id="station-count"
                                 type="range"
                                 min="1"
-                                max="12"
+                                max={maxStations}
                                 value={params.p}
                                 disabled={busy}
                                 style={
                                     {
-                                        "--range-progress": `${((params.p - 1) / 11) * 100}%`,
+                                        "--range-progress": `${((params.p - 1) / Math.max(1, maxStations - 1)) * 100}%`,
                                     } as CSSProperties
                                 }
                                 onChange={(e) => {
@@ -266,7 +267,7 @@ export default function App() {
                             />
                             <div className="range-extents">
                                 <span>1</span>
-                                <span>12 stacji</span>
+                                <span>{maxStations} stacji</span>
                             </div>
                             <label className="field-label" htmlFor="scenario">
                                 Scenariusz popytu
