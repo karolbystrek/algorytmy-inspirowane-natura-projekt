@@ -17,9 +17,9 @@ from scipy.sparse.csgraph import dijkstra
 from scipy.stats import mannwhitneyu
 
 from agh_stations.audit import write_json
-from agh_stations.model import Problem
+from agh_stations.model import Problem, weighted_quantile
 from agh_stations.routing import read_walk_edges, walking_matrix
-from agh_stations.solvers import greedy_construction_cost, optimal, solve
+from agh_stations.solvers import greedy_construction_cost, optimal, robust_optimal, solve
 
 THRESHOLDS = (150, 250, 350)
 FOODS = (8, 12, 24)
@@ -297,6 +297,72 @@ def scenario_regret(problem, ps, threshold=250):
     return rows
 
 
+def robust_layouts(problem, ps):
+    """E3: can one layout share the loss between times of day, and what does that cost?"""
+    rows = []
+    for p in ps:
+        fixed = optimal(problem, p).selection
+        result = robust_optimal(problem, p)
+        own = {name: optimal(problem, p, name).objective for name in problem.scenarios}
+        rows.append(
+            {
+                "p": p,
+                "aggregate_layout_worst_regret_percent": max(
+                    gap(problem.objective(fixed, name), value) for name, value in own.items()
+                ),
+                "robust_layout_worst_regret_percent": result["worst_regret_percent"],
+                "robust_cost_on_aggregate_percent": gap(
+                    problem.objective(result["selection"]), problem.objective(fixed)
+                ),
+                "common_stations": len(set(fixed) & set(result["selection"])),
+                "proved_optimal": result["proved"],
+                "candidate_ids": ";".join(problem.candidate_ids[i] for i in result["selection"]),
+            }
+        )
+    return rows
+
+
+def large_station_counts(problem, ps, budgets, runs, foods, rule):
+    """E1b: larger p, and whether greedy still fits in the budget that ABC is given."""
+    rows = []
+    m = len(problem.candidate_ids)
+    for budget, repeats in budgets:
+        for p in (p for p in ps if p < m):
+            optimum = optimal(problem, p).objective
+            limit = limit_value(rule, foods, p)
+            abc = [
+                solve(problem, "abc", p, budget, s, foods=foods, limit=limit).objective
+                for s in range(repeats)
+            ]
+            random = [solve(problem, "random", p, budget, s).objective for s in range(repeats)]
+            greedy = (
+                solve(problem, "greedy", p, budget)
+                if budget >= greedy_construction_cost(m, p)
+                else None
+            )
+            rows.append(
+                {
+                    "p": p,
+                    "budget": budget,
+                    "runs": repeats,
+                    "optimum_m": optimum,
+                    "abc_mean_gap_percent": gap(float(np.mean(abc)), optimum),
+                    "abc_best_gap_percent": gap(min(abc), optimum),
+                    "abc_optimum_hits": sum(v <= optimum + 1e-6 for v in abc),
+                    "random_mean_gap_percent": gap(float(np.mean(random)), optimum),
+                    "greedy_gap_percent": None
+                    if greedy is None
+                    else gap(greedy.objective, optimum),
+                    "greedy_evaluations": None if greedy is None else greedy.evaluations,
+                    "greedy_ran_out_of_budget": greedy is None or greedy.evaluations >= budget,
+                    "abc_runs_at_least_as_good_as_greedy": None
+                    if greedy is None
+                    else sum(v <= greedy.objective + 1e-6 for v in abc),
+                }
+            )
+    return rows
+
+
 def threshold_sensitivity(problem, ps):
     """E4: same layout, different definition of “close enough”."""
     rows = []
@@ -313,6 +379,46 @@ def threshold_sensitivity(problem, ps):
     return rows
 
 
+def floor_area_variants(raw):
+    """E5: undo, one at a time, the assumptions behind weights based on floor area."""
+    demand = raw["demand"]
+    size = Counter(d["category"] for d in demand)
+    equal, footprint, fixed = {}, {}, {}
+    for name, weights in raw["scenarios"].items():
+        total = Counter()
+        area = Counter()
+        for item, weight in zip(demand, weights, strict=True):
+            total[item["category"]] += weight
+            area[item["category"]] += item["floor_area_m2"]
+        equal[name] = [total[d["category"]] / size[d["category"]] for d in demand]
+        footprint[name] = [
+            w * d["area_m2"] / d["floor_area_m2"] for w, d in zip(weights, demand, strict=True)
+        ]
+        if "fixed_category_totals_for_sensitivity" in raw:
+            totals = raw["fixed_category_totals_for_sensitivity"]
+            fixed[name] = [
+                totals[d["category"]][name] * d["floor_area_m2"] / area[d["category"]]
+                for d in demand
+            ]
+    variants = {"równo w kategorii": equal, "bez pięter (tylko obrys budynku)": footprint}
+    if fixed:
+        variants["stałe udziały kategorii (poprzednia reguła)"] = fixed
+    return variants
+
+
+def mixture_variants(raw):
+    """E5: the aggregate treats each time of day as equally busy; count one of them twice."""
+    if len(raw["scenarios"]) < 2:
+        return {}
+    return {
+        f"mieszanina: {scenario} ×2": {
+            name: value * (2 if name == scenario else 1)
+            for name, value in raw["scenario_mixture"].items()
+        }
+        for scenario in raw["scenarios"]
+    }
+
+
 def weight_variants(raw):
     """E5: every way of changing the assumed weights that the protocol asks about."""
     demand = raw["demand"]
@@ -327,14 +433,8 @@ def weight_variants(raw):
                 ]
                 for name, weights in raw["scenarios"].items()
             }
-    if "category_weights" in raw:  # Floor area already splits each category; undo that choice.
-        size = Counter(d["category"] for d in demand)
-        variants["równo w kategorii"] = {
-            name: [
-                raw["category_weights"][d["category"]][name] / size[d["category"]] for d in demand
-            ]
-            for name in raw["scenarios"]
-        }
+    if all("floor_area_m2" in d for d in demand):
+        variants |= floor_area_variants(raw)
     elif all("area_m2" in d for d in demand):
         mean_area = float(np.mean([d["area_m2"] for d in demand]))
         variants["skalowane powierzchnią"] = {
@@ -347,15 +447,17 @@ def weight_variants(raw):
 def weight_sensitivity(problem, raw, ps):
     """E5: re-optimize under changed weights and measure what the base layout would lose."""
     rows, layouts = [], []
+    changes = [(name, s, raw["scenario_mixture"]) for name, s in weight_variants(raw).items()]
+    changes += [(name, raw["scenarios"], m) for name, m in mixture_variants(raw).items()]
     for p in ps:
         base = optimal(problem, p).selection
-        for name, scenarios in weight_variants(raw).items():
+        for name, scenarios, mixture in changes:
             changed = Problem(
                 problem.candidate_ids,
                 problem.demand_ids,
                 problem.distances,
-                {k: np.asarray(v) for k, v in scenarios.items()},
-                dict(raw["scenario_mixture"]),
+                {k: np.asarray(v, dtype=float) for k, v in scenarios.items()},
+                dict(mixture),
             )
             result = optimal(changed, p)
             layouts.append(result.selection)
@@ -371,15 +473,6 @@ def weight_sensitivity(problem, raw, ps):
                 }
             )
     return rows, layouts
-
-
-def weighted_quantile(values, weights, q=0.9):
-    """Smallest value whose cumulative demand mass reaches q (inverse weighted CDF)."""
-    values, weights = np.asarray(values, dtype=float), np.asarray(weights, dtype=float)
-    order = np.argsort(values)
-    cumulative = np.cumsum(weights[order]) / weights.sum()
-    position = min(int(np.searchsorted(cumulative, q - 1e-12)), len(values) - 1)
-    return float(values[order][position])
 
 
 def group_metrics(problem, raw, ps, threshold=250):
@@ -420,6 +513,7 @@ def list_sensitivity(problem, raw, ps, threshold=250, seed=2026):
     candidate_sets = {
         "3/4 kandydatów": sorted(int(j) for j in order[: 3 * m // 4]),
         "1/2 kandydatów": sorted(int(j) for j in order[: m // 2]),
+        "1/4 kandydatów": sorted(int(j) for j in order[: m // 4]),
     }
     existing = [
         j for j, c in enumerate(raw["candidates"]) if str(c.get("source", "")).startswith("osm_")
@@ -494,24 +588,35 @@ def gate_sensitivity(problem, raw, ps):
     rows = []
     for p in ps:
         selection = list(optimal(problem, p).selection)
-        routes = closed[:, selection]
-        reachable = ~np.isnan(routes).all(axis=1)
-        nearest = np.full(len(weights), np.inf)
-        nearest[reachable] = np.nanmin(routes[reachable], axis=1)
-        share = weights[reachable] / weights[reachable].sum()
-        open_mean = float(share @ problem.nearest(selection)[reachable])
-        closed_mean = float(share @ nearest[reachable])
         rows.append(
-            {
-                "p": p,
-                "demand_without_route": float(weights[~reachable].sum()),
-                "buildings_without_route": int((~reachable).sum()),
-                "mean_open_m": open_mean,
-                "mean_closed_m": closed_mean,
-                "increase_percent": gap(closed_mean, open_mean),
-            }
+            {"p": p, **closed_gate_effect(closed, weights, problem.nearest(selection), selection)}
         )
     return rows
+
+
+def closed_gate_effect(closed, weights, open_nearest, selection):
+    """A layout's walk if every gate of unknown status were locked (NaN = no route)."""
+    routes = closed[:, selection]
+    reachable = ~np.isnan(routes).all(axis=1)
+    if not reachable.any():
+        return {
+            "demand_without_route": float(weights.sum()),
+            "buildings_without_route": len(weights),
+            "mean_open_m": None,
+            "mean_closed_m": None,
+            "increase_percent": None,
+        }
+    nearest = np.nanmin(routes[reachable], axis=1)
+    share = weights[reachable] / weights[reachable].sum()
+    open_mean = float(share @ open_nearest[reachable])
+    closed_mean = float(share @ nearest)
+    return {
+        "demand_without_route": float(weights[~reachable].sum()),
+        "buildings_without_route": int((~reachable).sum()),
+        "mean_open_m": open_mean,
+        "mean_closed_m": closed_mean,
+        "increase_percent": gap(closed_mean, open_mean),
+    }
 
 
 def field_priority(problem, raw, curve, layouts, ps):
@@ -590,17 +695,54 @@ def figures(output, summary, histories, curve, budget):
     fig.savefig(output / "convergence.png", dpi=160)
     plt.close(fig)
 
-    fig, left = plt.subplots(figsize=(7, 4))
+    fig, (left, right) = plt.subplots(1, 2, figsize=(10, 4), sharex=True)
     p_values = [row["p"] for row in curve]
-    left.plot(p_values, [row["mean_distance_m"] for row in curve], "o-", color="#1654b8")
+    left.plot(p_values, [row["mean_distance_m"] for row in curve], "o-", ms=3, color="#1654b8")
     left.set(xlabel="Liczba stacji p", ylabel="Średnie ważone dojście [m]")
-    right = left.twinx()
-    right.plot(p_values, [100 * row["coverage"] for row in curve], "s--", color="#e78a27")
-    right.set_ylabel("Popyt w zasięgu 250 m [%]")
+    right.plot(p_values, [100 * row["coverage"] for row in curve], "o-", ms=3, color="#1654b8")
+    right.set(xlabel="Liczba stacji p", ylabel="Popyt w zasięgu 250 m [%]")
     left.grid(alpha=0.25)
-    left.set_title("Korzyść z kolejnych stacji (układy optymalne)")
+    right.grid(alpha=0.25)
+    fig.suptitle("Korzyść z kolejnych stacji (układy optymalne)")
     fig.tight_layout()
     fig.savefig(output / "stations_curve.png", dpi=160)
+    plt.close(fig)
+
+
+def large_p_figure(output, rows):
+    """Loss to the optimum as p grows, at the tightest budget of the larger-p experiment."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    budget = min(row["budget"] for row in rows)
+    chosen = [row for row in rows if row["budget"] == budget]
+    fig, ax = plt.subplots(figsize=(7, 4))
+    ax.plot(
+        [row["p"] for row in chosen],
+        [row["abc_mean_gap_percent"] for row in chosen],
+        "o-",
+        color="#1654b8",
+        label="ABC (średnia)",
+    )
+    finished = [row for row in chosen if row["greedy_gap_percent"] is not None]
+    ax.plot(
+        [row["p"] for row in finished],
+        [row["greedy_gap_percent"] for row in finished],
+        "s--",
+        color="#37864f",
+        label="Greedy + zamiany",
+    )
+    ax.set(
+        xlabel="Liczba stacji p",
+        ylabel="Strata do optimum [%]",
+        title=f"Większa liczba stacji, budżet {budget} ocen",
+    )
+    ax.grid(alpha=0.25)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(output / "large_p.png", dpi=160)
     plt.close(fig)
 
 
@@ -688,7 +830,8 @@ def run(
     budget=10_000,
     runs=30,
     tuning_runs=10,
-    p_max=15,
+    p_max=40,
+    large_ps=(10, 15, 20, 25, 30, 40),
 ):
     problem_path, output = Path(problem_path), Path(output)
     output.mkdir(parents=True, exist_ok=True)
@@ -712,7 +855,20 @@ def run(
     write_rows(output / "tests.csv", tests)
     curve = station_curve(problem, min(p_max, len(problem.candidate_ids)))
     write_rows(output / "stations_curve.csv", curve)
+    large = large_station_counts(
+        problem,
+        large_ps,
+        ((budget, runs), (3 * budget, max(1, runs // 3))),
+        runs,
+        foods,
+        rule,
+    )
+    if large:
+        write_rows(output / "large_p.csv", large)
+        large_p_figure(output, large)
     write_rows(output / "scenarios.csv", scenario_regret(problem, ps))
+    if len(problem.scenarios) > 1:
+        write_rows(output / "robust.csv", robust_layouts(problem, sorted({*ps, *large_ps[:2]})))
     write_rows(output / "thresholds.csv", threshold_sensitivity(problem, ps))
     write_rows(output / "groups.csv", group_metrics(problem, raw, ps))
     write_rows(output / "point_lists.csv", list_sensitivity(problem, raw, ps))

@@ -193,25 +193,8 @@ def optimal(problem: Problem, p, scenario="aggregate"):
     weights = problem.weights(scenario)
     started = perf_counter()
     cost = np.concatenate([np.zeros(m), (problem.distances * weights[:, None]).ravel()])
-    rows, columns, values = [0] * m, list(range(m)), [1.0] * m
-    lower, upper = [p], [p]
-    row = 1
-    for i in range(n):  # Every demand point is served exactly once.
-        rows += [row] * m
-        columns += [m + i * m + j for j in range(m)]
-        values += [1.0] * m
-        lower.append(1)
-        upper.append(1)
-        row += 1
-    for i in range(n):  # Service is allowed only from an open station.
-        for j in range(m):
-            rows += [row, row]
-            columns += [m + i * m + j, j]
-            values += [1.0, -1.0]
-            lower.append(-np.inf)
-            upper.append(0)
-            row += 1
-    matrix = coo_matrix((values, (rows, columns)), shape=(row, m + n * m)).tocsr()
+    rows, columns, values, lower, upper = _assignment_constraints(n, m, p)
+    matrix = coo_matrix((values, (rows, columns)), shape=(len(lower), m + n * m)).tocsr()
     outcome = milp(
         cost,
         constraints=LinearConstraint(matrix, lower, upper),
@@ -219,10 +202,82 @@ def optimal(problem: Problem, p, scenario="aggregate"):
         bounds=Bounds(0, 1),
         options={"mip_rel_gap": 0},
     )
-    if not outcome.success:
+    selection = _opened_stations(outcome, m, p)
+    objective = problem.objective(selection, scenario)
+    return Result(selection, objective, 0, perf_counter() - started, [(0, objective)])
+
+
+def _assignment_constraints(n, m, p):
+    """Open exactly p stations and serve every demand point once, from an open station."""
+    rows, columns, values = [0] * m, list(range(m)), [1.0] * m
+    lower, upper = [p], [p]
+    row = 1
+    for i in range(n):
+        rows += [row] * m
+        columns += [m + i * m + j for j in range(m)]
+        values += [1.0] * m
+        lower.append(1)
+        upper.append(1)
+        row += 1
+    for i in range(n):
+        for j in range(m):
+            rows += [row, row]
+            columns += [m + i * m + j, j]
+            values += [1.0, -1.0]
+            lower.append(-np.inf)
+            upper.append(0)
+            row += 1
+    return rows, columns, values, lower, upper
+
+
+def _opened_stations(outcome, m, p):
+    if outcome.x is None or not (outcome.success or outcome.status == 1):
         raise RuntimeError(f"Integer program failed: {outcome.message}")
     selection = tuple(int(j) for j in np.flatnonzero(outcome.x[:m] > 0.5))
     if len(selection) != p:
         raise RuntimeError("Integer program returned an infeasible station count")
-    objective = problem.objective(selection, scenario)
-    return Result(selection, objective, 0, perf_counter() - started, [(0, objective)])
+    return selection
+
+
+def robust_optimal(problem: Problem, p, time_limit_s=60.0):
+    """One layout minimizing the worst relative loss across the separate times of day.
+
+    Each scenario's loss is measured against that scenario's own proved optimum. Stops at the
+    time limit with the best layout found, and reports whether optimality was proved.
+    """
+    from scipy.optimize import Bounds, LinearConstraint, milp
+    from scipy.sparse import coo_matrix
+
+    n, m = problem.distances.shape
+    best = {name: optimal(problem, p, name).objective for name in problem.scenarios}
+    started = perf_counter()
+    worst = m + n * m  # The last variable is the worst scenario's ratio to its own optimum.
+    rows, columns, values, lower, upper = _assignment_constraints(n, m, p)
+    row = len(lower)
+    for name, optimum in best.items():
+        per_pair = (problem.distances * problem.scenarios[name][:, None]).ravel() / optimum
+        used = np.flatnonzero(per_pair)
+        rows += [row] * (len(used) + 1)
+        columns += [m + int(k) for k in used] + [worst]
+        values += [float(per_pair[k]) for k in used] + [-1.0]
+        lower.append(-np.inf)
+        upper.append(0)
+        row += 1
+    matrix = coo_matrix((values, (rows, columns)), shape=(row, worst + 1)).tocsr()
+    cost = np.zeros(worst + 1)
+    cost[worst] = 1.0
+    outcome = milp(
+        cost,
+        constraints=LinearConstraint(matrix, lower, upper),
+        integrality=np.concatenate([np.ones(m), np.zeros(n * m + 1)]),
+        bounds=Bounds(np.zeros(worst + 1), np.append(np.ones(worst), np.inf)),
+        options={"time_limit": time_limit_s, "mip_rel_gap": 1e-4},
+    )
+    selection = _opened_stations(outcome, m, p)
+    ratio = max(problem.objective(selection, name) / best[name] for name in best)
+    return {
+        "selection": selection,
+        "worst_regret_percent": 100 * (ratio - 1),
+        "proved": bool(outcome.success),
+        "elapsed_s": perf_counter() - started,
+    }

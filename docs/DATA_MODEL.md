@@ -68,7 +68,17 @@ Zestaw v2 zastępuje pilota w badaniu końcowym. Pilot pozostaje niezmieniony, �
 | Położenie popytu | węzeł grafu najbliższy środkowi budynku, bez kosztu dojścia | wejścia z OSM (bez ewakuacyjnych, garażowych i serwisowych); bez wejścia: punkt obrysu najbliższy grafowi |
 | Odległość | tylko po grafie | prosty łącznik od wejścia do grafu + trasa po grafie; liczy się najlepsze wejście |
 | Kandydaci | 30 najbardziej oddalonych węzłów, wiele przy granicy | najpierw istniejące parkingi rowerowe, potem węzły do 150 m pieszo od popytu, co najmniej 70 m od siebie |
-| Wagi | równe w kategorii | suma kategorii z tabeli powyżej, dzielona między budynki według powierzchni użytkowej (obrys × kondygnacje) |
+| Wagi | równe w kategorii | powierzchnia użytkowa (obrys × kondygnacje) × natężenie ruchu dla funkcji budynku i pory dnia |
+
+Natężenia na 1000 m² powierzchni użytkowej są założeniem zespołu i znajdują się w `demand_intensity_per_1000m2`:
+
+| Kategoria | Rano | W dzień | Wieczorem | Udział w popycie (cały dzień) |
+|---|---:|---:|---:|---:|
+| `dorm` | 26 | 7 | 26 | 47,7% |
+| `teaching` | 9 | 15 | 3 | 45,9% |
+| `other` | 7,5 | 15 | 22,5 | 6,4% |
+
+Udział kategorii jest wynikiem, a nie założeniem, więc dodanie budynku zwiększa popyt tylko o jego własną wagę. Natężenia odtwarzają wcześniejsze proporcje `dorm` do `teaching` i profil dobowy `other`, a metr kwadratowy budynku `other` w dzień przyciąga tyle ruchu co metr budynku uczelni. Gdy OSM nie podaje kondygnacji, przyjmujemy medianę kategorii, a dla hali sportowej i basenu jedną kondygnację (`levels_source` zapisuje źródło). Poprzednią regułę stałych sum kategorii zachowujemy w `fixed_category_totals_for_sensitivity` wyłącznie do analizy wrażliwości.
 
 Kategorie: `dorm` to `building=dormitory` lub `amenity=dormitory`. `teaching` to `building` lub `amenity` równe `university`/`college`. `other` to biblioteka, przychodnia, centrum kultury, hala sportowa, basen, klub oraz handel od 400 m². Stadion, garaże, zwykłe bloki i szkoły nie tworzą modelowanego popytu; reguły i wykluczenia są w konfiguracji.
 
