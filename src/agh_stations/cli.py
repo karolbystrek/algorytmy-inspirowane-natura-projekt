@@ -135,6 +135,18 @@ def main():
         prepare(args.config, args.output, args.raw_dir, args.refresh)
 
     prep.set_defaults(func=prepare_command)
+    prep_v2 = sub.add_parser("prepare-v2", help="Build the v2 dataset; requires the geo extra")
+    prep_v2.add_argument("--config", default="configs/agh-v2.json")
+    prep_v2.add_argument("--output", default="data/processed/agh-v2")
+    prep_v2.add_argument("--raw-dir", default="data/raw")
+    prep_v2.add_argument("--refresh", action="store_true")
+
+    def prepare_v2_command(args):
+        from agh_stations.prepare_v2 import prepare as prepare_second
+
+        prepare_second(args.config, args.output, args.raw_dir, args.refresh)
+
+    prep_v2.set_defaults(func=prepare_v2_command)
     develop = sub.add_parser("dev-instance", help="Generate the separate tuning instance")
     develop.add_argument("--dataset", default="data/processed/agh-v2")
     develop.add_argument("--output", default="data/processed/agh-development")

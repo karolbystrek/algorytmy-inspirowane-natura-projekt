@@ -65,6 +65,15 @@ def test_weight_variants_change_only_the_named_category():
     assert variants["teaching -25%"]["morning"] == [4, 2.25]
 
 
+def test_equal_split_within_category_removes_the_floor_area_assumption():
+    raw = {
+        "demand": [{"category": "dorm"}, {"category": "dorm"}, {"category": "other"}],
+        "scenarios": {"day": [9.0, 1.0, 2.0]},
+        "category_weights": {"dorm": {"day": 10}, "other": {"day": 2}},
+    }
+    assert weight_variants(raw)["równo w kategorii"]["day"] == [5.0, 5.0, 2.0]
+
+
 @pytest.mark.parametrize(
     "options",
     [
