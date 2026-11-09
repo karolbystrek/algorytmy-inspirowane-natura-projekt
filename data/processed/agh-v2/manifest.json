@@ -2,7 +2,7 @@
   "dataset_id": "agh-v2-draft",
   "schema_version": 1,
   "source": {
-    "retrieved_at_utc": "2026-11-09T15:51:01.199251+00:00",
+    "retrieved_at_utc": "2026-11-09T16:19:02.386407+00:00",
     "extract_file": "malopolskie-latest.osm.pbf",
     "extract_sha256": "9dac9421ce50ef70593cfd8868ebf5de26a8b504a6fb8a4639cd890a05bf7b75",
     "osm_data_timestamp": "2026-11-08T21:21:00Z",
@@ -84,14 +84,26 @@
         "elevator"
       ]
     },
+    "routing": {
+      "blocked_barriers": [
+        "full-height_turnstile"
+      ],
+      "unverified_gates": [
+        "gate",
+        "swing_gate",
+        "wicket_gate",
+        "hampshire_gate",
+        "chain"
+      ]
+    },
     "assumed_level_height_m": 3,
     "assumed_building_height_m": 9,
     "note": "Draft: built automatically from OSM tags. No point has been checked on site."
   },
-  "config_sha256": "4e69ef123ebee32b01af6e8812888e25860dbd0f2e48afce2b768cf2765a3998",
+  "config_sha256": "c7790fd87fa34e4303ba761a27344234816a537e3c59d8651ec1ac5674a49bb6",
   "files_sha256": {
-    "problem.json": "5be3c947efa4a35d36037cf6acccb765458f0f8fcb836af5f158d9c61cb37397",
-    "map.geojson": "419f6d685ccff51d2fc3daf403b48eb7f65ce32f73b2c2deba98631efb326109"
+    "problem.json": "ab1cde6ff245d32227cf53b441453a19fd3e7e0595d4a143abb49cbb93d07d52",
+    "map.geojson": "eb5cf132af036a80d5ca316fc3eb5542708f86c0eb9622b887e19d3d107ff610"
   },
   "versions": {
     "python": "3.12.12",
@@ -101,17 +113,13 @@
   },
   "quality": {
     "raw_graph_nodes": 19222,
-    "retained_graph_nodes": 18329,
-    "retained_graph_edges": 39894,
+    "retained_graph_nodes": 18173,
+    "retained_graph_edges": 39516,
     "buildings": 1340,
     "blocked_nodes_removed": 47,
     "blocked_edges_removed": 202,
     "component_sizes_before_largest_selection": [
-      18329,
-      102,
-      91,
-      68,
-      53,
+      18173,
       35,
       32,
       32,
@@ -124,9 +132,13 @@
       10,
       10,
       10,
-      10,
       9,
-      6
+      6,
+      6,
+      6,
+      6,
+      6,
+      5
     ],
     "candidate_count": 99,
     "reviewed_candidate_count": 0,
@@ -142,7 +154,7 @@
       "teaching": 71
     },
     "demand_with_osm_entrances": 54,
-    "demand_without_verified_connector": 17,
+    "demand_without_verified_connector": 7,
     "max_connector_m": 22.064,
     "demand_buildings_not_connected": [],
     "building_height_sources": {
@@ -150,7 +162,13 @@
       "levels": 608,
       "assumed": 721
     },
-    "matrix_finite": true
+    "matrix_finite": true,
+    "blocked_barrier_nodes_removed": 24,
+    "indoor_or_conditional_edges_removed": 6,
+    "edges_inside_solid_buildings_removed": 912,
+    "canopies_not_treated_as_obstacles": 27,
+    "unverified_gate_nodes_kept_open": 597,
+    "pairs_unreachable_with_gates_closed": 2679
   },
   "limitations": [
     "No point has been checked on site; every status is requires_review.",
@@ -158,6 +176,6 @@
     "Connector legs are straight lines from an entrance to the walking graph.",
     "Buildings without an OSM entrance use the point on the outline nearest the graph.",
     "Largest strongly connected component only; audit excluded components.",
-    "Gates and conditional restrictions are not resolved automatically."
+    "OSM rarely says whether a gate is locked; gates stay open in the main matrix."
   ]
 }

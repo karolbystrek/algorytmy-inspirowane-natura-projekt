@@ -85,8 +85,17 @@ def building_height(row, config):
     return config["assumed_building_height_m"], "assumed"
 
 
-def choose_connector(start, polygon, own_index, node_tree, node_ids, node_xy, tree, geometries):
-    """Nearest graph node whose straight connector does not pass through a building."""
+def crosses_footprint_legitimately(tags):
+    """Mapped passages, underpasses and bridges really do cross a building outline."""
+    return (
+        tags.get("tunnel") not in (None, "no")
+        or tags.get("bridge") not in (None, "no")
+        or tags.get("covered") == "yes"
+    )
+
+
+def choose_connector(start, polygon, own_index, node_tree, node_ids, node_xy, tree, canopies):
+    """Nearest graph node whose straight connector does not pass through a solid building."""
     from shapely.geometry import LineString, Point
 
     count = min(CONNECTOR_NEIGHBOURS, len(node_ids))
@@ -94,7 +103,10 @@ def choose_connector(start, polygon, own_index, node_tree, node_ids, node_xy, tr
     interior = polygon.buffer(-0.3)
     for distance, index in zip(np.atleast_1d(distances), np.atleast_1d(indices), strict=True):
         line = LineString([start, Point(*node_xy[index])])
-        blocked = any(int(other) != own_index for other in tree.query(line, predicate="intersects"))
+        blocked = any(
+            int(other) != own_index and int(other) not in canopies
+            for other in tree.query(line, predicate="intersects")
+        )
         if not blocked and line.intersection(interior).length < 0.5:
             return node_ids[index], float(distance), True
     return node_ids[int(np.atleast_1d(indices)[0])], float(np.atleast_1d(distances)[0]), False
@@ -106,8 +118,9 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
     import osmnx as ox
     from scipy.spatial import cKDTree
     from shapely import STRtree
-    from shapely.geometry import Point, box, mapping
+    from shapely.geometry import LineString, Point, box, mapping
     from shapely.ops import nearest_points
+    from shapely.prepared import prep
 
     config_path, output_dir, raw_dir = Path(config_path), Path(output_dir), Path(raw_dir)
     config = json.loads(config_path.read_text(encoding="utf-8"))
@@ -181,6 +194,36 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
     graph.remove_nodes_from(blocked_nodes)
     blocked_edges = [(u, v, k) for u, v, k, d in graph.edges(keys=True, data=True) if blocked(d)]
     graph.remove_edges_from(blocked_edges)
+
+    # A mapped roof is a canopy: paths may run beneath it and stations may stand under it.
+    metric_buildings = buildings.to_crs(crs)
+    roof_rows = metric_buildings["building"] == "roof"
+    canopies = {int(i) for i in np.flatnonzero(roof_rows.to_numpy())}
+    solid_buildings = metric_buildings[~roof_rows]
+    solid_interiors = prep(solid_buildings.geometry.union_all().buffer(-0.05))
+    routing_rules = config["routing"]
+    barrier_nodes = [
+        n
+        for n, tags in graph.nodes(data=True)
+        if tags.get("barrier") in routing_rules["blocked_barriers"]
+    ]
+    graph.remove_nodes_from(barrier_nodes)
+    metric_graph = ox.project_graph(graph, to_crs=crs)
+    indoor_edges, interior_edges = [], []
+    for u, v, key, data in graph.edges(keys=True, data=True):
+        if (
+            data.get("indoor") == "yes"
+            or "access:conditional" in data
+            or "foot:conditional" in data
+        ):
+            indoor_edges.append((u, v, key))
+            continue
+        if crosses_footprint_legitimately(data):
+            continue
+        ends = [(metric_graph.nodes[n]["x"], metric_graph.nodes[n]["y"]) for n in (u, v)]
+        if solid_interiors.intersects(LineString(ends)):
+            interior_edges.append((u, v, key))
+    graph.remove_edges_from(indoor_edges + interior_edges)
     components = sorted(nx.strongly_connected_components(graph), key=len, reverse=True)
     if not components:
         raise ValueError("No walkable components found")
@@ -190,7 +233,6 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
     node_xy = np.asarray([(projected.nodes[n]["x"], projected.nodes[n]["y"]) for n in node_ids])
     node_tree = cKDTree(node_xy)
 
-    metric_buildings = buildings.to_crs(crs)
     metric_entrances = entrances[entrances.geom_type == "Point"].to_crs(crs)
     usable_entrances = metric_entrances[
         ~metric_entrances["entrance"].isin(config["demand"]["ignored_entrance_types"])
@@ -237,7 +279,7 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
         access = []
         for start in starts:
             node, length, verified = choose_connector(
-                start, polygon, index, node_tree, node_ids, node_xy, building_tree, geometries
+                start, polygon, index, node_tree, node_ids, node_xy, building_tree, canopies
             )
             lon, lat = wgs(start)
             access.append(
@@ -289,7 +331,7 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
                 walk_to_demand[node] = length
 
     rules = config["candidates"]
-    frames = [metric_buildings.geometry.buffer(rules["building_clearance_m"])]
+    frames = [solid_buildings.geometry.buffer(rules["building_clearance_m"])]
     if len(obstacles):
         solid = obstacles[obstacles.geom_type.isin(["Polygon", "MultiPolygon"])]
         frames.append(solid.to_crs(crs).geometry)
@@ -374,6 +416,31 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
         ]
         for d in demand
     ]
+    # OSM rarely says whether a gate is locked, so measure the worst case instead of guessing.
+    unverified_gates = routing_rules["unverified_gates"]
+    gate_nodes = {
+        n for n, tags in graph.nodes(data=True) if tags.get("barrier") in unverified_gates
+    }
+    with_gates_closed = graph.copy()
+    with_gates_closed.remove_nodes_from(gate_nodes)
+    closed_paths = {
+        source: nx.single_source_dijkstra_path_length(
+            with_gates_closed, int(source), weight="length"
+        )
+        if int(source) in with_gates_closed
+        else {}
+        for source in sources
+    }
+
+    def closed_distance(item, candidate):
+        options = [
+            a["access_m"] + closed_paths[a["node_id"]][int(candidate["node_id"])]
+            for a in item["access_points"]
+            if int(candidate["node_id"]) in closed_paths[a["node_id"]]
+        ]
+        return round(min(options), 3) if options else None
+
+    closed_matrix = [[closed_distance(d, c) for c in candidates] for d in demand]
     totals = {}
     for item in demand:
         totals[item["category"]] = totals.get(item["category"], 0.0) + item["floor_area_m2"]
@@ -395,6 +462,7 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
         "candidates": candidates,
         "demand": demand,
         "distances_m": matrix,
+        "distances_m_gates_closed": closed_matrix,
         "scenarios": scenarios,
         "scenario_mixture": config["scenario_mixture"],
         "category_weights": config["category_weights"],
@@ -508,6 +576,14 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
                     for source in ("height", "levels", "assumed")
                 },
                 "matrix_finite": bool(np.isfinite(matrix).all()),
+                "blocked_barrier_nodes_removed": len(barrier_nodes),
+                "indoor_or_conditional_edges_removed": len(indoor_edges),
+                "edges_inside_solid_buildings_removed": len(interior_edges),
+                "canopies_not_treated_as_obstacles": len(canopies),
+                "unverified_gate_nodes_kept_open": len(gate_nodes),
+                "pairs_unreachable_with_gates_closed": sum(
+                    value is None for row in closed_matrix for value in row
+                ),
             },
             "limitations": [
                 "No point has been checked on site; every status is requires_review.",
@@ -515,7 +591,7 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
                 "Connector legs are straight lines from an entrance to the walking graph.",
                 "Buildings without an OSM entrance use the point on the outline nearest the graph.",
                 "Largest strongly connected component only; audit excluded components.",
-                "Gates and conditional restrictions are not resolved automatically.",
+                "OSM rarely says whether a gate is locked; gates stay open in the main matrix.",
             ],
         },
     )

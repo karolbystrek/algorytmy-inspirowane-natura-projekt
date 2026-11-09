@@ -46,3 +46,7 @@ uv run agh-stations report --results outputs/reproduced
 ```
 
 `results.json` zapisuje hash `problem.json`, wersje i parametry. W zamrożonym środowisku oczekujemy tych samych wyborów i wartości celu; czasy mogą się zmieniać. W raporcie końcowym trzeba zastąpić pilota audytowanymi danymi i wykonać protokół z [EXPERIMENTS.md](../../docs/EXPERIMENTS.md).
+
+## Dodatkowa diagnostyka
+
+[diagnostics.json](diagnostics.json) zawiera P90, wyniki kategorii popytu, koszt stałego układu w trzech scenariuszach i dokładne wyniki dla `p=3/4/5`. Odtworzenie: `uv run python scripts/inspect_pilot.py`. Opis jest w [dodatkowym researchu](../../docs/RESEARCH_EXTENSIONS.md).

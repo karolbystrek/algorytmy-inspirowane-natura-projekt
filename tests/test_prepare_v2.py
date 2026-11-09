@@ -12,6 +12,7 @@ from agh_stations.model import Problem  # noqa: E402
 from agh_stations.prepare_v2 import (  # noqa: E402
     building_height,
     classify,
+    crosses_footprint_legitimately,
     parse_number,
 )
 from agh_stations.routing import Router  # noqa: E402
@@ -59,6 +60,21 @@ def test_building_function_decides_the_demand_category(row, footprint, expected)
 )
 def test_height_records_where_it_came_from(row, expected):
     assert building_height(row, HEIGHTS) == expected
+
+
+@pytest.mark.parametrize(
+    ("tags", "expected"),
+    [
+        ({"tunnel": "building_passage"}, True),
+        ({"tunnel": "yes", "layer": "-1"}, True),
+        ({"covered": "yes"}, True),
+        ({"bridge": "yes"}, True),
+        ({"tunnel": "no"}, False),
+        ({"highway": "steps"}, False),
+    ],
+)
+def test_only_mapped_passages_may_cross_a_building(tags, expected):
+    assert crosses_footprint_legitimately(tags) is expected
 
 
 @pytest.mark.parametrize(

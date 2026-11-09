@@ -4,3 +4,5 @@ data/processed/** linguist-generated=true
 reports/pilot/*.csv linguist-generated=true
 reports/pilot/*.json linguist-generated=true
 reports/pilot/*.svg linguist-generated=true
+reports/v2-draft/*.csv linguist-generated=true
+reports/v2-draft/*.json linguist-generated=true
