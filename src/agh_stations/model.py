@@ -76,8 +76,30 @@ class Problem:
 
     def metrics(self, selection, scenario="aggregate", threshold=250):
         nearest = self.nearest(selection)
+        weights = self.weights(scenario)
         return {
-            "mean_distance_m": float(self.weights(scenario) @ nearest),
-            "coverage": float(self.weights(scenario) @ (nearest <= threshold)),
+            "mean_distance_m": float(weights @ nearest),
+            "coverage": float(weights @ (nearest <= threshold)),
+            "p90_distance_m": weighted_quantile(nearest, weights),
             "max_distance_m": float(nearest.max()),
         }
+
+    def restricted_to(self, candidate_indices):
+        """The same demand with a shorter candidate list, e.g. only existing bike parking."""
+        indices = list(candidate_indices)
+        return Problem(
+            [self.candidate_ids[j] for j in indices],
+            self.demand_ids,
+            self.distances[:, indices],
+            dict(self.scenarios),
+            dict(self.mixture),
+        )
+
+
+def weighted_quantile(values, weights, q=0.9):
+    """Smallest value whose cumulative demand mass reaches q (inverse weighted CDF)."""
+    values, weights = np.asarray(values, dtype=float), np.asarray(weights, dtype=float)
+    order = np.argsort(values, kind="stable")
+    cumulative = np.cumsum(weights[order]) / weights.sum()
+    position = min(int(np.searchsorted(cumulative, q - 1e-12)), len(values) - 1)
+    return float(values[order][position])
