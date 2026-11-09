@@ -3,7 +3,6 @@
 import hashlib
 import json
 from functools import lru_cache
-from math import comb
 from pathlib import Path
 from threading import Lock
 from typing import Literal
@@ -15,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 from agh_stations.model import Problem
-from agh_stations.solvers import exact, solve
+from agh_stations.solvers import optimal, solve
 
 ROOT = Path(__file__).resolve().parents[2]
 DATASET = ROOT / "data/processed/agh-pilot"
@@ -97,11 +96,6 @@ def get_map():
 @app.post("/api/run")
 def run(request: RunRequest):
     _, problem, manifest = dataset()
-    combinations = comb(len(problem.candidate_ids), request.p)
-    if request.include_exact and combinations > 200_000:
-        raise HTTPException(
-            422, "Pełny przegląd przekracza 200 000 układów. Wyłącz go lub wybierz p ≤ 5."
-        )
     if not run_lock.acquire(blocking=False):
         raise HTTPException(429, "Trwają już obliczenia. Spróbuj ponownie za chwilę.")
     try:
@@ -136,10 +130,9 @@ def run(request: RunRequest):
             }
         reference = None
         if request.include_exact:
-            result = exact(problem, request.p, request.scenario)
+            result = optimal(problem, request.p, request.scenario)
             reference = {
                 "mean_distance_m": result.objective,
-                "evaluations": result.evaluations,
                 "elapsed_s": result.elapsed_s,
             }
         return {

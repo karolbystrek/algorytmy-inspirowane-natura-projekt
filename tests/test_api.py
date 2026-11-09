@@ -48,7 +48,6 @@ def test_live_run_and_replay_match_the_model():
         {"seed": -1},
         {"scenario": "unknown"},
         {"unexpected": 1},
-        {"p": 6, "include_exact": True},
     ],
 )
 def test_invalid_or_excessive_requests_are_rejected(payload):
@@ -61,7 +60,11 @@ def test_polish_names_survive_loading_regardless_of_the_system_locale():
     assert not any("Ĺ" in name or "Ă" in name for name in names)
 
 
-def test_large_p_without_exact_and_busy_response():
+def test_large_p_optimum_without_exact_and_busy_response():
+    response = client.post("/api/run", json={"p": 12, "budget": 500})
+    assert response.status_code == 200
+    optimum = response.json()["exact"]["mean_distance_m"]
+    assert response.json()["methods"]["abc"]["mean_distance_m"] >= optimum - 1e-9
     response = client.post("/api/run", json={"p": 12, "budget": 500, "include_exact": False})
     assert response.status_code == 200
     assert response.json()["exact"] is None
