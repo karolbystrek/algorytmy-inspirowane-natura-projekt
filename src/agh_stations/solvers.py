@@ -59,6 +59,8 @@ def solve(
     foods=12,
     limit=30,
     on_improvement=None,
+    peer_probability=0.5,
+    onlooker="inverse",
 ):
     n = len(problem.candidate_ids)
     if not isinstance(p, int) or not 1 <= p <= n:
@@ -69,6 +71,8 @@ def solve(
         raise ValueError(f"Unknown method: {method}")
     if foods < 2 or limit < 1:
         raise ValueError("foods must be >= 2 and limit >= 1")
+    if onlooker not in {"inverse", "rank", "none"} or not 0 <= peer_probability <= 1:
+        raise ValueError("onlooker must be inverse/rank/none and peer_probability within [0, 1]")
     problem.weights(scenario)  # Validate before starting the clock.
     rng = np.random.default_rng(seed)
     evaluator = Evaluator(problem, p, budget, scenario, on_improvement)
@@ -118,7 +122,8 @@ def solve(
             current = set(sources[index])
             difference = sorted(set(peer) - current)
             unused = sorted(set(range(n)) - current)
-            added = int(rng.choice(difference if difference and rng.random() < 0.5 else unused))
+            guided = difference and rng.random() < peer_probability
+            added = int(rng.choice(difference if guided else unused))
             removed = int(rng.choice(sorted(current)))
             neighbour = tuple(sorted((current - {removed}) | {added}))
             value = evaluator.evaluate(neighbour)
@@ -134,12 +139,17 @@ def solve(
                     return evaluator.result()
                 attempt(i)
             # Onlooker phase: fitness-proportional selection of promising sources.
-            fitness = 1 / (1 + np.asarray(values))
-            probabilities = fitness / fitness.sum()
-            for _ in range(source_count):
-                if evaluator.calls == budget:
-                    return evaluator.result()
-                attempt(int(rng.choice(source_count, p=probabilities)))
+            if onlooker != "none":
+                if onlooker == "inverse":
+                    fitness = 1 / (1 + np.asarray(values))
+                else:  # Rank fitness does not depend on the scale of the objective.
+                    fitness = np.empty(source_count)
+                    fitness[np.argsort(-np.asarray(values))] = np.arange(1.0, source_count + 1)
+                probabilities = fitness / fitness.sum()
+                for _ in range(source_count):
+                    if evaluator.calls == budget:
+                        return evaluator.result()
+                    attempt(int(rng.choice(source_count, p=probabilities)))
             # Scout phase: replace at most one abandoned source; keep the global best separately.
             i = int(np.argmax(trials))
             if trials[i] >= limit and evaluator.calls < budget:
