@@ -39,6 +39,7 @@ export type Solution = Omit<Step, "evaluation"> & {
 };
 export type Run = {
     parameters: Parameters;
+    abc: { foods: number; limit: number };
     dataset_id: string;
     problem_sha256: string;
     methods: Record<Method, Solution>;

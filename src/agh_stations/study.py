@@ -13,12 +13,12 @@ from pathlib import Path
 
 import numpy as np
 from scipy import __version__ as scipy_version
-from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import dijkstra
 from scipy.stats import mannwhitneyu
 
 from agh_stations.audit import write_json
 from agh_stations.model import Problem
+from agh_stations.routing import read_walk_edges, walking_matrix
 from agh_stations.solvers import optimal, solve
 
 THRESHOLDS = (150, 250, 350)
@@ -37,25 +37,10 @@ def write_rows(path, rows):
         writer.writerows(rows)
 
 
-def walking_matrix(map_path):
-    """Sparse directed walking graph from the exported map, independent of OSM services."""
-    features = json.loads(Path(map_path).read_text(encoding="utf-8"))["features"]
-    edges = [f["properties"] for f in features if f["properties"]["kind"] == "walk"]
-    nodes = sorted({e["u"] for e in edges} | {e["v"] for e in edges})
-    index = {node: i for i, node in enumerate(nodes)}
-    best = {}
-    for edge in edges:  # Parallel edges: routing can only use the shortest one.
-        key = (index[edge["u"]], index[edge["v"]])
-        best[key] = min(best.get(key, float("inf")), edge["length_m"])
-    rows, columns = zip(*best, strict=True)
-    graph = coo_matrix((list(best.values()), (rows, columns)), shape=(len(nodes), len(nodes)))
-    return graph.tocsr(), nodes, index
-
-
 def make_development_instance(dataset_dir, output_dir, n=60, m=150, seed=2026):
     """Random points on the real graph: realistic geometry, unrelated to the reported instance."""
     dataset_dir, output_dir = Path(dataset_dir), Path(output_dir)
-    graph, nodes, _ = walking_matrix(dataset_dir / "map.geojson")
+    graph, nodes, _ = walking_matrix(read_walk_edges(dataset_dir / "map.geojson"))
     rng = np.random.default_rng(seed)
     demand = rng.choice(len(nodes), n, replace=False)
     candidates = rng.choice(len(nodes), m, replace=False)
