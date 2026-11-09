@@ -6,9 +6,9 @@ Projekt na przedmiot **Algorytmy inteligentne inspirowane naturą**, zespół 6 
 
 ## Stan na 9 listopada
 
-**Działa cały łańcuch na danych v2:** 101 punktów popytu, 99 kandydatów, ABC i metody odniesienia, dokładne optimum, aplikacja z trasami dojścia i budynkami 3D oraz komenda pełnych badań. Wyniki są wersją roboczą, bo żaden punkt nie przeszedł jeszcze audytu terenowego. Próba na docelowym laptopie wymaga potwierdzenia.
+**Działa cały łańcuch na danych v2:** 101 punktów popytu, 99 kandydatów, ABC i metody odniesienia, dokładne optimum, aplikacja z trasami dojścia i budynkami 3D oraz komenda pełnych badań. Pełny raport zakłada, że audyt terenowy potwierdzi obecne dane, bo żaden punkt nie został jeszcze sprawdzony w terenie. Próba na docelowym laptopie wymaga potwierdzenia.
 
-**[Jak to działa, co osiągnęliśmy i co zostało →](docs/STATUS.md)** · **[Szkic raportu →](docs/REPORT_DRAFT.md)**
+**[Jak to działa, co osiągnęliśmy i co zostało →](docs/STATUS.md)** · **[Raport z projektu →](docs/REPORT.md)**
 
 ![Lokalne demo rozmieszczenia stacji](reports/demo/ui-v2.jpg)
 
@@ -73,7 +73,7 @@ uv sync --locked --all-extras
 uv run agh-stations study --output outputs/study
 ```
 
-Protokół jest opisany w [EXPERIMENTS.md](docs/EXPERIMENTS.md), a zapis wersji roboczej znajduje się w [reports/v2-draft](reports/v2-draft). Przebudowa danych v2 wymaga wyciągu OSM (np. `malopolskie-latest.osm.pbf` z Geofabrik, poza repozytorium):
+Protokół jest opisany w [EXPERIMENTS.md](docs/EXPERIMENTS.md), a wyniki raportu znajdują się w [reports/v2-draft](reports/v2-draft). Przebudowa danych v2 wymaga wyciągu OSM (np. `malopolskie-latest.osm.pbf` z Geofabrik, poza repozytorium):
 
 ```sh
 uv run --extra geo agh-stations prepare-v2 --pbf ścieżka/malopolskie-latest.osm.pbf
