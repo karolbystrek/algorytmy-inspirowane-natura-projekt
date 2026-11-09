@@ -31,7 +31,7 @@ import {
 
 const DEFAULTS: Parameters = {
     p: 4,
-    budget: 1000,
+    budget: 5000,
     seed: 0,
     scenario: "aggregate",
     include_exact: true,

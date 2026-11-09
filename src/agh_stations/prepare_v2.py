@@ -100,7 +100,7 @@ def choose_connector(start, polygon, own_index, node_tree, node_ids, node_xy, tr
     return node_ids[int(np.atleast_1d(indices)[0])], float(np.atleast_1d(distances)[0]), False
 
 
-def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False):
+def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None):
     import geopandas as gpd
     import networkx as nx
     import osmnx as ox
@@ -131,30 +131,43 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False):
     routing_boundary, _ = ox.projection.project_geometry(
         metric_boundary.buffer(config["routing_buffer_m"]), crs=crs, to_crs="EPSG:4326"
     )
-    graph_path = raw_dir / f"{digest(config_path)[:12]}-walk.graphml"
-    if graph_path.exists() and not refresh:
-        graph = ox.load_graphml(graph_path)
+    provenance = {"retrieved_at_utc": datetime.now(UTC).isoformat()}
+    if pbf:
+        from agh_stations.osm_extract import read_extract
+
+        extract = read_extract(pbf, boundary, routing_boundary)
+        graph, buildings = extract.graph, extract.buildings
+        entrances, bike, obstacles = extract.entrances, extract.bike, extract.obstacles
+        provenance |= {
+            "extract_file": Path(pbf).name,
+            "extract_sha256": digest(pbf),
+            "osm_data_timestamp": extract.data_timestamp,
+        }
     else:
-        graph = retrying(
-            lambda: ox.graph_from_polygon(
-                routing_boundary, network_type="walk", simplify=False, retain_all=True
+        graph_path = raw_dir / f"{digest(config_path)[:12]}-walk.graphml"
+        if graph_path.exists() and not refresh:
+            graph = ox.load_graphml(graph_path)
+        else:
+            graph = retrying(
+                lambda: ox.graph_from_polygon(
+                    routing_boundary, network_type="walk", simplify=False, retain_all=True
+                )
             )
+            ox.save_graphml(graph, graph_path)
+        buildings = features(boundary, {"building": True})
+        entrances = features(boundary, {"entrance": True})
+        bike = features(
+            boundary,
+            {"amenity": ["bicycle_parking", "bicycle_rental", "kick-scooter_parking"]},
         )
-        ox.save_graphml(graph, graph_path)
-    buildings = features(boundary, {"building": True})
+        obstacles = features(
+            boundary,
+            {"natural": ["water"], "leisure": ["pitch", "track", "stadium", "swimming_pool"]},
+        )
+        provenance["endpoint"] = ox.settings.overpass_url
     buildings = buildings[buildings.geom_type.isin(["Polygon", "MultiPolygon"])].copy()
     buildings["osm_id"] = [f"{kind}/{identifier}" for kind, identifier in buildings.index]
     buildings = buildings.sort_values("osm_id").reset_index(drop=True)
-    entrances = features(boundary, {"entrance": True})
-    bike = features(
-        boundary,
-        {"amenity": ["bicycle_parking", "bicycle_rental", "kick-scooter_parking"]},
-    )
-    obstacles = features(
-        boundary,
-        {"natural": ["water"], "leisure": ["pitch", "track", "stadium", "swimming_pool"]},
-    )
-    retrieved = datetime.now(UTC).isoformat()
 
     def blocked(tags):
         foot = tags.get("foot")
@@ -453,8 +466,7 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False):
             "dataset_id": config["name"],
             "schema_version": 1,
             "source": {
-                "retrieved_at_utc": retrieved,
-                "endpoint": ox.settings.overpass_url,
+                **provenance,
                 "attribution": "© OpenStreetMap contributors",
                 "license": "https://opendatacommons.org/licenses/odbl/1-0/",
             },

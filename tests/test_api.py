@@ -1,11 +1,15 @@
 """The browser contract uses the same model, limits and real improvement trace."""
 
+import os
+
 import numpy as np
 import pytest
 
 pytest.importorskip("fastapi")
+os.environ["AGH_DATASET"] = "agh-pilot"  # The contract is tested on the frozen, small snapshot.
 from fastapi.testclient import TestClient  # noqa: E402
 
+from agh_stations import api  # noqa: E402
 from agh_stations.api import app, dataset, run_lock  # noqa: E402
 
 client = TestClient(app)
@@ -52,6 +56,13 @@ def test_live_run_and_replay_match_the_model():
 )
 def test_invalid_or_excessive_requests_are_rejected(payload):
     assert client.post("/api/run", json=payload).status_code == 422
+
+
+def test_budget_too_small_for_greedy_is_explained_instead_of_crashing(monkeypatch):
+    monkeypatch.setattr(api, "greedy_construction_cost", lambda candidates, p: 900)
+    response = client.post("/api/run", json={"p": 4, "budget": 500})
+    assert response.status_code == 422
+    assert "900" in response.json()["detail"]
 
 
 def test_polish_names_survive_loading_regardless_of_the_system_locale():
