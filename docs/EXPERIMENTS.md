@@ -29,7 +29,7 @@ uv run agh-stations dev-instance
 uv run agh-stations study --output outputs/study
 ```
 
-`dev-instance` tworzy osobną instancję rozwojową: losowe punkty i wagi na tym samym grafie. Parametry `foods` i `limit` wybieramy wyłącznie na niej, więc strojenie nie widzi danych użytych do końcowego porównania. Optimum każdej instancji dowodzi solver programowania całkowitoliczbowego, a pełny przegląd służy tylko do jego testów. Pliki wynikowe: `comparison.csv`, `runs.csv`, `tests.csv`, `abc_tuning.csv`, `abc_ablation.csv`, `stations_curve.csv`, `scenarios.csv`, `thresholds.csv`, `weights.csv`, `candidates_to_check.csv`, wykresy i `study.json`. Pole `draft` w `study.json` jest prawdziwe, dopóki nie wszyscy kandydaci przeszli audyt.
+`dev-instance` tworzy osobną instancję rozwojową: losowe punkty i wagi na tym samym grafie. Parametry `foods` i `limit` wybieramy wyłącznie na niej, więc strojenie nie widzi danych użytych do końcowego porównania. Optimum każdej instancji dowodzi solver programowania całkowitoliczbowego, a pełny przegląd służy tylko do jego testów. Pliki wynikowe: `comparison.csv`, `runs.csv`, `tests.csv`, `abc_tuning.csv`, `abc_ablation.csv`, `stations_curve.csv`, `scenarios.csv`, `thresholds.csv`, `weights.csv`, `groups.csv` (P90, maksimum i wyniki kategorii), `point_lists.csv` (wpływ listy punktów), `gates.csv` (wszystkie bramy zamknięte), `candidates_to_check.csv`, wykresy i `study.json`. Pole `draft` w `study.json` jest prawdziwe, dopóki nie wszyscy kandydaci przeszli audyt.
 
 Pytanie statystyczne ustalono przed uruchomieniem: czy ABC daje mniejsze dojście niż losowanie przy tym samym budżecie (jednostronny test Manna-Whitneya, korekta Holma dla wartości `p`). Greedy jest deterministyczne, więc z nim nie liczymy testu, tylko podajemy, w ilu przebiegach ABC było co najmniej tak dobre.
 
@@ -42,6 +42,9 @@ Pytanie statystyczne ustalono przed uruchomieniem: czy ABC daje mniejsze dojści
 | Jak jeden układ służy porom dnia? | najlepszy układ agregowany oceniony w 3 scenariuszach; porównanie z oddzielnymi optymalizacjami każdego scenariusza | obowiązkowy |
 | Czy wynik jest czuły na próg dostępności? | pokrycie tego samego układu dla `r ∈ {150,250,350}` m | obowiązkowy |
 | Czy model zależy od arbitralnych wag? | wagi jednolite oraz wzrost/spadek wag kategorii o 25%, ponowna normalizacja | obowiązkowy |
+| Czy wynik zależy od doboru punktów? | zagnieżdżone podzbiory kandydatów i warianty listy popytu, stałe ziarno, ocena zawsze na pełnej liście popytu | obowiązkowy |
+| Czy średnia nie ukrywa długich dojść? | ważony P90, maksimum, średnia i pokrycie w kategoriach budynków | obowiązkowy |
+| Co, jeśli bramy są zamknięte? | ten sam układ przy zamkniętych wszystkich bramach o nieznanym statusie | obowiązkowy |
 | Jak wpływają parametry ABC? | `foods ∈ {8,12,24}`, `limit ∈ {15,30,60,foods·p}` na instancji rozwojowej; stały budżet | obowiązkowy (obiecany w opisie projektu) |
 | Czy istotny jest operator społeczny? | ABC z kierowaniem przez inne źródło vs losowa zamiana, oraz warianty fazy obserwatorek | po minimum |
 

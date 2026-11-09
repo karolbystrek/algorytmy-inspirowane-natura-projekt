@@ -12,14 +12,15 @@
 | Badania | `agh-stations study`, wyniki w [reports/v2-draft](../reports/v2-draft), szkic w [REPORT_DRAFT.md](REPORT_DRAFT.md) |
 | Aplikacja | FastAPI + React + MapLibre: mapa popytu, trasy dojścia, widok 3D, odtwarzanie popraw, działa offline |
 | Audyt | [arkusz](../data/audit/agh-v2-audit.csv) i komenda `apply-audit`; **0 punktów sprawdzonych** |
-| Kontrola | 97 testów, lint, build frontendu |
+| Kontrola | 110 testów, lint, build frontendu, próbne badania w CI |
 
 ## Najważniejsze wyniki robocze
 
-- ABC jest istotnie lepsze od losowania i trafia w optimum w 28–30 z 30 przebiegów dla `p ∈ {3, 5, 8}`.
-- Greedy z zamianami znajduje optimum przy mniejszej liczbie ocen. **Nie wykazaliśmy przewagi ABC nad greedy.**
+- ABC jest istotnie lepsze od losowania i trafia w optimum w 26–30 z 30 przebiegów dla `p ∈ {3, 5, 8}`.
+- Greedy z zamianami osiąga optimum dla `p = 3` i `8`, a dla `p = 5` traci 0,01%, zużywając mniej ocen. **Nie wykazaliśmy istotnej przewagi ABC nad greedy.**
 - Główną dźwignią jakości ABC był limit porzucenia i pobieranie stacji z innych źródeł. Faza obserwatorek ma niewielki wpływ.
-- Zmiana wag kategorii o ±25% prawie nie zmienia układu. Sposób rozdziału popytu między budynki zmienia go wyraźnie.
+- Zmiana wag kategorii o ±25% prawie nie zmienia układu. Największy wpływ ma to, które budynki modelujemy i jak dzielimy między nie popyt.
+- Stan 597 bram jest nieznany. Gdyby wszystkie były zamknięte, 10–15% popytu straciłoby drogę do stacji.
 
 ## Co musi zrobić zespół
 

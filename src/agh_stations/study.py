@@ -373,6 +373,147 @@ def weight_sensitivity(problem, raw, ps):
     return rows, layouts
 
 
+def weighted_quantile(values, weights, q=0.9):
+    """Smallest value whose cumulative demand mass reaches q (inverse weighted CDF)."""
+    values, weights = np.asarray(values, dtype=float), np.asarray(weights, dtype=float)
+    order = np.argsort(values)
+    cumulative = np.cumsum(weights[order]) / weights.sum()
+    position = min(int(np.searchsorted(cumulative, q - 1e-12)), len(values) - 1)
+    return float(values[order][position])
+
+
+def group_metrics(problem, raw, ps, threshold=250):
+    """E6: the mean can hide long walks and one badly served group of buildings."""
+    weights = problem.weights()
+    categories = sorted({d["category"] for d in raw["demand"] if "category" in d})
+    rows = []
+    for p in ps:
+        nearest = problem.nearest(optimal(problem, p).selection)
+        groups = {"wszystkie": np.ones(len(weights), dtype=bool)}
+        for category in categories:
+            groups[category] = np.array([d.get("category") == category for d in raw["demand"]])
+        for name, mask in groups.items():
+            share = weights[mask] / weights[mask].sum()
+            rows.append(
+                {
+                    "p": p,
+                    "group": name,
+                    "buildings": int(mask.sum()),
+                    "mean_m": float(share @ nearest[mask]),
+                    "weighted_p90_m": weighted_quantile(nearest[mask], weights[mask]),
+                    "max_m": float(nearest[mask].max()),
+                    "coverage": float(share @ (nearest[mask] <= threshold)),
+                }
+            )
+    return rows
+
+
+def list_sensitivity(problem, raw, ps, threshold=250, seed=2026):
+    """E4: does the answer depend on which points we chose to model?
+
+    Subsets are nested, fixed by the seed and judged on the complete demand list, so a shorter
+    list cannot look better merely because distant buildings were left out.
+    """
+    rng = np.random.default_rng(seed)
+    n, m = problem.distances.shape
+    order = rng.permutation(m)
+    candidate_sets = {
+        "3/4 kandydatów": sorted(int(j) for j in order[: 3 * m // 4]),
+        "1/2 kandydatów": sorted(int(j) for j in order[: m // 2]),
+    }
+    existing = [
+        j for j, c in enumerate(raw["candidates"]) if str(c.get("source", "")).startswith("osm_")
+    ]
+    if existing and len(existing) < m:
+        candidate_sets["tylko istniejące parkingi z OSM"] = existing
+    half = []
+    for category in sorted({d.get("category") for d in raw["demand"]}, key=str):
+        members = [i for i, d in enumerate(raw["demand"]) if d.get("category") == category]
+        chosen = rng.permutation(members)[: max(1, len(members) // 2)]
+        half.extend(int(i) for i in chosen)
+    demand_sets = {"połowa budynków w każdej kategorii": sorted(half)}
+    without_other = [i for i, d in enumerate(raw["demand"]) if d.get("category") != "other"]
+    if 0 < len(without_other) < n:
+        demand_sets["bez kategorii other"] = without_other
+    with_doors = [
+        i for i, d in enumerate(raw["demand"]) if d.get("location_method") == "osm_entrances"
+    ]
+    if 0 < len(with_doors) < n:
+        demand_sets["tylko budynki z wejściami w OSM"] = with_doors
+    rows = []
+
+    def describe(p, base, change, variant, points, selection):
+        value = problem.objective(selection)
+        return {
+            "p": p,
+            "change": change,
+            "variant": variant,
+            "points": points,
+            "layout_on_full_demand_m": value,
+            "loss_percent": gap(value, base.objective),
+            "coverage": problem.metrics(selection, "aggregate", threshold)["coverage"],
+            "common_stations": len(set(selection) & set(base.selection)),
+        }
+
+    for p in ps:
+        base = optimal(problem, p)
+        for name, indices in candidate_sets.items():
+            if len(indices) < p:
+                continue
+            smaller = Problem(
+                [problem.candidate_ids[j] for j in indices],
+                problem.demand_ids,
+                problem.distances[:, indices],
+                {k: np.asarray(v, dtype=float) for k, v in raw["scenarios"].items()},
+                dict(raw["scenario_mixture"]),
+            )
+            selection = tuple(indices[j] for j in optimal(smaller, p).selection)
+            rows.append(describe(p, base, "kandydaci", name, len(indices), selection))
+        for name, indices in demand_sets.items():
+            smaller = Problem(
+                problem.candidate_ids,
+                [problem.demand_ids[i] for i in indices],
+                problem.distances[indices, :],
+                {k: np.asarray(v, dtype=float)[indices] for k, v in raw["scenarios"].items()},
+                dict(raw["scenario_mixture"]),
+            )
+            selection = optimal(smaller, p).selection
+            rows.append(describe(p, base, "popyt", name, len(indices), selection))
+    return rows
+
+
+def gate_sensitivity(problem, raw, ps):
+    """E7: the same layout if every gate of unknown status turned out to be locked."""
+    if "distances_m_gates_closed" not in raw:
+        return []
+    closed = np.array(
+        [[np.nan if v is None else v for v in row] for row in raw["distances_m_gates_closed"]],
+        dtype=float,
+    )
+    weights = problem.weights()
+    rows = []
+    for p in ps:
+        selection = list(optimal(problem, p).selection)
+        routes = closed[:, selection]
+        reachable = ~np.isnan(routes).all(axis=1)
+        nearest = np.full(len(weights), np.inf)
+        nearest[reachable] = np.nanmin(routes[reachable], axis=1)
+        share = weights[reachable] / weights[reachable].sum()
+        open_mean = float(share @ problem.nearest(selection)[reachable])
+        closed_mean = float(share @ nearest[reachable])
+        rows.append(
+            {
+                "p": p,
+                "demand_without_route": float(weights[~reachable].sum()),
+                "buildings_without_route": int((~reachable).sum()),
+                "mean_open_m": open_mean,
+                "mean_closed_m": closed_mean,
+                "increase_percent": gap(closed_mean, open_mean),
+            }
+        )
+    return rows
+
+
 def field_priority(problem, raw, curve, layouts, ps):
     """Which candidates decide the results: the shortest useful list for the field audit."""
     counts = Counter()
@@ -573,6 +714,11 @@ def run(
     write_rows(output / "stations_curve.csv", curve)
     write_rows(output / "scenarios.csv", scenario_regret(problem, ps))
     write_rows(output / "thresholds.csv", threshold_sensitivity(problem, ps))
+    write_rows(output / "groups.csv", group_metrics(problem, raw, ps))
+    write_rows(output / "point_lists.csv", list_sensitivity(problem, raw, ps))
+    gates = gate_sensitivity(problem, raw, ps)
+    if gates:
+        write_rows(output / "gates.csv", gates)
     weights, layouts = weight_sensitivity(problem, raw, ps)
     write_rows(output / "weights.csv", weights)
     write_rows(output / "candidates_to_check.csv", field_priority(problem, raw, curve, layouts, ps))

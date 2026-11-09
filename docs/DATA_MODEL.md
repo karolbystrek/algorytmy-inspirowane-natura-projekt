@@ -72,6 +72,10 @@ Zestaw v2 zastępuje pilota w badaniu końcowym. Pilot pozostaje niezmieniony, �
 
 Kategorie: `dorm` to `building=dormitory` lub `amenity=dormitory`. `teaching` to `building` lub `amenity` równe `university`/`college`. `other` to biblioteka, przychodnia, centrum kultury, hala sportowa, basen, klub oraz handel od 400 m². Stadion, garaże, zwykłe bloki i szkoły nie tworzą modelowanego popytu; reguły i wykluczenia są w konfiguracji.
 
+Graf v2 usuwa węzły z barierą `full-height_turnstile`, krawędzie `indoor=yes`, krawędzie z ograniczeniami warunkowymi oraz krawędzie biegnące przez wnętrza pełnych budynków (na kampusie głównie schody i ścieżki w trybunach stadionu). Mapowane przejścia zostają: `tunnel`, `bridge` i `covered=yes`. Zadaszenie `building=roof` nie jest przeszkodą dla ścieżek ani kandydatów. OSM zwykle nie mówi, czy brama jest zamknięta, dlatego bramy zostają otwarte w głównej macierzy, a `distances_m_gates_closed` (`null` oznacza brak drogi) pozwala zmierzyć najgorszy przypadek.
+
+Istniejący stojak rowerowy w OSM to tylko wiarygodne miejsce na stację, a nie stacja pojazdów współdzielonych.
+
 Łącznik jest odcinkiem prostym. Generator wybiera najbliższy węzeł, którego łącznik nie przecina innego budynku ani wnętrza własnego. Jeśli takiego nie ma, zapisuje `connector_verified=false`. Budynek bez dopuszczalnego łącznika do 100 m nie znika po cichu: trafia do `demand_buildings_not_connected` w manifeście. Kandydat nie może leżeć w odległości 3 m od budynku, na wodzie, boisku ani bieżni, w tunelu ani wyłącznie przy drodze głównej lub schodach. **Wszystkie punkty mają `status=requires_review`.** Wysokość budynku pochodzi kolejno z `height`, `building:levels × 3 m` lub wartości zastępczej 9 m; pole `height_source` zapisuje źródło.
 
 ## Audyt terenowy
@@ -82,6 +86,8 @@ uv run agh-stations apply-audit
 ```
 
 Pierwsza komenda tworzy `data/audit/agh-v2-audit.csv` (otwiera się w Excelu) i odmawia nadpisania istniejącego pliku. Dla każdego sprawdzonego punktu wpisujemy `status` (`reviewed` lub `rejected`), `reviewer`, `review_date` w formacie RRRR-MM-DD, a przy odrzuceniu także `reason`. Druga komenda buduje nowy katalog bez odrzuconych punktów i z nowymi hashami. Flaga `--strict` zostawia wyłącznie punkty `reviewed`; tej wersji używamy do badania końcowego. Nie ma potrzeby sprawdzać wszystkich kandydatów naraz: `candidates_to_check.csv` z badań porządkuje ich według częstości występowania w układach optymalnych. Po odrzuceniu ważnego punktu trzeba przeliczyć badania, bo najlepszy układ się zmieni.
+
+Pomocne źródła przy audycie: [wykaz domów studenckich AGH](https://www.miasteczko.agh.edu.pl/strefa-mieszkanca/domy-studenckie.html) (nazwy, adresy, opisy budynków) oraz [mapa punktów mobilności ZTP](https://ztp.krakow.pl/miasto-15-minutowe/hulajnogi-elektryczne). Oba służą do sprawdzenia danych, a nie zastępują wizji w terenie.
 
 ## Audyt wymagany przed badaniem końcowym
 

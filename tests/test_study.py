@@ -2,13 +2,23 @@
 
 import csv
 import json
+import socket
 
 import numpy as np
 import pytest
 
 from agh_stations.model import Problem
 from agh_stations.solvers import optimal, solve
-from agh_stations.study import choose_parameters, holm, run, weight_variants
+from agh_stations.study import (
+    choose_parameters,
+    gate_sensitivity,
+    group_metrics,
+    holm,
+    list_sensitivity,
+    run,
+    weight_variants,
+    weighted_quantile,
+)
 
 
 def write_problem(path, n, m, seed):
@@ -102,7 +112,83 @@ def test_abc_rejects_unknown_variants():
         solve(problem, "abc", 1, onlooker="other")
 
 
-def test_complete_miniature_study_writes_consistent_artifacts(tmp_path):
+@pytest.mark.parametrize(
+    ("values", "weights", "q", "expected"),
+    [
+        ([10, 20, 30], [1, 1, 1], 0.9, 30),
+        ([10, 20, 30], [90, 5, 5], 0.9, 10),
+        ([30, 10, 20], [1, 8, 1], 0.9, 20),
+        ([5], [1], 0.9, 5),
+    ],
+)
+def test_weighted_percentile_is_the_inverse_cumulative_demand(values, weights, q, expected):
+    assert weighted_quantile(values, weights, q) == expected
+
+
+def small_campus():
+    raw = {
+        "candidates": [
+            {"id": "a", "source": "osm_bicycle_parking"},
+            {"id": "b", "source": "graph_node_near_demand"},
+            {"id": "c", "source": "osm_bicycle_parking"},
+            {"id": "d", "source": "graph_node_near_demand"},
+        ],
+        "demand": [
+            {"id": "x", "category": "dorm", "location_method": "osm_entrances"},
+            {"id": "y", "category": "dorm", "location_method": "footprint_nearest_node"},
+            {"id": "z", "category": "other", "location_method": "osm_entrances"},
+        ],
+        "distances_m": [[10, 500, 300, 40], [400, 20, 200, 90], [700, 650, 30, 80]],
+        "distances_m_gates_closed": [
+            [10, None, 300, 40],
+            [None, None, None, None],
+            [700, 900, 60, 80],
+        ],
+        "scenarios": {"day": [2.0, 1.0, 1.0]},
+        "scenario_mixture": {"day": 1},
+    }
+    problem = Problem(
+        [c["id"] for c in raw["candidates"]],
+        [d["id"] for d in raw["demand"]],
+        raw["distances_m"],
+        {"day": np.asarray(raw["scenarios"]["day"])},
+        {"day": 1},
+    )
+    return problem, raw
+
+
+def test_group_metrics_report_every_category_and_the_whole():
+    problem, raw = small_campus()
+    rows = group_metrics(problem, raw, (2,))
+    assert [r["group"] for r in rows] == ["wszystkie", "dorm", "other"]
+    assert rows[0]["max_m"] >= rows[0]["weighted_p90_m"] >= 0
+    assert rows[2]["buildings"] == 1
+
+
+def test_shorter_point_lists_are_judged_on_the_complete_demand():
+    problem, raw = small_campus()
+    rows = list_sensitivity(problem, raw, (2,))
+    assert {r["change"] for r in rows} == {"kandydaci", "popyt"}
+    assert all(r["loss_percent"] >= -1e-9 for r in rows)
+    parking = next(r for r in rows if r["variant"] == "tylko istniejące parkingi z OSM")
+    assert parking["points"] == 2
+
+
+def test_closed_gates_report_buildings_cut_off_from_every_station():
+    problem, raw = small_campus()
+    row = gate_sensitivity(problem, raw, (2,))[0]
+    assert row["buildings_without_route"] == 1
+    assert row["demand_without_route"] == pytest.approx(0.25)
+    assert row["mean_closed_m"] >= row["mean_open_m"]
+    assert gate_sensitivity(problem, {k: v for k, v in raw.items() if "gates" not in k}, (2,)) == []
+
+
+def test_complete_miniature_study_writes_consistent_artifacts(tmp_path, monkeypatch):
+    def refuse_network(*args, **kwargs):
+        raise AssertionError("The study must run without any network access")
+
+    monkeypatch.setattr(socket.socket, "connect", refuse_network)
+    monkeypatch.setattr(socket, "create_connection", refuse_network)
     problem = write_problem(tmp_path / "final" / "problem.json", 12, 20, 1)
     development = write_problem(tmp_path / "dev" / "problem.json", 25, 40, 2)
     output = tmp_path / "out"

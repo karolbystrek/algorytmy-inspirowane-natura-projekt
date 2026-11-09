@@ -144,6 +144,11 @@ def apply(input_dir, audit_csv, output_dir, strict=False):
     problem["distances_m"] = (
         np.asarray(problem["distances_m"])[np.ix_(demand_indices, candidate_indices)]
     ).tolist()
+    if "distances_m_gates_closed" in problem:  # May hold nulls, so it cannot be a float array.
+        problem["distances_m_gates_closed"] = [
+            [problem["distances_m_gates_closed"][i][j] for j in candidate_indices]
+            for i in demand_indices
+        ]
     problem["scenarios"] = {
         name: [weights[i] for i in demand_indices] for name, weights in problem["scenarios"].items()
     }

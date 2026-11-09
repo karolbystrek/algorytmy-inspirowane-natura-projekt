@@ -6,7 +6,7 @@
 
 Wybieramy `p` lokalizacji stacji rowerów lub punktów postoju hulajnóg na Miasteczku Studenckim AGH i w przyległej części kampusu, minimalizując średnie ważone dojście po rzeczywistej sieci pieszej OpenStreetMap. Główną metodą jest dyskretna adaptacja algorytmu sztucznej kolonii pszczół (ABC), porównana z wyszukiwaniem losowym, metodą zachłanną z lokalnymi zamianami oraz dokładnym optimum wyznaczonym programowaniem całkowitoliczbowym.
 
-Na instancji kampusowej (101 punktów popytu, 99 kandydatów, budżet 10 000 ocen) ABC było istotnie lepsze od losowania i trafiało w optimum w 28–30 z 30 przebiegów. **Nie wykazano przewagi ABC nad metodą zachłanną**: ta znalazła optimum przy każdym badanym `p`, używając mniej ocen. Solver dokładny rozwiązuje tę instancję w ułamku sekundy, więc wartość projektu leży w zbadaniu zachowania metody rojowej, a nie w konieczności jej użycia.
+Na instancji kampusowej (101 punktów popytu, 99 kandydatów, budżet 10 000 ocen) ABC było istotnie lepsze od losowania i trafiało w optimum w 26–30 z 30 przebiegów. **Nie wykazano istotnej przewagi ABC nad metodą zachłanną**: ta znalazła optimum dla `p = 3` i `8`, a dla `p = 5` straciła 0,01%, używając znacznie mniej ocen. Solver dokładny rozwiązuje tę instancję w ułamku sekundy, więc wartość projektu leży w zbadaniu zachowania metody rojowej, a nie w konieczności jej użycia.
 
 ## 2. Problem
 
@@ -16,17 +16,17 @@ Model zakłada dostępność pojazdu i miejsca zwrotu. Nie obejmuje pojemności 
 
 ## 3. Dane
 
-Źródłem jest wyciąg OpenStreetMap dla Małopolski z Geofabrik, stan z 8.11.2026 (21:21 UTC). Sieć piesza ma 18 329 węzłów i 39 894 skierowane krawędzie, a obszar zawiera 1340 obrysów budynków.
+Źródłem jest wyciąg OpenStreetMap dla Małopolski z Geofabrik, stan z 8.11.2026 (21:21 UTC). Sieć piesza ma 18 173 węzły i 39 516 skierowanych krawędzi, a obszar zawiera 1340 obrysów budynków. Z grafu usunięto 912 krawędzi biegnących przez wnętrza pełnych budynków (głównie schody i ścieżki w trybunach stadionu), 6 krawędzi wewnątrz budynków i 24 kołowroty; mapowane przejścia, tunele i zadaszenia pozostały.
 
 | Element | Wartość |
 |---|---|
 | Punkty popytu | 101: 22 akademiki, 71 budynków uczelnianych, 8 innych celów (biblioteka, hale sportowe, przychodnia, klub, handel) |
 | Dojście od budynku | 54 budynki mają wejścia z OSM; pozostałe używają punktu obrysu najbliższego grafowi |
-| Łączniki | proste odcinki do grafu, najdłuższy 22 m; w 17 budynkach nie potwierdzono łącznika omijającego przeszkody |
+| Łączniki | proste odcinki do grafu, najdłuższy 22 m; w 7 budynkach nie potwierdzono łącznika omijającego przeszkody |
 | Kandydaci | 99: 47 parkingów rowerowych z OSM, 2 parkingi hulajnóg, 50 węzłów sieci do 150 m od popytu, co najmniej 70 m od siebie |
 | Audyt terenowy | **0 z 99 kandydatów sprawdzonych** |
 
-W stosunku do pierwszego pilota (18 punktów popytu, 30 kandydatów) lista miejsc przestała ograniczać wynik. Gdyby postawić stacje we wszystkich kandydatach, średnie dojście wyniosłoby 46,7 m przy pełnym pokryciu 250 m, wobec 183,4 m i 81% w pilocie.
+W stosunku do pierwszego pilota (18 punktów popytu, 30 kandydatów) lista miejsc przestała ograniczać wynik. Gdyby postawić stacje we wszystkich kandydatach, średnie dojście wyniosłoby 45,7 m przy pełnym pokryciu 250 m, wobec 183,4 m i 81% w pilocie.
 
 Wagi są założeniami, nie pomiarami ruchu. Suma wag każdej kategorii pochodzi z tabeli scenariuszy, a w obrębie kategorii dzielimy ją według powierzchni użytkowej budynku (obrys × kondygnacje). Dla 32 budynków liczbę kondygnacji przyjęto jako medianę kategorii.
 
@@ -58,11 +58,11 @@ Wszystkie metody korzystają z tej samej macierzy odległości i limitu 10 000 o
 
 | p | Optimum [m] | ABC: średnia [m] | ABC: trafienia | Losowanie: średnia [m] | Losowanie: strata | Greedy [m] | Greedy: oceny |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 3 | 300,87 | 300,87 | 30/30 | 309,87 | 2,99% | 300,87 | 870 |
-| 5 | 226,00 | 226,00 | 29/30 | 244,37 | 8,13% | 226,00 | 1425 |
-| 8 | 156,69 | 156,81 | 28/30 | 195,83 | 24,98% | 156,69 | 3676 |
+| 3 | 302,43 | 302,43 | 30/30 | 311,61 | 3,03% | 302,43 | 1158 |
+| 5 | 227,56 | 227,56 | 27/30 | 245,09 | 7,71% | 227,58 | 1895 |
+| 8 | 156,69 | 156,94 | 26/30 | 196,18 | 25,20% | 156,69 | 4404 |
 
-ABC jest istotnie lepsze od losowania dla każdego `p` (skorygowane p ≈ 2,6·10⁻¹²). Greedy osiąga optimum za każdym razem i potrzebuje mniej ocen, a przewaga ABC nad nim nie występuje. Także na trudniejszej instancji rozwojowej greedy było co najmniej tak dobre jak ABC.
+ABC jest istotnie lepsze od losowania dla każdego `p` (skorygowane p ≈ 4,7·10⁻¹²). Greedy osiąga optimum dla `p = 3` i `8`, a dla `p = 5` traci 0,01%. W tym jednym przypadku wszystkie przebiegi ABC są co najmniej tak dobre jak greedy, lecz różnica jest pomijalna, a przy `p = 8` greedy jest lepsze od 4 z 30 przebiegów ABC. Także na trudniejszej instancji rozwojowej greedy było co najmniej tak dobre jak ABC.
 
 ![Zbieżność metod](../reports/v2-draft/convergence.png)
 
@@ -70,8 +70,8 @@ Korzyść z kolejnych stacji wyraźnie maleje. Przejście z 1 na 2 stacje skraca
 
 | p | 1 | 2 | 3 | 4 | 5 | 6 | 8 | 10 | 12 | 15 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Średnie dojście [m] | 658 | 364 | 301 | 253 | 226 | 199 | 157 | 135 | 116 | 96 |
-| Pokrycie 250 m | 3,6% | 35,7% | 49,4% | 54,2% | 59,4% | 63,4% | 77,5% | 85,0% | 84,5% | 94,1% |
+| Średnie dojście [m] | 659 | 365 | 302 | 255 | 228 | 200 | 157 | 135 | 116 | 96 |
+| Pokrycie 250 m | 5,8% | 35,7% | 49,4% | 54,2% | 59,4% | 63,4% | 77,5% | 85,0% | 84,5% | 94,1% |
 
 ![Korzyść z kolejnych stacji](../reports/v2-draft/stations_curve.png)
 
@@ -83,26 +83,34 @@ Korzyść z kolejnych stacji wyraźnie maleje. Przejście z 1 na 2 stacje skraca
 
 | p | Rano | W dzień | Wieczorem |
 |---:|---:|---:|---:|
-| 3 | 6,70% | 1,06% | 0,00% |
-| 5 | 6,57% | 11,72% | 0,00% |
-| 8 | 0,00% | 10,28% | 7,42% |
+| 3 | 6,66% | 1,38% | 0,00% |
+| 5 | 6,77% | 11,59% | 0,00% |
+| 8 | 0,00% | 10,26% | 7,42% |
 
 **Próg dostępności** (pokrycie tego samego układu):
 
 | p | 150 m | 250 m | 350 m |
 |---:|---:|---:|---:|
-| 3 | 25,7% | 49,4% | 65,1% |
-| 5 | 35,7% | 59,4% | 76,4% |
+| 3 | 25,7% | 49,4% | 62,4% |
+| 5 | 35,7% | 59,4% | 73,7% |
 | 8 | 50,5% | 77,5% | 91,6% |
 
-**Założone wagi.** Zmiana wagi jednej kategorii o ±25% prawie nie zmienia wyniku: strata układu bazowego wynosi co najwyżej 2,6%, a dla `p = 3` układ pozostaje identyczny. Silnie działa natomiast sposób rozdziału popytu między budynki. Równy podział w kategorii daje stratę 4,6–6,6% i zachowuje 2 z 3, 2 z 5 oraz 4 z 8 stacji. Wagi jednakowe dla wszystkich budynków dają stratę 9,6–18,4%. **Rozmiar budynków jest więc założeniem o największym wpływie na wynik i powinien zostać zweryfikowany**, np. danymi o liczbie miejsc w akademikach.
+**Założone wagi.** Zmiana wagi jednej kategorii o ±25% prawie nie zmienia wyniku: strata układu bazowego wynosi co najwyżej 2,6%, a dla `p = 3` układ pozostaje identyczny. Silnie działa natomiast sposób rozdziału popytu między budynki. Równy podział w kategorii daje stratę 4,5–7,2% i zachowuje 2 z 3, 2 z 5 oraz 4 z 8 stacji. Wagi jednakowe dla wszystkich budynków dają stratę 9,3–18,1%.
+
+**Dobór punktów.** Układ wyznaczony na krótszej liście oceniamy zawsze na pełnej liście popytu. Połowa lub trzy czwarte kandydatów kosztuje tylko 1,2–2,1%, a ograniczenie do istniejących parkingów 0,9–10,2%. Znacznie silniej działa lista popytu: wybór tylko połowy budynków daje stratę 3,4–31,0%, pominięcie kategorii `other` 7,3–41,7%, a użycie wyłącznie budynków z wejściami w OSM 12,9–33,9%. **Które budynki i jak duże modelujemy, to założenie o największym wpływie na wynik i powinno zostać zweryfikowane**, np. danymi o liczbie miejsc w akademikach.
+
+**Długie dojścia i grupy budynków.** Średnia ukrywa nierówności. Dla `p = 5` ważony percentyl 90 wynosi 456 m, a maksimum 804 m. Budynki uczelniane są obsługiwane gorzej (średnio 317 m, pokrycie 36,8%) niż akademiki (190 m, 65,8%). Szczegóły są w `groups.csv`.
+
+**Bramy.** W grafie zostało 597 bram, których stanu OSM nie opisuje. Gdyby wszystkie były zamknięte jednocześnie, 10,5–15,3% ważonego popytu (14–15 budynków) straciłoby drogę do najbliższej wybranej stacji, a dla pozostałych średnia wzrosłaby o 3,0–13,3%. To skrajny scenariusz, ale pokazuje, które bramy trzeba sprawdzić w terenie.
 
 ## 7. Ograniczenia
 
 - Żadna lokalizacja nie została sprawdzona w terenie, a dane OSM mogą nie odzwierciedlać ogrodzeń, bram i własności terenu.
 - Wagi nie pochodzą z pomiarów ruchu.
 - Obszar jest roboczym prostokątem. Akademiki w zachodniej części MS leżą blisko jego granicy, więc granicę trzeba zatwierdzić.
-- Łączniki od wejść do grafu są odcinkami prostymi, a w 17 budynkach przebieg łącznika pozostaje niepotwierdzony.
+- Łączniki od wejść do grafu są odcinkami prostymi, a w 7 budynkach przebieg łącznika pozostaje niepotwierdzony.
+- Stan 597 bram jest nieznany; w głównym modelu są otwarte.
+- Istniejący stojak rowerowy w OSM to tylko wiarygodne miejsce, a nie stacja pojazdów współdzielonych.
 - Parametry ABC dobrano na instancji rozwojowej z tym samym grafem, ale innymi punktami i wagami. Wnioski o ABC dotyczą tego problemu i tej skali.
 - Porównanie obejmuje jedną metodę rojową. Algorytm świetlików pozostaje opcjonalnym rozszerzeniem, którego nie wykonano.
 
@@ -113,7 +121,7 @@ uv sync --locked --all-extras
 uv run agh-stations study --output outputs/study
 ```
 
-Dane są zamrożone w repozytorium, a ich hashe zapisuje manifest. Procedura audytu terenowego jest opisana w [DATA_MODEL.md](DATA_MODEL.md#audyt-terenowy). Priorytety sprawdzania wyznacza [candidates_to_check.csv](../reports/v2-draft/candidates_to_check.csv): pierwsze 10 pozycji z 31 pojawia się w układach optymalnych najczęściej.
+Dane są zamrożone w repozytorium, a ich hashe zapisuje manifest. Procedura audytu terenowego jest opisana w [DATA_MODEL.md](DATA_MODEL.md#audyt-terenowy). Priorytety sprawdzania wyznacza [candidates_to_check.csv](../reports/v2-draft/candidates_to_check.csv): pierwsze 10 pozycji z 30 pojawia się w układach optymalnych najczęściej.
 
 ## 9. Wkład członków zespołu
 

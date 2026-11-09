@@ -1,4 +1,4 @@
 p,question,p_value,abc_runs_at_least_as_good_as_greedy,abc_runs,holm_p_value
-3,"ABC vs losowanie, jednostronnie (Mann-Whitney)",2.2386909167928203e-12,30,30,2.5803765046973224e-12
-5,"ABC vs losowanie, jednostronnie (Mann-Whitney)",8.601255015657742e-13,29,30,2.5803765046973224e-12
-8,"ABC vs losowanie, jednostronnie (Mann-Whitney)",1.181920480555806e-12,28,30,2.5803765046973224e-12
+3,"ABC vs losowanie, jednostronnie (Mann-Whitney)",2.2635161456488695e-12,30,30,4.7259825034313886e-12
+5,"ABC vs losowanie, jednostronnie (Mann-Whitney)",1.5753275011437962e-12,30,30,4.7259825034313886e-12
+8,"ABC vs losowanie, jednostronnie (Mann-Whitney)",2.040297264622408e-12,26,30,4.7259825034313886e-12
