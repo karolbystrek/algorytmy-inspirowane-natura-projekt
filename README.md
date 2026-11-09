@@ -46,7 +46,7 @@ uv run --locked --extra demo uvicorn agh_stations.api:app --host 127.0.0.1 --por
 ```
 
 Otwórz **http://127.0.0.1:8001**. Jeden serwer obsługuje API i zbudowany interfejs.
-Demo pozwala zmieniać `p` (1–12), scenariusz, budżet i ziarno; porównuje ABC,
+Demo pozwala zmieniać `p` (od 1 do liczby kandydatów), scenariusz, budżet i ziarno; porównuje ABC,
 losowanie i greedy. Mapa MapLibre korzysta wyłącznie z lokalnej geometrii, bez kafelków,
 CDN i kluczy API, pokazuje trasy dojścia i wielkość popytu, a przycisk z kostką włącza
 budynki 3D (wymaga WebGL). Odtwarzanie pokazuje zapis rzeczywistych popraw najlepszego

@@ -28,7 +28,7 @@ ScenarioName = Literal["aggregate", "morning", "day", "evening"]
 class RunRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    p: int = Field(default=4, ge=1, le=12, strict=True)
+    p: int = Field(default=4, ge=1, strict=True)
     budget: int = Field(default=1000, ge=500, le=20_000, strict=True)
     seed: int = Field(default=0, ge=0, le=2**32 - 1, strict=True)
     scenario: ScenarioName = "aggregate"
@@ -38,7 +38,7 @@ class RunRequest(BaseModel):
 class RoutesRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    candidate_ids: list[str] = Field(min_length=1, max_length=50)
+    candidate_ids: list[str] = Field(min_length=1, max_length=2000)
     scenario: ScenarioName = "aggregate"
 
 
@@ -146,8 +146,11 @@ def routes(request: RoutesRequest):
 @app.post("/api/run")
 def run(request: RunRequest):
     _, problem, manifest = dataset()
-    needed = greedy_construction_cost(len(problem.candidate_ids), request.p)
-    if request.budget < needed:
+    candidates = len(problem.candidate_ids)
+    if request.p > candidates:
+        raise HTTPException(422, f"Ten zestaw danych ma tylko {candidates} możliwych lokalizacji.")
+    needed = greedy_construction_cost(candidates, request.p)
+    if request.p < candidates and request.budget < needed:
         raise HTTPException(
             422, f"Metoda greedy potrzebuje przy {request.p} stacjach co najmniej {needed} ocen."
         )
