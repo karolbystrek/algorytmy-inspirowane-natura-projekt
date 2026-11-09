@@ -60,6 +60,39 @@ def test_polish_names_survive_loading_regardless_of_the_system_locale():
     assert not any("Ĺ" in name or "Ă" in name for name in names)
 
 
+def test_routes_lead_to_the_nearest_station_and_match_the_objective():
+    _, problem, _ = dataset()
+    selected = ["candidate-16", "candidate-18", "candidate-21", "candidate-22"]
+    response = client.post("/api/routes", json={"candidate_ids": selected, "scenario": "day"})
+    assert response.status_code == 200
+    features = response.json()["features"]
+    assert len(features) == len(problem.demand_ids)
+    indices = [problem.candidate_ids.index(name) for name in selected]
+    nearest = problem.nearest(indices)
+    for i, feature in enumerate(features):
+        assert feature["properties"]["candidate_id"] in selected
+        assert feature["properties"]["distance_m"] == pytest.approx(nearest[i], abs=0.00051)
+        assert len(feature["geometry"]["coordinates"]) >= 1
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [{"candidate_ids": []}, {"candidate_ids": ["candidate-99"]}, {"candidate_ids": "x"}],
+)
+def test_invalid_route_requests_are_rejected(payload):
+    assert client.post("/api/routes", json=payload).status_code == 422
+
+
+def test_map_exposes_a_building_height_and_its_origin():
+    buildings = [
+        f["properties"]
+        for f in client.get("/api/map").json()["features"]
+        if f["properties"]["kind"] == "building"
+    ]
+    assert buildings
+    assert all(b["height_m"] > 0 and b["height_source"] for b in buildings)
+
+
 def test_large_p_optimum_without_exact_and_busy_response():
     response = client.post("/api/run", json={"p": 12, "budget": 500})
     assert response.status_code == 200

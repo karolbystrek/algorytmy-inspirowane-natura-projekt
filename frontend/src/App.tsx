@@ -205,7 +205,8 @@ export default function App() {
                 <div className="page-heading">
                     <div>
                         <p className="eyebrow">
-                            Miasteczko studenckie AGH <span> / </span> Pilotaż
+                            Miasteczko studenckie AGH <span> / </span> Wersja
+                            robocza
                         </p>
                         <h1>Rozmieszczenie stacji</h1>
                         <p>
@@ -390,7 +391,8 @@ export default function App() {
                                         </span>
                                     </label>
                                     <p className="algorithm-parameters">
-                                        ABC: 12 źródeł · limit porzucenia 30
+                                        ABC: {run?.abc.foods ?? 12} źródeł ·
+                                        limit porzucenia {run?.abc.limit ?? "—"}
                                     </p>
                                 </div>
                             </details>
@@ -425,11 +427,13 @@ export default function App() {
                             )}
                         </div>
                         <div className="dataset-note">
-                            <strong>Dane pilotażowe</strong>
+                            <strong>Zestaw {dataset?.id ?? "…"}</strong>
                             <p>
-                                30 możliwych lokalizacji
+                                {dataset?.candidates.length ?? "—"} możliwych
+                                lokalizacji
                                 <br />
-                                18 punktów popytu · graf pieszy OSM
+                                {dataset?.demand.length ?? "—"} punktów popytu ·
+                                graf pieszy OSM
                             </p>
                         </div>
                     </aside>
@@ -467,7 +471,7 @@ export default function App() {
                                     <small>ms</small>
                                 </strong>
                                 <span>
-                                    wybrana metoda · bez pełnego przeglądu
+                                    wybrana metoda · bez solvera optimum
                                 </span>
                             </div>
                         </div>
@@ -500,7 +504,12 @@ export default function App() {
                                     ))}
                                 </div>
                             </div>
-                            <CampusMap dataset={dataset} selected={selected} />
+                            <CampusMap
+                                dataset={dataset}
+                                selected={selected}
+                                weights={run?.demand_weights}
+                                scenario={run?.parameters.scenario ?? "aggregate"}
+                            />
                             <div className="playback">
                                 <button
                                     className="playback-play"
@@ -736,8 +745,8 @@ export default function App() {
                     <Info size={16} />
                     <p>
                         <strong>Model demonstracyjny.</strong> Wagi są założone,
-                        punkty popytu zastępują wejścia. Lokalizacje wymagają
-                        weryfikacji w terenie.
+                        a lokalizacje wymagają weryfikacji w terenie, dopóki
+                        audyt ich nie potwierdzi.
                     </p>
                 </footer>
             </main>
@@ -791,13 +800,14 @@ export default function App() {
                 <p>
                     Animacja odtwarza rzeczywiste poprawy po zakończeniu
                     obliczeń. Wykres porównuje pojedyncze przebiegi. Dokładne
-                    optimum ma osobny budżet.
+                    optimum liczy osobny solver, poza budżetem ocen.
                 </p>
                 <div className="dialog-note">
                     <Info size={17} />
                     <span>
-                        Mapa pokazuje geometrię OSM i lokalizacje. Odległości
-                        liczone są po grafie; trasy dojścia nie są rysowane.
+                        Zielone linie to trasy po grafie pieszym OSM do
+                        najbliższej stacji. Wielkość punktu popytu odpowiada
+                        założonej wadze w wybranym scenariuszu.
                     </span>
                 </div>
                 <button

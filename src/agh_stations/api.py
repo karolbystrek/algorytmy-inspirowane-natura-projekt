@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 from functools import lru_cache
 from pathlib import Path
 from threading import Lock
@@ -14,11 +15,14 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 from agh_stations.model import Problem
+from agh_stations.routing import Router
 from agh_stations.solvers import optimal, solve
 
 ROOT = Path(__file__).resolve().parents[2]
-DATASET = ROOT / "data/processed/agh-pilot"
+DATASET = ROOT / "data/processed" / os.environ.get("AGH_DATASET", "agh-pilot")
 FRONTEND = ROOT / "frontend/dist"
+ABC_FOODS = 12  # Abandonment limit is foods * p, the convention of the original ABC paper.
+ScenarioName = Literal["aggregate", "morning", "day", "evening"]
 
 
 class RunRequest(BaseModel):
@@ -27,8 +31,18 @@ class RunRequest(BaseModel):
     p: int = Field(default=4, ge=1, le=12, strict=True)
     budget: int = Field(default=1000, ge=500, le=20_000, strict=True)
     seed: int = Field(default=0, ge=0, le=2**32 - 1, strict=True)
-    scenario: Literal["aggregate", "morning", "day", "evening"] = "aggregate"
+    scenario: ScenarioName = "aggregate"
     include_exact: bool = True
+
+
+class RoutesRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    candidate_ids: list[str] = Field(min_length=1, max_length=50)
+    scenario: ScenarioName = "aggregate"
+
+
+ASSUMED_HEIGHT_M = 9.0
 
 
 @lru_cache(maxsize=1)
@@ -55,14 +69,19 @@ def map_data():
             if key in seen:
                 continue
             seen.add(key)
+        properties = {"kind": props["kind"]}
+        if props["kind"] == "building":
+            properties["height_m"] = props.get("height_m", ASSUMED_HEIGHT_M)
+            properties["height_source"] = props.get("height_source", "assumed")
         features.append(
-            {
-                "type": "Feature",
-                "geometry": feature["geometry"],
-                "properties": {"kind": props["kind"]},
-            }
+            {"type": "Feature", "geometry": feature["geometry"], "properties": properties}
         )
     return {"type": "FeatureCollection", "features": features}
+
+
+@lru_cache(maxsize=1)
+def router():
+    return Router(DATASET / "map.geojson", dataset()[0])
 
 
 app = FastAPI(title="AGH Station Lab", version="0.1.0")
@@ -93,6 +112,37 @@ def get_map():
     return map_data()
 
 
+@app.post("/api/routes")
+def routes(request: RoutesRequest):
+    """Walk from every demand point to its nearest selected station."""
+    _, problem, _ = dataset()
+    position = {identifier: j for j, identifier in enumerate(problem.candidate_ids)}
+    unknown = sorted(set(request.candidate_ids) - set(position))
+    if unknown:
+        raise HTTPException(422, f"Nieznane lokalizacje: {', '.join(unknown)}")
+    selected = sorted({position[identifier] for identifier in request.candidate_ids})
+    weights = problem.weights(request.scenario)
+    largest = float(weights.max())
+    features = []
+    for i, demand_id in enumerate(problem.demand_ids):
+        nearest = selected[int(problem.distances[i, selected].argmin())]
+        candidate_id = problem.candidate_ids[nearest]
+        coordinates, length = router().route(i, candidate_id)
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": {"type": "LineString", "coordinates": coordinates},
+                "properties": {
+                    "demand_id": demand_id,
+                    "candidate_id": candidate_id,
+                    "distance_m": length,
+                    "scale": float(weights[i]) / largest if largest else 0.0,
+                },
+            }
+        )
+    return {"type": "FeatureCollection", "features": features}
+
+
 @app.post("/api/run")
 def run(request: RunRequest):
     _, problem, manifest = dataset()
@@ -119,6 +169,8 @@ def run(request: RunRequest):
                 budget=request.budget,
                 seed=request.seed,
                 scenario=request.scenario,
+                foods=ABC_FOODS,
+                limit=ABC_FOODS * request.p,
                 on_improvement=record,
             )
             methods[method] = {
@@ -137,6 +189,7 @@ def run(request: RunRequest):
             }
         return {
             "parameters": request.model_dump(),
+            "abc": {"foods": ABC_FOODS, "limit": ABC_FOODS * request.p},
             "dataset_id": manifest["dataset_id"],
             "problem_sha256": manifest["files_sha256"]["problem.json"],
             "methods": methods,

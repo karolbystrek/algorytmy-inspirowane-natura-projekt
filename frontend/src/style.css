@@ -523,18 +523,24 @@ select {
     z-index: 0;
     background: #f3f5f0 !important;
 }
-.leaflet-container {
+.maplibregl-map {
     font: inherit !important;
 }
-.leaflet-control-attribution {
+.maplibregl-popup-content {
+    padding: 6px 9px;
+    font-size: 11px;
+    color: #33423a;
+    border-radius: 5px;
+}
+.maplibregl-ctrl-attrib {
     font-size: 9px !important;
     color: #657363 !important;
     background: #ffffffd9 !important;
 }
-.leaflet-control-attribution a {
+.maplibregl-ctrl-attrib a {
     color: #526e5a !important;
 }
-.leaflet-control-scale-line {
+.maplibregl-ctrl-scale {
     font-size: 9px !important;
     color: #526451 !important;
     border-color: #879681 !important;
@@ -606,7 +612,25 @@ select {
     border: 1px solid #808f87;
     background: #fff;
 }
+.legend-route {
+    height: 2px !important;
+    width: 12px !important;
+    border-radius: 1px !important;
+    background: #24735c;
+}
+.legend-assumed {
+    border-radius: 1px !important;
+    border: 1px solid #c8cec7;
+    background: #eceee9;
+}
+.map-controls button[aria-pressed="true"] {
+    background: #e4efe9;
+    color: var(--green);
+}
 .station-pin {
+    width: 32px;
+    height: 32px;
+    box-sizing: border-box;
     display: flex !important;
     align-items: center;
     justify-content: center;
