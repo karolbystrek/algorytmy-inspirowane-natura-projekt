@@ -18,7 +18,7 @@
 
 - Waga budynku wynika teraz z jego powierzchni i założonego natężenia ruchu. Kategoria „inne” ma 6,4% popytu zamiast sztucznych 25%.
 - ABC jest istotnie lepsze od losowania i trafia w optimum w 18–30 z 30 przebiegów dla `p ∈ {3, 5, 8}`.
-- Przy małym `p` proste lokalne przeszukiwanie jest równie dobre jak ABC, a od `p = 10` ABC jest od niego istotnie lepsze. Z greedy ABC wygrywa, gdy greedy utyka w optimum lokalnym (`p = 3, 8, 10`) lub kończy mu się budżet (`p = 20, 25`). **To wynik zależny od instancji.**
+- **Nie wykazaliśmy ogólnej przewagi ABC nad prostymi metodami.** Do `p = 8` lokalne przeszukiwanie jest równie dobre. Z greedy ABC wygrywa, gdy greedy utyka w optimum lokalnym (`p = 3, 8, 10`) lub kończy mu się budżet (`p = 20, 25`). Duże straty lokalnego przeszukiwania przy `p ≥ 15` wynikają głównie z jego kosztownego wariantu.
 - Rekomendacja przy pozytywnym audycie: 6 stacji (184 m, 75% popytu w 250 m), potem rozbudowa do 15 (109 m, 95%).
 - Główną dźwignią jakości ABC był limit porzucenia i pobieranie stacji z innych źródeł. Faza obserwatorek ma niewielki wpływ.
 - Zmiana natężenia kategorii o ±25% prawie nie zmienia układu. Największy wpływ ma to, które budynki modelujemy i jaką mają powierzchnię.

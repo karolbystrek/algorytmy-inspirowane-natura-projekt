@@ -11,7 +11,7 @@ Projekt wybiera `p` lokalizacji stacji rowerów lub punktów postoju hulajnóg n
 Najważniejsze wyniki na instancji kampusowej (101 punktów popytu, 99 kandydatów):
 
 - **Skuteczność ABC.** Przy 10 000 ocen ABC jest istotnie lepsze od losowania i trafia w dowiedzione optimum w 18–30 z 30 przebiegów dla `p ∈ {3, 5, 8}`.
-- **ABC a proste metody.** Przy małym `p` ABC nie ma przewagi nad lokalnym przeszukiwaniem z tym samym budżetem. Od `p = 10` jest od niego istotnie lepsze. Greedy bywa lepsze, gdy zdąży skończyć i nie utknie w optimum lokalnym.
+- **ABC a proste metody.** Nie wykazaliśmy ogólnej przewagi ABC. Do `p = 8` nie różni się istotnie od lokalnego przeszukiwania z tym samym budżetem. Z greedy wygrywa tylko wtedy, gdy greedy utyka w optimum lokalnym albo kończy mu się budżet, a przy `p = 15` greedy jest od niego dokładniejsze. Większy zysk przy dużym `p` wynika w dużej mierze ze słabości wybranego wariantu lokalnego przeszukiwania.
 - **Potrzeba metaheurystyki.** Solver dokładny rozwiązuje tę instancję w około 0,15 s, więc na tej skali ABC nie jest potrzebne praktycznie. Wartością projektu jest zbadanie jego zachowania na realnym problemie.
 - **Rekomendacja.** Jeśli audyt potwierdzi dane: **6 stacji w pierwszym etapie** (184 m średnio, 75% popytu w zasięgu 250 m) i **rozbudowa do 15 stacji** (109 m, 95%). Dziewięć dodatkowych stacji uzupełnia etap 1 bez przenoszenia żadnej istniejącej.
 - **Największa niepewność.** Wynik zależy przede wszystkim od tego, które budynki modelujemy i jaką mają powierzchnię, a nie od dokładnych wag kategorii.
@@ -120,7 +120,7 @@ ABC jest istotnie lepsze od losowania dla każdego `p` (skorygowane p < 10⁻¹�
 | 15 | 0,023% | 28/30 | 14,451% | 0/30 | < 10⁻¹¹ |
 | 20 | 0,020% | 29/30 | 25,052% | 0/30 | < 10⁻¹¹ |
 
-Do `p = 8` różnice nie są istotne. Przy dużym `p` jedno pełne sąsiedztwo kosztuje tysiące ocen, więc lokalne przeszukiwanie z losowego startu nie zdąża dojść do dobrego układu, a ABC wykonuje tanie pojedyncze próby.
+Do `p = 8` różnice nie są istotne. Przy `p = 10` ABC jest lepsze, ale jest to wynik analizy dodanej po obejrzeniu danych. Straty 14–25% przy `p = 15` i `20` nie świadczą o sile ABC. Wariant z najlepszą poprawą sprawdza całe sąsiedztwo przed każdym ruchem, co kosztuje tam 1260–1580 ocen, więc w budżecie 10 000 ocen mieści się tylko 6–8 kroków z losowego startu. Silniejszy rywal, np. przyjmujący pierwszą znalezioną poprawę, mógłby ten wynik zmienić.
 
 **Większa liczba stacji** (strata do optimum; 30 przebiegów przy 10 000 ocen, 10 przy 30 000):
 
@@ -133,7 +133,7 @@ Do `p = 8` różnice nie są istotne. Przy dużym `p` jedno pełne sąsiedztwo k
 | 30 | 0,006% | 29/30 | 0,000% (koniec budżetu) | 10 000 | 0,000% | 0,000% |
 | 40 | 0,000% | 28/30 | 0,000% | 7900 | 0,000% | 0,000% |
 
-ABC wygrywa z greedy w dwóch sytuacjach: gdy greedy utyka w optimum lokalnym (`p = 3, 8, 10`) i gdy kończy mu się budżet (`p = 20, 25`). W pozostałych przypadkach greedy znajduje optimum, a ABC traci najwyżej 0,03%. Losowanie traci 20–52%. Przewaga zależy też od danych: przy poprzedniej regule wag greedy trafiało w optimum dla `p = 3` i `8`.
+ABC wygrywa z greedy w dwóch sytuacjach: gdy greedy utyka w optimum lokalnym (`p = 3, 8, 10`) i gdy kończy mu się budżet (`p = 20, 25`). W pozostałych przypadkach greedy znajduje optimum, a ABC traci najwyżej 0,03%. Przy 30 000 ocen dla `p ≥ 15` obie metody są równe, więc przewaga przy `p = 20` i `25` wynika wyłącznie z ciasnego budżetu. Losowanie traci 20–52%. Wynik zależy też od danych: przy poprzedniej regule wag greedy trafiało w optimum dla `p = 3` i `8`.
 
 ![Strata do optimum przy większej liczbie stacji](../reports/v2-draft/large_p.png)
 
@@ -274,7 +274,7 @@ Odtwarzanie pokazuje rzeczywiste poprawy po zakończeniu obliczeń, a nie transm
 ## 11. Wnioski
 
 1. **Dyskretne ABC działa na realnym problemie.** Przy 10 000 ocen znajduje układy bardzo bliskie dowiedzionemu optimum i jest istotnie lepsze od losowania.
-2. **Przewaga ABC zależy od skali.** Przy małym `p` proste lokalne przeszukiwanie jest równie dobre. Od `p = 10` ABC jest wyraźnie lepsze od lokalnego przeszukiwania z tym samym budżetem. Wnioski dotyczą tej instancji i nie są dowodem ogólnej wyższości ABC.
+2. **Nie wykazaliśmy ogólnej przewagi ABC nad prostymi metodami.** Do `p = 8` lokalne przeszukiwanie jest równie dobre. ABC bywa lepsze od greedy, gdy greedy utyka lub ma za mały budżet, ale przy `p = 15` to greedy jest dokładniejsze. Wyniki przy dużym `p` wobec lokalnego przeszukiwania zależą od jego słabego wariantu, a cała ocena dotyczy jednej instancji z założonym popytem.
 3. **Na tej skali solver dokładny jest najlepszym narzędziem.** Dowodzi optimum w około 0,15 s. ABC miałoby przewagę praktyczną dopiero przy znacznie większych instancjach lub funkcji celu, której nie da się zapisać liniowo.
 4. **O jakości ABC decydują limit porzucenia i pobieranie stacji z innych źródeł.** Faza obserwatorek ma tu niewielki wpływ.
 5. **Rozsądny układ to 6 stacji, a potem rozbudowa do 15.** Dalsze stacje skracają dojście o mniej niż 5 m każda.
