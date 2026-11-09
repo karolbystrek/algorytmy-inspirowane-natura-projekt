@@ -9,6 +9,8 @@ działają. Część interaktywna M3 powstała wcześniej; trasy, 3D, audyt dany
 badania pozostają otwarte. Poniższe daty i role opisują plan, a nie potwierdzenie
 wykonania przeglądów, uzgodnień lub próby na drugim komputerze.
 
+**Aktualizacja 09.11:** gotowe są dane v2, trasy, widok 3D, komenda pełnych badań i szkic raportu na danych roboczych. Otwarte pozostają audyt terenowy, zatwierdzenie granicy obszaru i wag oraz przeliczenie badań po audycie. Aktualny stan: [STATUS.md](STATUS.md).
+
 ## Decyzja o zakresie
 
 Budujemy demonstrator rozmieszczenia stacji rowerowych / punktów postoju hulajnóg na MS AGH i przyległej części kampusu. Wybieramy dokładnie `p` miejsc ze skończonej listy kandydatów. Minimalizujemy średnie ważone dojście po sieci pieszej. Podstawową metodą jest dyskretny ABC. Porównania: losowanie, zachłanne dodawanie i lokalne zamiany, pełny przegląd dla małego przypadku. Popyt jest scenariuszem, nie pomiarem ruchu.

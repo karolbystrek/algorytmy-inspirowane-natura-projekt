@@ -19,7 +19,7 @@ from scipy.stats import mannwhitneyu
 from agh_stations.audit import write_json
 from agh_stations.model import Problem
 from agh_stations.routing import read_walk_edges, walking_matrix
-from agh_stations.solvers import optimal, solve
+from agh_stations.solvers import greedy_construction_cost, optimal, solve
 
 THRESHOLDS = (150, 250, 350)
 FOODS = (8, 12, 24)
@@ -161,6 +161,18 @@ def ablation(problem, ps, budget, runs, foods, rule):
                     "runs": runs,
                 }
             )
+        if budget < greedy_construction_cost(len(problem.candidate_ids), p):
+            continue
+        reference = solve(problem, "greedy", p, budget).objective
+        rows.append(
+            {
+                "p": p,
+                "variant": "greedy + zamiany (deterministyczne)",
+                "mean_gap_percent": gap(reference, best),
+                "optimum_hits": int(reference <= best + 1e-6),
+                "runs": 1,
+            }
+        )
     return rows
 
 
@@ -451,6 +463,82 @@ def figures(output, summary, histories, curve, budget):
     plt.close(fig)
 
 
+def layout_map(output, map_path, raw, curve, p):
+    """The proved-optimal layout for the middle p, with every candidate and demand point."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.collections import LineCollection, PolyCollection
+
+    features = json.loads(Path(map_path).read_text(encoding="utf-8"))["features"]
+    walks = [f["geometry"]["coordinates"] for f in features if f["properties"]["kind"] == "walk"]
+    outlines = []
+    for feature in features:
+        if feature["properties"]["kind"] != "building":
+            continue
+        geometry = feature["geometry"]
+        polygons = (
+            [geometry["coordinates"]] if geometry["type"] == "Polygon" else geometry["coordinates"]
+        )
+        outlines.extend(np.asarray(polygon[0])[:, :2] for polygon in polygons)
+    fig, ax = plt.subplots(figsize=(10, 7))
+    ax.add_collection(PolyCollection(outlines, facecolors="#e0e5ed", edgecolors="#c3cad3", lw=0.3))
+    ax.add_collection(LineCollection(walks, colors="#b3bac2", linewidths=0.35, zorder=1))
+    selected = set(next(r for r in curve if r["p"] == p)["candidate_ids"].split(";"))
+    candidates, demand = raw["candidates"], raw["demand"]
+    ax.scatter(
+        [c["lon"] for c in candidates],
+        [c["lat"] for c in candidates],
+        c="#6b7280",
+        marker=".",
+        s=30,
+        label="Kandydaci (wymagają audytu)",
+        zorder=3,
+    )
+    ax.scatter(
+        [d["lon"] for d in demand],
+        [d["lat"] for d in demand],
+        c="#e78a27",
+        marker="^",
+        s=28,
+        label="Punkty popytu (wagi założone)",
+        zorder=3,
+    )
+    chosen = [c for c in candidates if c["id"] in selected]
+    ax.scatter(
+        [c["lon"] for c in chosen],
+        [c["lat"] for c in chosen],
+        c="#1654b8",
+        s=130,
+        label=f"Układ optymalny, p = {p}",
+        zorder=4,
+    )
+    for point in chosen:
+        ax.annotate(
+            point["id"].removeprefix("candidate-"),
+            (point["lon"], point["lat"]),
+            xytext=(7, 7),
+            textcoords="offset points",
+            color="#1654b8",
+        )
+    ax.set_xlim(
+        min(c["lon"] for c in candidates) - 0.002, max(c["lon"] for c in candidates) + 0.002
+    )
+    ax.set_ylim(
+        min(c["lat"] for c in candidates) - 0.002, max(c["lat"] for c in candidates) + 0.002
+    )
+    ax.set_aspect(1 / np.cos(np.radians(np.mean([c["lat"] for c in candidates]))))
+    ax.set(xlabel="Długość geograficzna [°]", ylabel="Szerokość geograficzna [°]")
+    ax.legend(loc="upper right", fontsize=8)
+    fig.text(
+        0.5, 0.01, "© OpenStreetMap contributors | ODbL | wersja robocza, bez audytu", ha="center"
+    )
+    fig.tight_layout(rect=(0, 0.03, 1, 1))
+    fig.savefig(output / "layout_map.png", dpi=160)
+    plt.close(fig)
+
+
 def run(
     problem_path,
     development_path,
@@ -489,6 +577,8 @@ def run(
     write_rows(output / "weights.csv", weights)
     write_rows(output / "candidates_to_check.csv", field_priority(problem, raw, curve, layouts, ps))
     figures(output, summary, histories, curve, budget)
+    if (problem_path.parent / "map.geojson").exists():
+        layout_map(output, problem_path.parent / "map.geojson", raw, curve, ps[len(ps) // 2])
     reviewed = sum(c.get("status") == "reviewed" for c in raw["candidates"])
     write_json(
         output / "study.json",

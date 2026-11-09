@@ -1,5 +1,7 @@
 # Backlog do Issues
 
+**Aktualizacja 09.11:** V02, V03, M02 (bez sprawdzenia w terenie), E02, X01 i X02 mają implementację, a E03 ma wersję roboczą. D03, audyt wag i I03 czekają na zespół. Poniższy akapit opisuje stan z 08.11.
+
 **Stan techniczny 08.11:** [aktualny opis projektu](STATUS.md). V01 ma działający
 widok mapy i wyników, V02 jest częściowo zrealizowane w React/Leaflet (docelowe dane
 i wizualizacja nadal wymagają pracy), a X02 ma implementację lokalnego synchronicznego
