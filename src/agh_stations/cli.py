@@ -140,11 +140,12 @@ def main():
     prep_v2.add_argument("--output", default="data/processed/agh-v2")
     prep_v2.add_argument("--raw-dir", default="data/raw")
     prep_v2.add_argument("--refresh", action="store_true")
+    prep_v2.add_argument("--pbf", help="Local OSM extract to use instead of the Overpass service")
 
     def prepare_v2_command(args):
         from agh_stations.prepare_v2 import prepare as prepare_second
 
-        prepare_second(args.config, args.output, args.raw_dir, args.refresh)
+        prepare_second(args.config, args.output, args.raw_dir, args.refresh, args.pbf)
 
     prep_v2.set_defaults(func=prepare_v2_command)
     develop = sub.add_parser("dev-instance", help="Generate the separate tuning instance")

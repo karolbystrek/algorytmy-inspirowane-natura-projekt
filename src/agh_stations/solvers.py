@@ -49,6 +49,11 @@ class Evaluator:
         )
 
 
+def greedy_construction_cost(candidate_count, p):
+    """Evaluations greedy spends before it has one complete layout."""
+    return sum(candidate_count - k for k in range(p))
+
+
 def solve(
     problem: Problem,
     method,
@@ -87,7 +92,7 @@ def solve(
             evaluator.evaluate(random_selection())
     elif method == "greedy":
         # Partial configurations count against the same cap but are never reported as incumbents.
-        construction_cost = sum(n - k for k in range(p))
+        construction_cost = greedy_construction_cost(n, p)
         if budget < construction_cost:
             raise ValueError(
                 f"Greedy construction requires at least {construction_cost} evaluations"

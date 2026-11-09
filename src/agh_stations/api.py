@@ -16,10 +16,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from agh_stations.model import Problem
 from agh_stations.routing import Router
-from agh_stations.solvers import optimal, solve
+from agh_stations.solvers import greedy_construction_cost, optimal, solve
 
 ROOT = Path(__file__).resolve().parents[2]
-DATASET = ROOT / "data/processed" / os.environ.get("AGH_DATASET", "agh-pilot")
+DATASET = ROOT / "data/processed" / os.environ.get("AGH_DATASET", "agh-v2")
 FRONTEND = ROOT / "frontend/dist"
 ABC_FOODS = 8  # Chosen on the development instance, with abandonment limit foods * p.
 ScenarioName = Literal["aggregate", "morning", "day", "evening"]
@@ -146,6 +146,11 @@ def routes(request: RoutesRequest):
 @app.post("/api/run")
 def run(request: RunRequest):
     _, problem, manifest = dataset()
+    needed = greedy_construction_cost(len(problem.candidate_ids), request.p)
+    if request.budget < needed:
+        raise HTTPException(
+            422, f"Metoda greedy potrzebuje przy {request.p} stacjach co najmniej {needed} ocen."
+        )
     if not run_lock.acquire(blocking=False):
         raise HTTPException(429, "Trwają już obliczenia. Spróbuj ponownie za chwilę.")
     try:
