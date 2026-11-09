@@ -1,0 +1,31 @@
+{
+  "name": "agh-v2-draft",
+  "bbox_wgs84": [19.902, 50.063, 19.923, 50.073],
+  "routing_buffer_m": 250,
+  "crs_metric": "EPSG:2180",
+  "scenario_mixture": {"morning": 1, "day": 1, "evening": 1},
+  "category_weights": {
+    "dorm": {"morning": 4, "day": 1, "evening": 4},
+    "teaching": {"morning": 3, "day": 5, "evening": 1},
+    "other": {"morning": 1, "day": 2, "evening": 3}
+  },
+  "demand": {
+    "min_footprint_m2": 150,
+    "other_amenity": ["library", "doctors", "arts_centre"],
+    "other_leisure": ["sports_hall", "swimming_pool", "music_venue"],
+    "retail_min_footprint_m2": 400,
+    "ignored_entrance_types": ["emergency", "service", "garage", "exit"],
+    "max_connector_m": 100,
+    "excluded_name_patterns": ["Szkoła Masażu"]
+  },
+  "candidates": {
+    "spacing_m": 70,
+    "building_clearance_m": 3,
+    "max_walk_to_demand_m": 150,
+    "bike_infrastructure_snap_m": 25,
+    "forbidden_only_highways": ["motorway", "motorway_link", "trunk", "trunk_link", "primary", "primary_link", "secondary", "secondary_link", "steps", "corridor", "elevator"]
+  },
+  "assumed_level_height_m": 3,
+  "assumed_building_height_m": 9,
+  "note": "Draft: built automatically from OSM tags. No point has been checked on site."
+}

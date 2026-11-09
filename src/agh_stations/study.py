@@ -315,7 +315,15 @@ def weight_variants(raw):
                 ]
                 for name, weights in raw["scenarios"].items()
             }
-    if all("area_m2" in d for d in demand):
+    if "category_weights" in raw:  # Floor area already splits each category; undo that choice.
+        size = Counter(d["category"] for d in demand)
+        variants["równo w kategorii"] = {
+            name: [
+                raw["category_weights"][d["category"]][name] / size[d["category"]] for d in demand
+            ]
+            for name in raw["scenarios"]
+        }
+    elif all("area_m2" in d for d in demand):
         mean_area = float(np.mean([d["area_m2"] for d in demand]))
         variants["skalowane powierzchnią"] = {
             name: [w * demand[i]["area_m2"] / mean_area for i, w in enumerate(weights)]
