@@ -65,7 +65,7 @@ def benchmark(args):
                 }
                 del solutions[method]["history"]
     for name, records in (("runs.csv", rows), ("history.csv", histories)):
-        with (output / name).open("w", newline="") as handle:
+        with (output / name).open("w", newline="", encoding="utf-8") as handle:
             writer = csv.DictWriter(handle, fieldnames=list(records[0]), lineterminator="\n")
             writer.writeheader()
             writer.writerows(records)
@@ -101,7 +101,9 @@ def benchmark(args):
         "summary": summary,
         "best_solutions": solutions,
     }
-    (output / "results.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
+    (output / "results.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     print(json.dumps(summary, indent=2))
 
 

@@ -122,7 +122,7 @@ def test_cli_artifacts(tmp_path):
             exact=True,
         )
     )
-    results = json.loads((tmp_path / "results.json").read_text())
+    results = json.loads((tmp_path / "results.json").read_text(encoding="utf-8"))
     assert results["summary"]["exact"]["best_m"] == 3
     assert results["summary"]["abc"]["runs"] == 2
     assert results["summary"]["greedy"]["runs"] == 1

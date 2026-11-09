@@ -34,18 +34,18 @@ class RunRequest(BaseModel):
 
 @lru_cache(maxsize=1)
 def dataset():
-    manifest = json.loads((DATASET / "manifest.json").read_text())
+    manifest = json.loads((DATASET / "manifest.json").read_text(encoding="utf-8"))
     for name, expected in manifest["files_sha256"].items():
         if hashlib.sha256((DATASET / name).read_bytes()).hexdigest() != expected:
             raise RuntimeError(f"Snapshot checksum mismatch: {name}")
-    raw = json.loads((DATASET / "problem.json").read_text())
+    raw = json.loads((DATASET / "problem.json").read_text(encoding="utf-8"))
     return raw, Problem.load(DATASET / "problem.json"), manifest
 
 
 @lru_cache(maxsize=1)
 def map_data():
     dataset()  # Verify the snapshot before serving its geometry.
-    raw = json.loads((DATASET / "map.geojson").read_text())
+    raw = json.loads((DATASET / "map.geojson").read_text(encoding="utf-8"))
     seen, features = set(), []
     for feature in raw["features"]:
         props = feature["properties"]

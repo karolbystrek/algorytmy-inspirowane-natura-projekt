@@ -55,6 +55,12 @@ def test_invalid_or_excessive_requests_are_rejected(payload):
     assert client.post("/api/run", json=payload).status_code == 422
 
 
+def test_polish_names_survive_loading_regardless_of_the_system_locale():
+    names = [point["name"] for point in client.get("/api/dataset").json()["demand"]]
+    assert 'Hala TS "Wisła"' in names
+    assert not any("Ĺ" in name or "Ă" in name for name in names)
+
+
 def test_large_p_without_exact_and_busy_response():
     response = client.post("/api/run", json={"p": 12, "budget": 500, "include_exact": False})
     assert response.status_code == 200
