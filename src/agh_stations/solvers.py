@@ -72,7 +72,7 @@ def solve(
         raise ValueError("p must be an integer in [1, candidate_count]")
     if not isinstance(budget, int) or budget < 1:
         raise ValueError("budget must be a positive integer")
-    if method not in {"abc", "random", "greedy"}:
+    if method not in {"abc", "random", "greedy", "multistart"}:
         raise ValueError(f"Unknown method: {method}")
     if foods < 2 or limit < 1:
         raise ValueError("foods must be >= 2 and limit >= 1")
@@ -115,6 +115,28 @@ def solve(
                     evaluator.evaluate(neighbour)
             if evaluator.best >= old:
                 break
+    elif method == "multistart":
+        # Random restarts of best-improvement 1-swap: a plain local search that uses the budget.
+        while evaluator.calls < budget:
+            current = random_selection()
+            value = evaluator.evaluate(current)
+            while True:
+                best_neighbour, best_value = None, value
+                for removed in current:
+                    for added in range(n):
+                        if added in current:
+                            continue
+                        if evaluator.calls == budget:
+                            return evaluator.result()
+                        neighbour = tuple(sorted((set(current) - {removed}) | {added}))
+                        candidate_value = evaluator.evaluate(neighbour)
+                        if candidate_value < best_value:
+                            best_neighbour, best_value = neighbour, candidate_value
+                if best_neighbour is None:
+                    break
+                current, value = best_neighbour, best_value
+                if evaluator.calls == budget:
+                    return evaluator.result()
     else:
         source_count = min(foods, budget)
         sources = [random_selection() for _ in range(source_count)]
@@ -178,10 +200,11 @@ def exact(problem: Problem, p, scenario="aggregate", max_combinations=200_000):
     return evaluator.result()
 
 
-def optimal(problem: Problem, p, scenario="aggregate"):
+def optimal(problem: Problem, p, scenario="aggregate", fixed=()):
     """Prove the p-median optimum with an integer program, for instances too big to enumerate.
 
     Variables: y_j (open candidate j) and x_ij (demand i served by j), with x_ij <= y_j.
+    Stations in ``fixed`` must stay open, which models extending an existing layout.
     ``evaluations`` is 0 because the solver never calls the objective used by the heuristics.
     """
     from scipy.optimize import Bounds, LinearConstraint, milp
@@ -195,11 +218,13 @@ def optimal(problem: Problem, p, scenario="aggregate"):
     cost = np.concatenate([np.zeros(m), (problem.distances * weights[:, None]).ravel()])
     rows, columns, values, lower, upper = _assignment_constraints(n, m, p)
     matrix = coo_matrix((values, (rows, columns)), shape=(len(lower), m + n * m)).tocsr()
+    floor = np.zeros(m + n * m)
+    floor[list(fixed)] = 1
     outcome = milp(
         cost,
         constraints=LinearConstraint(matrix, lower, upper),
         integrality=np.concatenate([np.ones(m), np.zeros(n * m)]),
-        bounds=Bounds(0, 1),
+        bounds=Bounds(floor, 1),
         options={"mip_rel_gap": 0},
     )
     selection = _opened_stations(outcome, m, p)

@@ -363,6 +363,126 @@ def large_station_counts(problem, ps, budgets, runs, foods, rule):
     return rows
 
 
+def multistart_comparison(problem, ps, budget, runs, foods, rule):
+    """E1c: greedy stops early, so compare ABC with a local search spending the same budget."""
+    rows = []
+    for p in (p for p in ps if p < len(problem.candidate_ids)):
+        optimum = optimal(problem, p).objective
+        limit = limit_value(rule, foods, p)
+        abc = [
+            solve(problem, "abc", p, budget, s, foods=foods, limit=limit).objective
+            for s in range(runs)
+        ]
+        restarts = [solve(problem, "multistart", p, budget, s).objective for s in range(runs)]
+        rows.append(
+            {
+                "p": p,
+                "budget": budget,
+                "runs": runs,
+                "optimum_m": optimum,
+                "abc_mean_gap_percent": gap(float(np.mean(abc)), optimum),
+                "abc_optimum_hits": sum(v <= optimum + 1e-6 for v in abc),
+                "multistart_mean_gap_percent": gap(float(np.mean(restarts)), optimum),
+                "multistart_optimum_hits": sum(v <= optimum + 1e-6 for v in restarts),
+                "two_sided_p_value": float(mannwhitneyu(abc, restarts).pvalue)
+                if len({*abc, *restarts}) > 1
+                else 1.0,
+            }
+        )
+    return rows
+
+
+def candidate_count_curve(problem, raw, ps, fractions=(0.15, 0.25, 0.5, 0.75), subsets=20, seed=7):
+    """E4: how the optimum depends on the number of candidates, over random shorter lists."""
+    rng = np.random.default_rng(seed)
+    m = len(problem.candidate_ids)
+    rows = []
+    for p in ps:
+        full = optimal(problem, p).objective
+        for fraction in fractions:
+            size = max(p, int(fraction * m))
+            values = [
+                optimal(
+                    problem.restricted_to(sorted(int(j) for j in rng.permutation(m)[:size])), p
+                ).objective
+                for _ in range(subsets)
+            ]
+            rows.append(
+                {
+                    "p": p,
+                    "candidates": size,
+                    "subsets": subsets,
+                    "mean_optimum_m": float(np.mean(values)),
+                    "best_optimum_m": float(min(values)),
+                    "worst_optimum_m": float(max(values)),
+                    "mean_loss_vs_full_list_percent": gap(float(np.mean(values)), full),
+                }
+            )
+    return rows
+
+
+def choose_stages(curve, coverage_target=0.75, minimum_gain_m=5.0):
+    """Stage 1: fewest stations reaching the coverage target. Stage 2: last station worth 5 m."""
+    first = next((r["p"] for r in curve if r["coverage"] >= coverage_target), curve[-1]["p"])
+    worthwhile = [
+        r["p"]
+        for r in curve
+        if r["gain_vs_previous_m"] is not None and r["gain_vs_previous_m"] >= minimum_gain_m
+    ]
+    return first, max(first, max(worthwhile, default=first))
+
+
+def recommendation(problem, raw, stage_one, stage_two, threshold=250):
+    """A staged layout: build the first stations, then extend them without moving any."""
+    first = optimal(problem, stage_one)
+    extended = optimal(problem, stage_two, fixed=first.selection)
+    free = optimal(problem, stage_two)
+    weights = problem.weights()
+    summary = []
+    for name, result in (
+        ("etap 1", first),
+        ("etap 2 (rozbudowa etapu 1)", extended),
+        ("optimum bez etapów", free),
+    ):
+        summary.append(
+            {
+                "layout": name,
+                "p": len(result.selection),
+                **problem.metrics(result.selection, "aggregate", threshold),
+                "loss_vs_free_optimum_percent": gap(
+                    result.objective, optimal(problem, len(result.selection)).objective
+                ),
+                "candidate_ids": ";".join(problem.candidate_ids[i] for i in result.selection),
+            }
+        )
+    selected = list(extended.selection)
+    routes = problem.distances[:, selected]
+    assignment, nearest = routes.argmin(axis=1), routes.min(axis=1)
+    stations = []
+    for k, j in enumerate(selected):
+        mask = assignment == k
+        served = float(weights[mask].sum())
+        largest = int(np.flatnonzero(mask)[weights[mask].argmax()]) if mask.any() else None
+        candidate = raw["candidates"][j]
+        stations.append(
+            {
+                "id": candidate["id"],
+                "stage": 1 if j in first.selection else 2,
+                "lat": candidate.get("lat"),
+                "lon": candidate.get("lon"),
+                "source": candidate.get("source", ""),
+                "buildings": int(mask.sum()),
+                "demand_share": served,
+                "mean_m": float(weights[mask] @ nearest[mask] / served) if served else None,
+                "max_m": float(nearest[mask].max()) if mask.any() else None,
+                "largest_building": None
+                if largest is None
+                else raw["demand"][largest].get("name", raw["demand"][largest]["id"]),
+            }
+        )
+    return summary, sorted(stations, key=lambda s: (s["stage"], -s["demand_share"]))
+
+
 def threshold_sensitivity(problem, ps):
     """E4: same layout, different definition of “close enough”."""
     rows = []
@@ -746,8 +866,8 @@ def large_p_figure(output, rows):
     plt.close(fig)
 
 
-def layout_map(output, map_path, raw, curve, p):
-    """The proved-optimal layout for the middle p, with every candidate and demand point."""
+def layout_map(output, map_path, raw, layers, filename="layout_map.png"):
+    """Chosen layouts over every candidate and demand point; layers = (label, ids, color)."""
     import matplotlib
 
     matplotlib.use("Agg")
@@ -768,7 +888,6 @@ def layout_map(output, map_path, raw, curve, p):
     fig, ax = plt.subplots(figsize=(10, 7))
     ax.add_collection(PolyCollection(outlines, facecolors="#e0e5ed", edgecolors="#c3cad3", lw=0.3))
     ax.add_collection(LineCollection(walks, colors="#b3bac2", linewidths=0.35, zorder=1))
-    selected = set(next(r for r in curve if r["p"] == p)["candidate_ids"].split(";"))
     candidates, demand = raw["candidates"], raw["demand"]
     ax.scatter(
         [c["lon"] for c in candidates],
@@ -788,23 +907,24 @@ def layout_map(output, map_path, raw, curve, p):
         label="Punkty popytu (wagi założone)",
         zorder=3,
     )
-    chosen = [c for c in candidates if c["id"] in selected]
-    ax.scatter(
-        [c["lon"] for c in chosen],
-        [c["lat"] for c in chosen],
-        c="#1654b8",
-        s=130,
-        label=f"Układ optymalny, p = {p}",
-        zorder=4,
-    )
-    for point in chosen:
-        ax.annotate(
-            point["id"].removeprefix("candidate-"),
-            (point["lon"], point["lat"]),
-            xytext=(7, 7),
-            textcoords="offset points",
-            color="#1654b8",
+    for label, identifiers, color in layers:
+        chosen = [c for c in candidates if c["id"] in identifiers]
+        ax.scatter(
+            [c["lon"] for c in chosen],
+            [c["lat"] for c in chosen],
+            c=color,
+            s=130,
+            label=label,
+            zorder=4,
         )
+        for point in chosen:
+            ax.annotate(
+                point["id"].removeprefix("candidate-"),
+                (point["lon"], point["lat"]),
+                xytext=(7, 7),
+                textcoords="offset points",
+                color=color,
+            )
     ax.set_xlim(
         min(c["lon"] for c in candidates) - 0.002, max(c["lon"] for c in candidates) + 0.002
     )
@@ -815,10 +935,10 @@ def layout_map(output, map_path, raw, curve, p):
     ax.set(xlabel="Długość geograficzna [°]", ylabel="Szerokość geograficzna [°]")
     ax.legend(loc="upper right", fontsize=8)
     fig.text(
-        0.5, 0.01, "© OpenStreetMap contributors | ODbL | wersja robocza, bez audytu", ha="center"
+        0.5, 0.01, "© OpenStreetMap contributors | ODbL | stan przed audytem terenowym", ha="center"
     )
     fig.tight_layout(rect=(0, 0.03, 1, 1))
-    fig.savefig(output / "layout_map.png", dpi=160)
+    fig.savefig(output / filename, dpi=160)
     plt.close(fig)
 
 
@@ -867,6 +987,15 @@ def run(
         write_rows(output / "large_p.csv", large)
         large_p_figure(output, large)
     write_rows(output / "scenarios.csv", scenario_regret(problem, ps))
+    write_rows(
+        output / "multistart.csv",
+        multistart_comparison(problem, sorted({*ps, *large_ps[:3]}), budget, runs, foods, rule),
+    )
+    write_rows(output / "candidate_count.csv", candidate_count_curve(problem, raw, ps))
+    stage_one, stage_two = choose_stages(curve)
+    summary_rows, station_rows = recommendation(problem, raw, stage_one, stage_two)
+    write_rows(output / "recommended_layouts.csv", summary_rows)
+    write_rows(output / "recommended_stations.csv", station_rows)
     if len(problem.scenarios) > 1:
         write_rows(output / "robust.csv", robust_layouts(problem, sorted({*ps, *large_ps[:2]})))
     write_rows(output / "thresholds.csv", threshold_sensitivity(problem, ps))
@@ -880,7 +1009,27 @@ def run(
     write_rows(output / "candidates_to_check.csv", field_priority(problem, raw, curve, layouts, ps))
     figures(output, summary, histories, curve, budget)
     if (problem_path.parent / "map.geojson").exists():
-        layout_map(output, problem_path.parent / "map.geojson", raw, curve, ps[len(ps) // 2])
+        p = ps[len(ps) // 2]
+        identifiers = set(next(r for r in curve if r["p"] == p)["candidate_ids"].split(";"))
+        layout_map(
+            output,
+            problem_path.parent / "map.geojson",
+            raw,
+            [(f"Układ optymalny, p = {p}", identifiers, "#1654b8")],
+        )
+        by_stage = {
+            stage: {row["id"] for row in station_rows if row["stage"] == stage} for stage in (1, 2)
+        }
+        layout_map(
+            output,
+            problem_path.parent / "map.geojson",
+            raw,
+            [
+                (f"Etap 1: {len(by_stage[1])} stacji", by_stage[1], "#1654b8"),
+                (f"Etap 2: dodatkowe {len(by_stage[2])} stacji", by_stage[2], "#c2571f"),
+            ],
+            "layout_recommended.png",
+        )
     reviewed = sum(c.get("status") == "reviewed" for c in raw["candidates"])
     write_json(
         output / "study.json",
