@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from agh_stations.model import Problem
-from agh_stations.solvers import exact, solve
+from agh_stations.solvers import exact, optimal, solve
 
 
 @pytest.fixture
@@ -88,6 +88,27 @@ def test_invalid_weights_and_ids():
         Problem(["a"], ["d"], [[1]], {"s": [0]}, {"s": 1})
     with pytest.raises(ValueError, match="unique"):
         Problem(["a", "a"], ["d"], [[1, 2]], {"s": [1]}, {"s": 1})
+
+
+@pytest.mark.parametrize("p", [1, 2, 3, 4])
+def test_integer_program_agrees_with_enumeration(p):
+    rng = np.random.default_rng(p)
+    random_problem = Problem(
+        [f"c{j}" for j in range(12)],
+        [f"d{i}" for i in range(9)],
+        rng.uniform(0, 500, size=(9, 12)),
+        {"morning": rng.uniform(0.5, 5, size=9), "evening": rng.uniform(0.5, 5, size=9)},
+        {"morning": 1, "evening": 2},
+    )
+    assert optimal(random_problem, p).objective == pytest.approx(exact(random_problem, p).objective)
+    assert optimal(random_problem, p, "evening").objective == pytest.approx(
+        exact(random_problem, p, "evening").objective
+    )
+
+
+def test_integer_program_rejects_invalid_p(problem):
+    with pytest.raises(ValueError, match="Invalid p"):
+        optimal(problem, 5)
 
 
 def test_cli_artifacts(tmp_path):

@@ -260,12 +260,7 @@ export default function App() {
                                 }
                                 onChange={(e) => {
                                     const p = +e.target.value;
-                                    setParams((v) => ({
-                                        ...v,
-                                        p,
-                                        include_exact:
-                                            p <= 5 && v.include_exact,
-                                    }));
+                                    setParams((v) => ({ ...v, p }));
                                 }}
                             />
                             <div className="range-extents">
@@ -377,7 +372,7 @@ export default function App() {
                                         <input
                                             type="checkbox"
                                             checked={params.include_exact}
-                                            disabled={busy || params.p > 5}
+                                            disabled={busy}
                                             onChange={(e) =>
                                                 setParams((v) => ({
                                                     ...v,
@@ -389,9 +384,8 @@ export default function App() {
                                         <span>
                                             Oblicz dokładne optimum
                                             <small>
-                                                {params.p > 5
-                                                    ? "Dostępne dla maksymalnie 5 stacji."
-                                                    : "Pełny przegląd · osobny budżet"}
+                                                Programowanie całkowitoliczbowe
+                                                · poza budżetem ocen
                                             </small>
                                         </span>
                                     </label>
@@ -713,7 +707,7 @@ export default function App() {
                                     Dokładne optimum
                                     <small>
                                         {run?.exact
-                                            ? `${number(run.exact.evaluations, 0)} układów · osobny budżet`
+                                            ? `Solver MILP · ${number(run.exact.elapsed_s * 1000, 0)} ms`
                                             : "Dostępne w parametrach zaawansowanych"}
                                     </small>
                                 </span>

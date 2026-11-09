@@ -44,7 +44,6 @@ export type Run = {
     methods: Record<Method, Solution>;
     exact: {
         mean_distance_m: number;
-        evaluations: number;
         elapsed_s: number;
     } | null;
     threshold_m: number;

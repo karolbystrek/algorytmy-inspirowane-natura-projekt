@@ -161,3 +161,53 @@ def exact(problem: Problem, p, scenario="aggregate", max_combinations=200_000):
     for selection in combinations(range(n), p):
         evaluator.evaluate(selection)
     return evaluator.result()
+
+
+def optimal(problem: Problem, p, scenario="aggregate"):
+    """Prove the p-median optimum with an integer program, for instances too big to enumerate.
+
+    Variables: y_j (open candidate j) and x_ij (demand i served by j), with x_ij <= y_j.
+    ``evaluations`` is 0 because the solver never calls the objective used by the heuristics.
+    """
+    from scipy.optimize import Bounds, LinearConstraint, milp
+    from scipy.sparse import coo_matrix
+
+    n, m = problem.distances.shape
+    if not isinstance(p, int) or not 1 <= p <= m:
+        raise ValueError("Invalid p")
+    weights = problem.weights(scenario)
+    started = perf_counter()
+    cost = np.concatenate([np.zeros(m), (problem.distances * weights[:, None]).ravel()])
+    rows, columns, values = [0] * m, list(range(m)), [1.0] * m
+    lower, upper = [p], [p]
+    row = 1
+    for i in range(n):  # Every demand point is served exactly once.
+        rows += [row] * m
+        columns += [m + i * m + j for j in range(m)]
+        values += [1.0] * m
+        lower.append(1)
+        upper.append(1)
+        row += 1
+    for i in range(n):  # Service is allowed only from an open station.
+        for j in range(m):
+            rows += [row, row]
+            columns += [m + i * m + j, j]
+            values += [1.0, -1.0]
+            lower.append(-np.inf)
+            upper.append(0)
+            row += 1
+    matrix = coo_matrix((values, (rows, columns)), shape=(row, m + n * m)).tocsr()
+    outcome = milp(
+        cost,
+        constraints=LinearConstraint(matrix, lower, upper),
+        integrality=np.concatenate([np.ones(m), np.zeros(n * m)]),
+        bounds=Bounds(0, 1),
+        options={"mip_rel_gap": 0},
+    )
+    if not outcome.success:
+        raise RuntimeError(f"Integer program failed: {outcome.message}")
+    selection = tuple(int(j) for j in np.flatnonzero(outcome.x[:m] > 0.5))
+    if len(selection) != p:
+        raise RuntimeError("Integer program returned an infeasible station count")
+    objective = problem.objective(selection, scenario)
+    return Result(selection, objective, 0, perf_counter() - started, [(0, objective)])
