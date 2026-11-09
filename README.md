@@ -4,17 +4,13 @@ Projekt na przedmiot **Algorytmy inteligentne inspirowane naturą**, zespół 6 
 
 **Pierwszy pokaz: 9 listopada 2026. Gotowy projekt: 4 grudnia; rezerwa do około 15 grudnia.**
 
-## Stan na 8 listopada
+## Stan na 9 listopada
 
-**Działa pierwszy model i lokalne demo FastAPI + React:** wybór liczby stacji,
-scenariusza i parametrów, uruchamianie ABC z porównaniami, mapa offline, odtwarzanie
-popraw układu, wykres i eksport JSON. To techniczny pilot etapu M1 z gotową częścią
-interfejsu M3. Przed końcowym projektem pozostają audyt danych, trasy dojścia, 3D,
-pełne badania i raport. Próba na docelowym laptopie wymaga jeszcze potwierdzenia.
+**Działa cały łańcuch na danych v2:** 101 punktów popytu, 99 kandydatów, ABC i metody odniesienia, dokładne optimum, aplikacja z trasami dojścia i budynkami 3D oraz komenda pełnych badań. Wyniki są wersją roboczą, bo żaden punkt nie przeszedł jeszcze audytu terenowego. Próba na docelowym laptopie wymaga potwierdzenia.
 
-**[Jak to działa, co osiągnęliśmy i co zostało →](docs/STATUS.md)**
+**[Jak to działa, co osiągnęliśmy i co zostało →](docs/STATUS.md)** · **[Szkic raportu →](docs/REPORT_DRAFT.md)**
 
-![Lokalne demo rozmieszczenia stacji](reports/demo/ui.jpg)
+![Lokalne demo rozmieszczenia stacji](reports/demo/ui-v2.jpg)
 
 ## Od czego zacząć
 
@@ -50,26 +46,42 @@ uv run --locked --extra demo uvicorn agh_stations.api:app --host 127.0.0.1 --por
 
 Otwórz **http://127.0.0.1:8001**. Jeden serwer obsługuje API i zbudowany interfejs.
 Demo pozwala zmieniać `p` (1–12), scenariusz, budżet i ziarno; porównuje ABC,
-losowanie i greedy. Mapa Leaflet korzysta wyłącznie z lokalnej geometrii, bez kafelków,
-CDN i kluczy API. Przycisk odtwarzania i suwak pokazują zapis rzeczywistych popraw
-najlepszego układu po obliczeniach — nie transmisję roju na żywo. Eksport JSON zawiera
-parametry, hash danych, wyniki i kroki. To pojedyncze przebiegi, nie seria 30 ziaren.
-Dokładne optimum ma osobny budżet i limit 200 000 kombinacji (`p ≤ 5` w interfejsie).
-Trasy dojścia i 3D pozostają do zrobienia.
+losowanie i greedy. Mapa MapLibre korzysta wyłącznie z lokalnej geometrii, bez kafelków,
+CDN i kluczy API, pokazuje trasy dojścia i wielkość popytu, a przycisk z kostką włącza
+budynki 3D (wymaga WebGL). Odtwarzanie pokazuje zapis rzeczywistych popraw najlepszego
+układu po obliczeniach — nie transmisję roju na żywo. Eksport JSON zawiera parametry,
+hash danych, wyniki i kroki. To pojedyncze przebiegi, nie seria 30 ziaren. Dokładne optimum
+liczy solver MILP poza budżetem ocen. Domyślnie używane są dane `agh-v2`; zmienna
+`AGH_DATASET=agh-pilot` przełącza na zestaw pilota.
 
 Scenariusz pokazu: uruchom domyślne 4 stacje → odtwórz poprawy ABC → przełącz
-metody → zmień na 3 stacje i poranek → uruchom ponownie → omów zmianę wyniku.
-Przed prezentacją zbuduj interfejs i przećwicz na laptopie docelowym.
+metody → włącz widok 3D → zmień na 3 stacje i poranek → uruchom ponownie → omów
+zmianę wyniku. Przed prezentacją zbuduj interfejs i przećwicz na laptopie docelowym.
 
 Rozwój interfejsu: backend jak wyżej oraz w drugim terminalu `npm --prefix frontend run dev`.
 Vite działa na http://127.0.0.1:5173 i przekazuje `/api` do portu 8001.
 Dokumentacja API: http://127.0.0.1:8001/docs (jej zewnętrzne zasoby wymagają internetu).
 
-### Eksperymenty CLI
+### Pełne badania na danych v2
 
-Repo zawiera snapshot grafu OSM, 18 zastępczych punktów popytu i 30 kandydatów, model p-median, ABC, losowanie, greedy z lokalnymi zamianami, pełny przegląd oraz generator mapy i wykresów. Dane i założenia są opisane w [data/README.md](data/README.md).
+```sh
+uv sync --locked --all-extras
+uv run agh-stations study --output outputs/study
+```
 
-**To demonstrator modelu:** wagi popytu są założone, punkty reprezentują węzły grafu zamiast sprawdzonych wejść, a kandydaci wymagają weryfikacji w terenie. Interaktywne demo jest dostępne powyżej; trasy i budynki 3D pozostają w roadmapie.
+Protokół jest opisany w [EXPERIMENTS.md](docs/EXPERIMENTS.md), a zapis wersji roboczej znajduje się w [reports/v2-draft](reports/v2-draft). Przebudowa danych v2 wymaga wyciągu OSM (np. `malopolskie-latest.osm.pbf` z Geofabrik, poza repozytorium):
+
+```sh
+uv run --extra geo agh-stations prepare-v2 --pbf ścieżka/malopolskie-latest.osm.pbf
+```
+
+Bez `--pbf` generator korzysta z Overpass. Audyt terenowy opisuje [DATA_MODEL.md](docs/DATA_MODEL.md#audyt-terenowy).
+
+### Eksperymenty CLI na pilocie
+
+Repo zawiera też pierwszy snapshot: 18 zastępczych punktów popytu i 30 kandydatów. Zachowujemy go, żeby wyniki pilota dało się odtworzyć. Dane i założenia są opisane w [data/README.md](data/README.md).
+
+**To demonstrator modelu:** wagi popytu są założone, a kandydaci wymagają weryfikacji w terenie.
 
 Wymagania: [uv](https://docs.astral.sh/uv/getting-started/installation/) i Python 3.12 (uv może pobrać interpreter). Po instalacji zależności poniższe obliczenia działają offline:
 

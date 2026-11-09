@@ -1,0 +1,16 @@
+p,mean_distance_m,coverage,max_distance_m,gain_vs_previous_m,candidate_ids
+1,657.9115632354218,0.03554298822413022,1381.492,,candidate-017
+2,364.3484928136407,0.35700198634278313,1073.187,293.5630704217811,candidate-008;candidate-030
+3,300.87403760593105,0.49388233319245817,1165.766,63.47445520770964,candidate-008;candidate-013;candidate-051
+4,253.3534266988372,0.5415262209900803,848.136,47.52061090709384,candidate-008;candidate-013;candidate-051;candidate-054
+5,225.99759192255132,0.5936000247476744,804.155,27.35583477628589,candidate-008;candidate-013;candidate-039;candidate-051;candidate-054
+6,198.66311911882028,0.6343678662725758,804.155,27.334472803731046,candidate-006;candidate-009;candidate-013;candidate-039;candidate-051;candidate-054
+7,174.47939767233714,0.699333280866364,708.787,24.183721446483133,candidate-006;candidate-009;candidate-030;candidate-039;candidate-051;candidate-054;candidate-065
+8,156.69049106993728,0.7750678678384879,708.787,17.788906602399862,candidate-005;candidate-008;candidate-030;candidate-039;candidate-051;candidate-054;candidate-060;candidate-065
+9,145.38941421669082,0.8267496453892021,708.787,11.301076853246457,candidate-005;candidate-008;candidate-024;candidate-030;candidate-039;candidate-051;candidate-054;candidate-060;candidate-065
+10,134.56255882677036,0.8504045323093185,708.787,10.826855389920468,candidate-005;candidate-008;candidate-024;candidate-025;candidate-030;candidate-039;candidate-051;candidate-054;candidate-060;candidate-065
+11,124.71750900886174,0.8446132048551935,708.787,9.845049817908617,candidate-005;candidate-006;candidate-024;candidate-025;candidate-030;candidate-039;candidate-051;candidate-054;candidate-055;candidate-065;candidate-071
+12,116.40871522333852,0.8446132048551935,605.415,8.308793785523221,candidate-005;candidate-006;candidate-010;candidate-015;candidate-024;candidate-025;candidate-030;candidate-039;candidate-051;candidate-054;candidate-055;candidate-071
+13,108.93835782036427,0.8779151138699944,605.415,7.470357402974244,candidate-005;candidate-006;candidate-010;candidate-015;candidate-024;candidate-025;candidate-030;candidate-039;candidate-051;candidate-054;candidate-055;candidate-071;candidate-072
+14,101.82532046812881,0.906556556959275,605.415,7.113037352235466,candidate-005;candidate-006;candidate-010;candidate-015;candidate-024;candidate-025;candidate-030;candidate-039;candidate-051;candidate-052;candidate-054;candidate-055;candidate-071;candidate-072
+15,95.55527149882239,0.9407587401828092,605.415,6.270048969306416,candidate-005;candidate-006;candidate-010;candidate-015;candidate-024;candidate-025;candidate-030;candidate-039;candidate-045;candidate-051;candidate-052;candidate-054;candidate-055;candidate-071;candidate-072
