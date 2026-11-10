@@ -1,4 +1,4 @@
-export type Method = "abc" | "random" | "greedy";
+export type Method = "abc" | "ga" | "random" | "greedy";
 export type Scenario = "aggregate" | "morning" | "day" | "evening";
 export type Pool = "all" | "existing";
 export type Parameters = {
@@ -51,6 +51,7 @@ export type Solution = Omit<Step, "evaluation"> & {
 export type Run = {
     parameters: Parameters;
     abc: { foods: number; limit: number };
+    ga: { population: number; mutation: number; crossover: string };
     dataset_id: string;
     problem_sha256: string;
     methods: Record<Method, Solution>;
@@ -146,16 +147,19 @@ export type Focus = {
 
 export const methodNames: Record<Method, string> = {
     abc: "ABC · rój pszczół",
+    ga: "GA · algorytm genetyczny",
     random: "Losowanie",
     greedy: "Greedy + zamiany",
 };
 export const methodLabels: Record<Method, string> = {
     abc: "ABC",
+    ga: "GA",
     random: "Losowanie",
     greedy: "Greedy",
 };
 export const methodColors: Record<Method, string> = {
     abc: "#0e7a5a",
+    ga: "#8a4fbf",
     random: "#b67a1e",
     greedy: "#4a7cc9",
 };

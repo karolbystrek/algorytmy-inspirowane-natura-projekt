@@ -58,7 +58,7 @@ const DEFAULTS: Parameters = {
     threshold_m: 250,
     candidate_pool: "all",
 };
-const METHODS: Method[] = ["abc", "random", "greedy"];
+const METHODS: Method[] = ["abc", "ga", "random", "greedy"];
 const BUDGETS = [500, 1000, 5000, 10000, 20000];
 const CURVE_STATIONS = 40;
 const JSON_POST = {
@@ -429,7 +429,7 @@ export default function App() {
                         className="button-quiet"
                         onClick={() => setHelp(true)}
                     >
-                        <CircleHelp size={17} /> Jak działa ABC
+                        <CircleHelp size={17} /> Jak działają ABC i GA
                     </button>
                 </div>
             </header>
@@ -671,6 +671,13 @@ export default function App() {
                                         ABC: {run?.abc.foods ?? "—"} źródeł ·
                                         limit porzucenia {run?.abc.limit ?? "—"}
                                         <br />
+                                        GA: populacja {run?.ga.population ?? "—"}{" "}
+                                        · mutacja {run?.ga.mutation ?? "—"} ·
+                                        krzyżowanie{" "}
+                                        {run?.ga.crossover === "greedy"
+                                            ? "zachłanne"
+                                            : "losowe z rodziców"}
+                                        <br />
                                         Dobrane na osobnej instancji
                                         rozwojowej.
                                     </p>
@@ -702,7 +709,7 @@ export default function App() {
                                 </p>
                             ) : (
                                 <p className="run-note">
-                                    <Check size={13} /> Porównanie trzech metod
+                                    <Check size={13} /> Porównanie czterech metod
                                 </p>
                             )}
                         </div>
@@ -1294,6 +1301,12 @@ export default function App() {
                         </span>
                     </li>
                 </ol>
+                <p>
+                    <strong>Algorytm genetyczny</strong> utrzymuje populację
+                    układów. Potomek dziedziczy stacje wspólne obu rodzicom, a
+                    resztę bierze od któregoś z nich. Rzadka mutacja zamienia
+                    jedną stację, a lepszy potomek zastępuje najgorszy układ.
+                </p>
                 <p>
                     Animacja odtwarza rzeczywiste poprawy po zakończeniu
                     obliczeń. Wykres porównuje pojedyncze przebiegi. Dokładne
