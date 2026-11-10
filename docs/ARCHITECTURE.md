@@ -2,14 +2,14 @@
 
 ## Stan bieżący
 
-**Dane i obliczenia:** generator v2 z datowanego wyciągu OSM, wersjonowany kontrakt plików, model p-median, ABC, algorytm genetyczny, losowanie, greedy z zamianami, lokalne przeszukiwanie z restartami, dokładne optimum (MILP), układ odporny, runner pełnego protokołu badań, wykresy i testy w CI.
+**Dane i obliczenia:** generator v2 z datowanego wyciągu OSM, wersjonowany kontrakt plików, model p-median, ABC, algorytm genetyczny (bez restartu i z restartem), losowanie, greedy z zamianami, lokalne przeszukiwanie z restartami, dokładne optimum (MILP), układ odporny, runner pełnego protokołu badań, wykresy i testy w CI.
 
 **Aplikacja:** FastAPI (`api.py`) + React/TypeScript (`frontend/`) + MapLibre GL, wyłącznie z lokalnej geometrii OSM. Po buildzie frontend i API obsługuje jeden proces na porcie 8001. API weryfikuje hashe snapshotu i nie pobiera niczego z internetu.
 
 | Endpoint | Rola |
 |---|---|
 | `GET /api/dataset`, `/api/map`, `/api/health` | punkty, listy kandydatów, minimalne budżety, geometria |
-| `POST /api/run` | jeden eksperyment czterech metod z zapisem popraw; do 20 000 ocen na metodę |
+| `POST /api/run` | jeden eksperyment pięciu metod z zapisem popraw; do 20 000 ocen na metodę |
 | `POST /api/routes` | trasy po grafie od każdego budynku do najbliższej stacji |
 | `POST /api/analysis` | grupy budynków, obciążenie stacji, strata w porach dnia, skutek zamkniętych bram |
 | `POST /api/curve` | dowiedzione optima dla kolejnych liczb stacji |

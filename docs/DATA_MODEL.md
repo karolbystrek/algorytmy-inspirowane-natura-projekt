@@ -26,6 +26,31 @@ Zatrudnione pszczoły wykonują po jednej próbie dla każdego źródła. Obserw
 
 `foods=12` oznacza liczbę źródeł / pszczół zatrudnionych i tyle samo prób obserwatorek na pełny cykl. Raportowanie „wielkości kolonii” musi wskazywać tę konwencję. Pilot kończy się limitem ocen celu, nie liczbą cykli.
 
+## Reprezentacja i operatory GA
+
+Osobnik to ta sama posortowana krotka `p` różnych indeksów kandydatów co źródło pożywienia ABC. Populacja ma `population` osobników i działa w trybie stanu ustalonego: rodziców wybiera turniej dwóch osobników, a potomek zastępuje najgorszego członka populacji, jeśli jest od niego lepszy i nie jest jego kopią. Najlepszy układ nigdy nie ginie.
+
+- **Krzyżowanie losowe (`union`):** potomek dziedziczy stacje wspólne obu rodzicom, a brakujące miejsca losuje bez powtórzeń spośród stacji, którymi rodzice się różnią. Jedna ocena na potomka.
+- **Krzyżowanie zachłanne (`greedy`):** z sumy rodziców usuwamy kolejno stację, której brak najmniej pogarsza cel, aż zostanie `p`. Każdy sprawdzany układ, także częściowy, liczy się do budżetu.
+- **Mutacja:** z prawdopodobieństwem `mutation` jedna stacja potomka zmienia się na losową nieużywaną. Potomek będący kopią istniejącego osobnika jest mutowany zawsze.
+- **Restart (`ga_restart`):** jeśli przez `restart_after` kolejnych potomków nie poprawi się najlepszy układ, zostaje on w populacji, a pozostałe osobniki są losowane od nowa. To odpowiednik zwiadowczyń ABC. Wersja `ga` nie ma restartu.
+
+Obie wersje kończą się po wyczerpaniu tego samego limitu ocen co pozostałe metody.
+
+**Odstępstwa od klasycznego GA**, wprowadzone, żeby każdy osobnik zawsze był poprawnym układem `p` różnych stacji i żeby porównanie było uczciwe:
+
+| Klasyczny GA | Nasz GA | Powód |
+|---|---|---|
+| chromosom binarny | zbiór `p` indeksów | brak układów z inną liczbą stacji, bez kar i naprawiania |
+| krzyżowanie jedno- lub dwupunktowe | dziedziczenie wspólnych stacji i losowe uzupełnienie | wynik zawsze ma dokładnie `p` różnych stacji |
+| mutacja każdego bitu osobno | zamiana jednej stacji w całym potomku | zachowanie liczby stacji |
+| wymiana całych pokoleń | jeden potomek naraz zastępuje najgorszego (stan ustalony) | elitaryzm i oszczędność ocen |
+| krzyżowanie z prawdopodobieństwem | każdy potomek z krzyżowania | jeden parametr mniej do strojenia |
+| stop po liczbie pokoleń | stop po limicie ocen celu | wspólny protokół porównania metod |
+| — | wymuszona mutacja kopii, zakaz duplikatów | nie marnujemy ocen na znane układy |
+
+Nie dodajemy lokalnego przeszukiwania do GA (wariant memetyczny), żeby porównywać czyste metody. Krzyżowanie zachłanne jest inspirowane GA wspomaganym heurystyką zachłanną, ale nie odtwarza żadnej konkretnej publikacji.
+
 ## Pliki wersji 1
 
 | Plik | Kontrakt |

@@ -58,7 +58,7 @@ const DEFAULTS: Parameters = {
     threshold_m: 250,
     candidate_pool: "all",
 };
-const METHODS: Method[] = ["abc", "ga", "random", "greedy"];
+const METHODS: Method[] = ["abc", "ga", "ga_restart", "random", "greedy"];
 const BUDGETS = [500, 1000, 5000, 10000, 20000];
 const CURVE_STATIONS = 40;
 const JSON_POST = {
@@ -678,6 +678,10 @@ export default function App() {
                                             ? "zachłanne"
                                             : "losowe z rodziców"}
                                         <br />
+                                        Restart GA po{" "}
+                                        {run?.ga.restart_after ?? "—"} potomkach
+                                        bez poprawy
+                                        <br />
                                         Dobrane na osobnej instancji
                                         rozwojowej.
                                     </p>
@@ -709,7 +713,7 @@ export default function App() {
                                 </p>
                             ) : (
                                 <p className="run-note">
-                                    <Check size={13} /> Porównanie czterech metod
+                                    <Check size={13} /> Porównanie pięciu metod
                                 </p>
                             )}
                         </div>
@@ -1306,6 +1310,8 @@ export default function App() {
                     układów. Potomek dziedziczy stacje wspólne obu rodzicom, a
                     resztę bierze od któregoś z nich. Rzadka mutacja zamienia
                     jedną stację, a lepszy potomek zastępuje najgorszy układ.
+                    Wersja z restartem po dłuższym braku poprawy zostawia
+                    najlepszy układ, a resztę populacji losuje od nowa.
                 </p>
                 <p>
                     Animacja odtwarza rzeczywiste poprawy po zakończeniu
