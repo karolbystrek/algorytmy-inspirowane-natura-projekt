@@ -1,0 +1,4 @@
+p,question,abc_mean_m,ga_mean_m,p_value,holm_p_value
+3,"GA vs ABC, dwustronnie (Mann-Whitney)",273.29215607205646,272.9484281180038,0.08149328301841145,0.24447984905523434
+5,"GA vs ABC, dwustronnie (Mann-Whitney)",207.65968596537607,207.65968596537607,1.0,1.0
+8,"GA vs ABC, dwustronnie (Mann-Whitney)",159.2767507515479,159.49376333874397,0.5617850857454652,1.0
