@@ -17,7 +17,7 @@ Budujemy demonstrator rozmieszczenia stacji rowerowych / punktów postoju hulajn
 
 **Na 9 listopada pokazujemy cały mały eksperyment:** OSM → graf → macierz odległości → ABC i punkty odniesienia → mapa i wyniki. To „pierwszy model” w znaczeniu modelu optymalizacyjnego, bez uczenia sieci neuronowej. Trójwymiarowe budynki uzupełnią gotowy model w listopadzie.
 
-Pełny zakres obowiązkowy na grudzień: zweryfikowany obszar, ręcznie sprawdzeni kandydaci i dostęp do budynków, trzy scenariusze oraz ich agregacja, ABC i baseline’y, powtarzalne eksperymenty, interaktywna mapa z dojściami i budynkami 3D, raport. FA, bilansowanie floty, pojemności stacji, prognozowanie popytu i usługi chmurowe nie wchodzą na ścieżkę krytyczną. FA można podjąć dopiero po ukończeniu obowiązkowych elementów.
+Pełny zakres obowiązkowy na grudzień: zweryfikowany obszar, ręcznie sprawdzeni kandydaci i dostęp do budynków, trzy scenariusze oraz ich agregacja, ABC, algorytm genetyczny i baseline’y, powtarzalne eksperymenty, interaktywna mapa z dojściami i budynkami 3D, raport. Bilansowanie floty, pojemności stacji, prognozowanie popytu i usługi chmurowe nie wchodzą na ścieżkę krytyczną.
 
 ## Proponowany podział 6 osób
 
