@@ -66,14 +66,22 @@ def solve(
     on_improvement=None,
     peer_probability=0.5,
     onlooker="inverse",
+    population=100,
+    crossover="union",
+    mutation=0.4,
+    restart_after=2000,
 ):
     n = len(problem.candidate_ids)
     if not isinstance(p, int) or not 1 <= p <= n:
         raise ValueError("p must be an integer in [1, candidate_count]")
     if not isinstance(budget, int) or budget < 1:
         raise ValueError("budget must be a positive integer")
-    if method not in {"abc", "random", "greedy", "multistart"}:
+    if method not in {"abc", "ga", "ga_restart", "random", "greedy", "multistart"}:
         raise ValueError(f"Unknown method: {method}")
+    if population < 2 or crossover not in {"union", "greedy"} or not 0 <= mutation <= 1:
+        raise ValueError("population must be >= 2, crossover union/greedy, mutation in [0, 1]")
+    if not isinstance(restart_after, int) or restart_after < 1:
+        raise ValueError("restart_after must be a positive integer")
     if foods < 2 or limit < 1:
         raise ValueError("foods must be >= 2 and limit >= 1")
     if onlooker not in {"inverse", "rank", "none"} or not 0 <= peer_probability <= 1:
@@ -137,6 +145,68 @@ def solve(
                 current, value = best_neighbour, best_value
                 if evaluator.calls == budget:
                     return evaluator.result()
+    elif method in {"ga", "ga_restart"}:
+        # Steady-state GA on sets: every offspring replaces the worst member if it is better.
+        # "ga_restart" also restarts a stagnant population around its best layout.
+        size = min(population, budget)
+        members = [random_selection() for _ in range(size)]
+        scores = [evaluator.evaluate(member) for member in members]
+
+        def tournament():
+            first, second = rng.choice(size, size=2, replace=False)
+            return members[first if scores[first] <= scores[second] else second]
+
+        def mutated(selection):
+            kept = set(selection)
+            kept.remove(int(rng.choice(sorted(kept))))
+            kept.add(int(rng.choice(sorted(set(range(n)) - set(selection)))))
+            return tuple(sorted(kept))
+
+        best_seen, stale = min(scores), 0
+        while evaluator.calls < budget:
+            if method == "ga_restart" and stale >= restart_after:
+                # Keep the best layout and draw the rest anew, as ABC scouts replace sources.
+                keep = int(np.argmin(scores))
+                for index in range(size):
+                    if index == keep:
+                        continue
+                    if evaluator.calls == budget:
+                        return evaluator.result()
+                    members[index] = random_selection()
+                    scores[index] = evaluator.evaluate(members[index])
+                best_seen, stale = min(scores), 0
+                continue
+            parent_a, parent_b = set(tournament()), set(tournament())
+            shared, known = parent_a & parent_b, None
+            if crossover == "union":
+                differing = sorted(parent_a ^ parent_b)
+                inherited = rng.choice(differing, size=p - len(shared), replace=False)
+                child = tuple(sorted(shared | {int(j) for j in inherited}))
+            else:  # Drop the least useful station of the parents' union until p remain.
+                current = parent_a | parent_b
+                while len(current) > p:
+                    trials = {}
+                    for removed in sorted(current - shared):
+                        if evaluator.calls == budget:
+                            return evaluator.result()
+                        trials[removed] = evaluator.evaluate(tuple(sorted(current - {removed})))
+                    dropped = min(trials, key=trials.get)
+                    current, known = current - {dropped}, trials[dropped]
+                child = tuple(sorted(current))
+            # A copy of a current member would spend an evaluation without teaching anything.
+            if child in members or rng.random() < mutation:
+                child, known = mutated(child), None
+            if known is None:
+                if evaluator.calls == budget:
+                    return evaluator.result()
+                known = evaluator.evaluate(child)
+            worst = int(np.argmax(scores))
+            if known < scores[worst] and child not in members:
+                members[worst], scores[worst] = child, known
+            if known < best_seen:
+                best_seen, stale = known, 0
+            else:
+                stale += 1
     else:
         source_count = min(foods, budget)
         sources = [random_selection() for _ in range(source_count)]

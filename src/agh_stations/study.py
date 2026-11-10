@@ -24,6 +24,17 @@ from agh_stations.solvers import greedy_construction_cost, optimal, robust_optim
 THRESHOLDS = (150, 250, 350)
 FOODS = (8, 12, 24)
 LIMIT_RULES = ("15", "30", "60", "foods*p")
+GA_POPULATIONS = (20, 50, 100)
+GA_MUTATIONS = (0.1, 0.4)
+GA_CROSSOVERS = ("union", "greedy")
+GA_RESTART_AFTER = (250, 500, 1000, 2000, 4000)
+DEFAULT_GA = {  # Tuned result.
+    "population": 100,
+    "mutation": 0.4,
+    "crossover": "union",
+    "restart_after": 2000,
+}
+METHODS = ("abc", "ga", "ga_restart", "random", "greedy")
 
 
 def limit_value(rule, foods, p):
@@ -128,6 +139,86 @@ def choose_parameters(rows):
     return foods, rule
 
 
+def tune_ga(problem, ps, budget, runs):
+    """The same search effort as ABC gets: 12 settings on the development instance."""
+    rows = []
+    for p in ps:
+        best = optimal(problem, p).objective
+        for population in GA_POPULATIONS:
+            for mutation in GA_MUTATIONS:
+                for crossover in GA_CROSSOVERS:
+                    values = [
+                        solve(
+                            problem,
+                            "ga",
+                            p,
+                            budget,
+                            seed,
+                            population=population,
+                            mutation=mutation,
+                            crossover=crossover,
+                        ).objective
+                        for seed in range(runs)
+                    ]
+                    rows.append(
+                        {
+                            "p": p,
+                            "population": population,
+                            "mutation": mutation,
+                            "crossover": crossover,
+                            "mean_gap_percent": gap(float(np.mean(values)), best),
+                            "best_gap_percent": gap(min(values), best),
+                            "optimum_hits": sum(v <= best + 1e-6 for v in values),
+                            "runs": runs,
+                        }
+                    )
+    return rows
+
+
+def choose_ga_parameters(rows):
+    """Lowest average gap across development p values; ties go to the first grid position."""
+    scores = {}
+    for row in rows:
+        key = (row["population"], row["mutation"], row["crossover"])
+        scores.setdefault(key, []).append(row["mean_gap_percent"])
+    (population, mutation, crossover), _ = min(
+        scores.items(), key=lambda item: float(np.mean(item[1]))
+    )
+    return {"population": population, "mutation": mutation, "crossover": crossover}
+
+
+def tune_ga_restart(problem, ps, budget, runs, ga):
+    """Only the restart threshold is new; the rest of GA keeps its tuned settings."""
+    rows = []
+    for p in ps:
+        best = optimal(problem, p).objective
+        for restart_after in GA_RESTART_AFTER:
+            settings = {**ga, "restart_after": restart_after}
+            values = [
+                solve(problem, "ga_restart", p, budget, seed, **settings).objective
+                for seed in range(runs)
+            ]
+            rows.append(
+                {
+                    "p": p,
+                    "restart_after": restart_after,
+                    "mean_gap_percent": gap(float(np.mean(values)), best),
+                    "best_gap_percent": gap(min(values), best),
+                    "optimum_hits": sum(v <= best + 1e-6 for v in values),
+                    "runs": runs,
+                }
+            )
+    return rows
+
+
+def choose_restart(rows):
+    """Lowest average gap across development p values; ties go to the first threshold."""
+    scores = {}
+    for row in rows:
+        scores.setdefault(row["restart_after"], []).append(row["mean_gap_percent"])
+    return min(scores.items(), key=lambda item: float(np.mean(item[1])))[0]
+
+
 def ablation(problem, ps, budget, runs, foods, rule):
     rows = []
     variants = {
@@ -176,12 +267,13 @@ def ablation(problem, ps, budget, runs, foods, rule):
     return rows
 
 
-def compare(problem, ps, budget, runs, foods, rule, threshold=250):
+def compare(problem, ps, budget, runs, foods, rule, threshold=250, ga=None):
     """E1: same budget for every heuristic, proved optimum as the reference."""
     rows, summary, histories = [], [], {}
+    ga = ga or DEFAULT_GA
     for p in ps:
         reference = optimal(problem, p)
-        runs_by_method = {"abc": [], "random": [], "greedy": []}
+        runs_by_method = {method: [] for method in METHODS}
         for method in runs_by_method:
             seeds = range(runs) if method != "greedy" else [0]
             for seed in seeds:
@@ -194,6 +286,7 @@ def compare(problem, ps, budget, runs, foods, rule, threshold=250):
                         seed,
                         foods=foods,
                         limit=limit_value(rule, foods, p),
+                        **ga,
                     )
                 except ValueError:
                     continue  # Greedy construction alone can exceed a very small budget.
@@ -253,6 +346,30 @@ def compare(problem, ps, budget, runs, foods, rule, threshold=250):
     for test, adjusted in zip(tests, holm([t["p_value"] for t in tests]), strict=True):
         test["holm_p_value"] = adjusted
     return rows, summary, tests, histories
+
+
+def method_pair_tests(rows, ps, first, second, question):
+    """E1: two-sided Mann-Whitney per p, Holm-corrected across p; fixed before the runs."""
+    tests = []
+    for p in ps:
+        one, two = (
+            [r["mean_distance_m"] for r in rows if r["p"] == p and r["method"] == method]
+            for method in (first, second)
+        )
+        tests.append(
+            {
+                "p": p,
+                "question": question,
+                "first_method": first,
+                "second_method": second,
+                "first_mean_m": float(np.mean(one)),
+                "second_mean_m": float(np.mean(two)),
+                "p_value": float(mannwhitneyu(one, two).pvalue) if len({*one, *two}) > 1 else 1.0,
+            }
+        )
+    for test, adjusted in zip(tests, holm([t["p_value"] for t in tests]), strict=True):
+        test["holm_p_value"] = adjusted
+    return tests
 
 
 def station_curve(problem, p_max, threshold=250):
@@ -322,9 +439,10 @@ def robust_layouts(problem, ps):
     return rows
 
 
-def large_station_counts(problem, ps, budgets, runs, foods, rule):
+def large_station_counts(problem, ps, budgets, runs, foods, rule, ga=None):
     """E1b: larger p, and whether greedy still fits in the budget that ABC is given."""
     rows = []
+    ga = ga or DEFAULT_GA
     m = len(problem.candidate_ids)
     for budget, repeats in budgets:
         for p in (p for p in ps if p < m):
@@ -333,6 +451,10 @@ def large_station_counts(problem, ps, budgets, runs, foods, rule):
             abc = [
                 solve(problem, "abc", p, budget, s, foods=foods, limit=limit).objective
                 for s in range(repeats)
+            ]
+            genetic = [solve(problem, "ga", p, budget, s, **ga).objective for s in range(repeats)]
+            restarted = [
+                solve(problem, "ga_restart", p, budget, s, **ga).objective for s in range(repeats)
             ]
             random = [solve(problem, "random", p, budget, s).objective for s in range(repeats)]
             greedy = (
@@ -349,6 +471,11 @@ def large_station_counts(problem, ps, budgets, runs, foods, rule):
                     "abc_mean_gap_percent": gap(float(np.mean(abc)), optimum),
                     "abc_best_gap_percent": gap(min(abc), optimum),
                     "abc_optimum_hits": sum(v <= optimum + 1e-6 for v in abc),
+                    "ga_mean_gap_percent": gap(float(np.mean(genetic)), optimum),
+                    "ga_best_gap_percent": gap(min(genetic), optimum),
+                    "ga_optimum_hits": sum(v <= optimum + 1e-6 for v in genetic),
+                    "ga_restart_mean_gap_percent": gap(float(np.mean(restarted)), optimum),
+                    "ga_restart_optimum_hits": sum(v <= optimum + 1e-6 for v in restarted),
                     "random_mean_gap_percent": gap(float(np.mean(random)), optimum),
                     "greedy_gap_percent": None
                     if greedy is None
@@ -363,9 +490,10 @@ def large_station_counts(problem, ps, budgets, runs, foods, rule):
     return rows
 
 
-def multistart_comparison(problem, ps, budget, runs, foods, rule):
+def multistart_comparison(problem, ps, budget, runs, foods, rule, ga=None):
     """E1c: greedy stops early, so compare ABC with a local search spending the same budget."""
     rows = []
+    ga = ga or DEFAULT_GA
     for p in (p for p in ps if p < len(problem.candidate_ids)):
         optimum = optimal(problem, p).objective
         limit = limit_value(rule, foods, p)
@@ -374,6 +502,10 @@ def multistart_comparison(problem, ps, budget, runs, foods, rule):
             for s in range(runs)
         ]
         restarts = [solve(problem, "multistart", p, budget, s).objective for s in range(runs)]
+        genetic = [solve(problem, "ga", p, budget, s, **ga).objective for s in range(runs)]
+        restarted = [
+            solve(problem, "ga_restart", p, budget, s, **ga).objective for s in range(runs)
+        ]
         rows.append(
             {
                 "p": p,
@@ -384,6 +516,10 @@ def multistart_comparison(problem, ps, budget, runs, foods, rule):
                 "abc_optimum_hits": sum(v <= optimum + 1e-6 for v in abc),
                 "multistart_mean_gap_percent": gap(float(np.mean(restarts)), optimum),
                 "multistart_optimum_hits": sum(v <= optimum + 1e-6 for v in restarts),
+                "ga_mean_gap_percent": gap(float(np.mean(genetic)), optimum),
+                "ga_optimum_hits": sum(v <= optimum + 1e-6 for v in genetic),
+                "ga_restart_mean_gap_percent": gap(float(np.mean(restarted)), optimum),
+                "ga_restart_optimum_hits": sum(v <= optimum + 1e-6 for v in restarted),
                 "two_sided_p_value": float(mannwhitneyu(abc, restarts).pvalue)
                 if len({*abc, *restarts}) > 1
                 else 1.0,
@@ -770,8 +906,20 @@ def figures(output, summary, histories, curve, budget):
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    colors = {"abc": "#1654b8", "random": "#e78a27", "greedy": "#37864f"}
-    labels = {"abc": "ABC", "random": "Losowanie", "greedy": "Greedy + zamiany"}
+    colors = {
+        "abc": "#0e7a5a",
+        "ga": "#8a4fbf",
+        "ga_restart": "#c43c5e",
+        "random": "#b67a1e",
+        "greedy": "#4a7cc9",
+    }
+    labels = {
+        "abc": "ABC",
+        "ga": "GA",
+        "ga_restart": "GA z restartem",
+        "random": "Losowanie",
+        "greedy": "Greedy + zamiany",
+    }
     ps = sorted({row["p"] for row in summary})
     fig, axes = plt.subplots(1, len(ps), figsize=(4.4 * len(ps), 4), squeeze=False)
     grid = np.arange(1, budget + 1)
@@ -843,15 +991,29 @@ def large_p_figure(output, rows):
         [row["p"] for row in chosen],
         [row["abc_mean_gap_percent"] for row in chosen],
         "o-",
-        color="#1654b8",
+        color="#0e7a5a",
         label="ABC (średnia)",
+    )
+    ax.plot(
+        [row["p"] for row in chosen],
+        [row["ga_mean_gap_percent"] for row in chosen],
+        "^-",
+        color="#8a4fbf",
+        label="GA (średnia)",
+    )
+    ax.plot(
+        [row["p"] for row in chosen],
+        [row["ga_restart_mean_gap_percent"] for row in chosen],
+        "v-",
+        color="#c43c5e",
+        label="GA z restartem (średnia)",
     )
     finished = [row for row in chosen if row["greedy_gap_percent"] is not None]
     ax.plot(
         [row["p"] for row in finished],
         [row["greedy_gap_percent"] for row in finished],
         "s--",
-        color="#37864f",
+        color="#4a7cc9",
         label="Greedy + zamiany",
     )
     ax.set(
@@ -964,15 +1126,29 @@ def run(
     write_rows(output / "abc_tuning.csv", grid)
     foods, rule = choose_parameters(grid)
     print(f"Chosen on the development instance: foods={foods}, limit={rule}", flush=True)
+    ga_grid = tune_ga(development, development_ps, budget, tuning_runs)
+    write_rows(output / "ga_tuning.csv", ga_grid)
+    ga = choose_ga_parameters(ga_grid)
+    restart_grid = tune_ga_restart(development, development_ps, budget, tuning_runs, ga)
+    write_rows(output / "ga_restart_tuning.csv", restart_grid)
+    ga["restart_after"] = choose_restart(restart_grid)
+    print(f"Chosen on the development instance: {ga}", flush=True)
     write_rows(
         output / "abc_ablation.csv",
         ablation(development, development_ps, budget, tuning_runs, foods, rule),
     )
 
-    rows, summary, tests, histories = compare(problem, ps, budget, runs, foods, rule)
+    rows, summary, tests, histories = compare(problem, ps, budget, runs, foods, rule, ga=ga)
     write_rows(output / "runs.csv", rows)
     write_rows(output / "comparison.csv", summary)
     write_rows(output / "tests.csv", tests)
+    write_rows(
+        output / "ga_tests.csv",
+        method_pair_tests(rows, ps, "ga", "abc", "GA vs ABC, dwustronnie (Mann-Whitney)")
+        + method_pair_tests(
+            rows, ps, "ga_restart", "ga", "GA z restartem vs GA, dwustronnie (Mann-Whitney)"
+        ),
+    )
     curve = station_curve(problem, min(p_max, len(problem.candidate_ids)))
     write_rows(output / "stations_curve.csv", curve)
     large = large_station_counts(
@@ -982,6 +1158,7 @@ def run(
         runs,
         foods,
         rule,
+        ga,
     )
     if large:
         write_rows(output / "large_p.csv", large)
@@ -989,7 +1166,7 @@ def run(
     write_rows(output / "scenarios.csv", scenario_regret(problem, ps))
     write_rows(
         output / "multistart.csv",
-        multistart_comparison(problem, sorted({*ps, *large_ps[:3]}), budget, runs, foods, rule),
+        multistart_comparison(problem, sorted({*ps, *large_ps[:3]}), budget, runs, foods, rule, ga),
     )
     write_rows(output / "candidate_count.csv", candidate_count_curve(problem, raw, ps))
     stage_one, stage_two = choose_stages(curve)
@@ -1044,6 +1221,7 @@ def run(
                 "tuning_runs": tuning_runs,
                 "chosen_foods": foods,
                 "chosen_limit_rule": rule,
+                "chosen_ga": ga,
             },
             "candidates": len(raw["candidates"]),
             "candidates_reviewed": reviewed,

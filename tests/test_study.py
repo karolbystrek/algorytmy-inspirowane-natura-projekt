@@ -10,13 +10,16 @@ import pytest
 from agh_stations.model import Problem
 from agh_stations.solvers import optimal, solve
 from agh_stations.study import (
+    choose_ga_parameters,
     choose_parameters,
+    choose_restart,
     choose_stages,
     gate_sensitivity,
     group_metrics,
     holm,
     large_station_counts,
     list_sensitivity,
+    method_pair_tests,
     mixture_variants,
     recommendation,
     robust_layouts,
@@ -129,6 +132,73 @@ def random_problem(n=20, m=30, seed=5):
         {"s": np.ones(n)},
         {"s": 1},
     )
+
+
+@pytest.mark.parametrize("method", ["ga", "ga_restart"])
+@pytest.mark.parametrize("crossover", ["union", "greedy"])
+@pytest.mark.parametrize("p", [1, 4, 29])
+def test_ga_uses_the_whole_budget_and_keeps_every_layout_valid(method, crossover, p):
+    problem = random_problem()
+    result = solve(
+        problem, method, p, budget=700, seed=3, population=10, crossover=crossover, restart_after=5
+    )
+    assert result.evaluations == 700
+    assert len(set(result.selection)) == p
+    assert result.objective >= optimal(problem, p).objective - 1e-9
+    assert result.objective == pytest.approx(problem.objective(result.selection))
+
+
+def test_ga_is_repeatable_and_rejects_invalid_settings():
+    problem = random_problem()
+    runs = [solve(problem, "ga", 4, budget=500, seed=9).selection for _ in range(2)]
+    assert runs[0] == runs[1]
+    for bad in ({"population": 1}, {"crossover": "other"}, {"mutation": 1.5}, {"restart_after": 0}):
+        with pytest.raises(ValueError):
+            solve(problem, "ga", 4, budget=500, **bad)
+
+
+def test_ga_beats_random_search_with_the_same_budget():
+    problem = random_problem(n=40, m=60)
+    ga = [solve(problem, "ga", 8, 3000, s).objective for s in range(5)]
+    random = [solve(problem, "random", 8, 3000, s).objective for s in range(5)]
+    assert np.mean(ga) < np.mean(random)
+
+
+def test_ga_parameters_are_chosen_by_lowest_average_gap():
+    rows = [
+        {"population": 20, "mutation": 0.1, "crossover": "union", "mean_gap_percent": 2.0},
+        {"population": 50, "mutation": 0.4, "crossover": "greedy", "mean_gap_percent": 1.0},
+    ]
+    assert choose_ga_parameters(rows) == {"population": 50, "mutation": 0.4, "crossover": "greedy"}
+
+
+def test_ga_and_abc_are_compared_two_sided_for_every_station_count():
+    rows = [{"p": 3, "method": "abc", "mean_distance_m": v} for v in (1.0, 1.0, 2.0)] + [
+        {"p": 3, "method": "ga", "mean_distance_m": v} for v in (3.0, 4.0, 5.0)
+    ]
+    test = method_pair_tests(rows, (3,), "ga", "abc", "GA vs ABC")[0]
+    assert test["second_mean_m"] < test["first_mean_m"]
+    assert 0 < test["holm_p_value"] <= 1
+
+
+def test_restart_changes_the_search_only_after_stagnation():
+    problem = random_problem(n=40, m=60)
+    plain = solve(problem, "ga", 8, 3000, 4, population=20)
+    never = solve(problem, "ga_restart", 8, 3000, 4, population=20, restart_after=10**6)
+    often = solve(problem, "ga_restart", 8, 3000, 4, population=20, restart_after=10)
+    assert never.history == plain.history
+    assert often.history != plain.history
+    assert len(set(often.selection)) == 8
+
+
+def test_restart_threshold_is_chosen_by_lowest_average_gap():
+    rows = [
+        {"restart_after": 250, "mean_gap_percent": 0.5},
+        {"restart_after": 250, "mean_gap_percent": 0.3},
+        {"restart_after": 1000, "mean_gap_percent": 0.1},
+        {"restart_after": 1000, "mean_gap_percent": 0.2},
+    ]
+    assert choose_restart(rows) == 1000
 
 
 def test_multistart_spends_the_whole_budget_and_stays_feasible():
@@ -298,6 +368,9 @@ def test_complete_miniature_study_writes_consistent_artifacts(tmp_path, monkeypa
     for name in (
         "abc_tuning.csv",
         "abc_ablation.csv",
+        "ga_tuning.csv",
+        "ga_tests.csv",
+        "ga_restart_tuning.csv",
         "runs.csv",
         "comparison.csv",
         "tests.csv",

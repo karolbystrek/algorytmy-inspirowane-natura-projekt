@@ -16,7 +16,7 @@ import {
     type SeriesResult,
 } from "./types";
 
-const METHODS: Method[] = ["abc", "random", "greedy"];
+const METHODS: Method[] = ["abc", "ga", "ga_restart", "random", "greedy"];
 const LINE = "#0e7a5a";
 const SURFACE = "#ffffff";
 

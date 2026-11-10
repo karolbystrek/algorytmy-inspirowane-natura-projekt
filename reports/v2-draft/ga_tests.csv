@@ -1,0 +1,7 @@
+p,question,first_method,second_method,first_mean_m,second_mean_m,p_value,holm_p_value
+3,"GA vs ABC, dwustronnie (Mann-Whitney)",ga,abc,272.9484281180038,273.29215607205646,0.08149328301841145,0.24447984905523434
+5,"GA vs ABC, dwustronnie (Mann-Whitney)",ga,abc,207.65968596537607,207.65968596537607,1.0,1.0
+8,"GA vs ABC, dwustronnie (Mann-Whitney)",ga,abc,159.49376333874397,159.2767507515479,0.5617850857454652,1.0
+3,"GA z restartem vs GA, dwustronnie (Mann-Whitney)",ga_restart,ga,272.9484281180038,272.9484281180038,1.0,1.0
+5,"GA z restartem vs GA, dwustronnie (Mann-Whitney)",ga_restart,ga,207.65968596537607,207.65968596537607,1.0,1.0
+8,"GA z restartem vs GA, dwustronnie (Mann-Whitney)",ga_restart,ga,159.2567702987712,159.49376333874397,0.19198249670450884,0.5759474901135265

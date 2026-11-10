@@ -12,7 +12,13 @@
     "runs": 30,
     "tuning_runs": 10,
     "chosen_foods": 8,
-    "chosen_limit_rule": "foods*p"
+    "chosen_limit_rule": "foods*p",
+    "chosen_ga": {
+      "population": 100,
+      "mutation": 0.4,
+      "crossover": "union",
+      "restart_after": 2000
+    }
   },
   "candidates": 99,
   "candidates_reviewed": 0,

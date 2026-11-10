@@ -18,12 +18,14 @@ from pydantic import BaseModel, ConfigDict, Field
 from agh_stations.model import Problem, weighted_quantile
 from agh_stations.routing import Router
 from agh_stations.solvers import greedy_construction_cost, optimal, robust_optimal, solve
-from agh_stations.study import closed_gate_effect, gap
+from agh_stations.study import DEFAULT_GA, closed_gate_effect, gap
 
 ROOT = Path(__file__).resolve().parents[2]
 DATASET = ROOT / "data/processed" / os.environ.get("AGH_DATASET", "agh-v2")
 FRONTEND = ROOT / "frontend/dist"
 ABC_FOODS = 8  # Chosen on the development instance, with abandonment limit foods * p.
+GA_SETTINGS = DEFAULT_GA  # Chosen on the same development instance.
+METHODS = ("abc", "ga", "ga_restart", "random", "greedy")
 CURVE_STATIONS = 40  # Past this point one more station shortens the walk by about a metre.
 ScenarioName = Literal["aggregate", "morning", "day", "evening"]
 PoolName = Literal["all", "existing"]
@@ -359,7 +361,7 @@ def series(request: SeriesRequest):
     try:
         optimum = proved_optimum(request.candidate_pool, request.p, request.scenario).objective
         methods = {}
-        for method in ("abc", "random", "greedy"):
+        for method in METHODS:
             seeds = range(request.seeds) if method != "greedy" else [0]
             values = [
                 solve(
@@ -371,6 +373,7 @@ def series(request: SeriesRequest):
                     scenario=request.scenario,
                     foods=ABC_FOODS,
                     limit=ABC_FOODS * request.p,
+                    **GA_SETTINGS,
                 ).objective
                 for seed in seeds
             ]
@@ -420,7 +423,7 @@ def run(request: RunRequest):
         raise HTTPException(429, "Trwają już obliczenia. Spróbuj ponownie za chwilę.")
     try:
         methods = {}
-        for method in ("abc", "random", "greedy"):
+        for method in METHODS:
             steps = []
 
             def record(evaluation, objective, selection, steps=steps):
@@ -441,6 +444,7 @@ def run(request: RunRequest):
                 scenario=request.scenario,
                 foods=ABC_FOODS,
                 limit=ABC_FOODS * request.p,
+                **GA_SETTINGS,
                 on_improvement=record,
             )
             methods[method] = {
@@ -460,6 +464,7 @@ def run(request: RunRequest):
         return {
             "parameters": request.model_dump(),
             "abc": {"foods": ABC_FOODS, "limit": ABC_FOODS * request.p},
+            "ga": GA_SETTINGS,
             "dataset_id": manifest["dataset_id"],
             "problem_sha256": manifest["files_sha256"]["problem.json"],
             "methods": methods,
