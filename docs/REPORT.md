@@ -6,12 +6,13 @@ Raport z projektu · Algorytmy inteligentne inspirowane naturą · semestr zimow
 
 ## 1. Streszczenie
 
-Projekt wybiera `p` lokalizacji stacji rowerów lub punktów postoju hulajnóg na Miasteczku Studenckim AGH i w przyległej części kampusu, tak aby średnie ważone dojście piesze do najbliższej stacji było jak najkrótsze. Stosujemy dwie metody inspirowane naturą: dyskretną adaptację sztucznej kolonii pszczół (ABC) i algorytm genetyczny (GA). Porównujemy je z losowaniem, metodą zachłanną z zamianami, lokalnym przeszukiwaniem z restartami i dokładnym optimum z programowania całkowitoliczbowego.
+Projekt wybiera `p` lokalizacji stacji rowerów lub punktów postoju hulajnóg na Miasteczku Studenckim AGH i w przyległej części kampusu, tak aby średnie ważone dojście piesze do najbliższej stacji było jak najkrótsze. Stosujemy dwie metody inspirowane naturą: dyskretną adaptację sztucznej kolonii pszczół (ABC) i algorytm genetyczny (GA) w dwóch wersjach, bez restartu i z restartem populacji. Porównujemy je z losowaniem, metodą zachłanną z zamianami, lokalnym przeszukiwaniem z restartami i dokładnym optimum z programowania całkowitoliczbowego.
 
 Najważniejsze wyniki na instancji kampusowej (101 punktów popytu, 99 kandydatów):
 
 - **Skuteczność metod.** Przy 10 000 ocen ABC jest istotnie lepsze od losowania i trafia w dowiedzione optimum w 18–30 z 30 przebiegów dla `p ∈ {3, 5, 8}`. GA trafia w nie w 19–30 z 30 przebiegów.
 - **GA a ABC.** Dla `p ∈ {3, 5, 8}` nie ma między nimi istotnej różnicy. Przy większej liczbie stacji raz lepsze jest jedno, raz drugie, a różnice wynoszą ułamki procenta.
+- **Restart populacji.** Usuwa stagnację GA przy dłuższym liczeniu: przy 10 stacjach i 30 000 ocen GA z restartem trafia w optimum w 10 z 10 przebiegów, a GA bez restartu w 8. Przy ciasnym budżecie restart bywa kosztem, a dla `p ∈ {3, 5, 8}` różnica nie jest istotna.
 - **ABC a proste metody.** Nie wykazaliśmy ogólnej przewagi ABC. Do `p = 8` nie różni się istotnie od lokalnego przeszukiwania z tym samym budżetem. Z greedy wygrywa tylko wtedy, gdy greedy utyka w optimum lokalnym albo kończy mu się budżet, a przy `p = 15` greedy jest od niego dokładniejsze. Większy zysk przy dużym `p` wynika w dużej mierze ze słabości wybranego wariantu lokalnego przeszukiwania.
 - **Potrzeba metaheurystyki.** Solver dokładny rozwiązuje tę instancję w około 0,15 s, więc na tej skali metaheurystyki nie są potrzebne praktycznie. Wartością projektu jest zbadanie ich zachowania na realnym problemie.
 - **Rekomendacja.** Jeśli audyt potwierdzi dane: **6 stacji w pierwszym etapie** (184 m średnio, 75% popytu w zasięgu 250 m) i **rozbudowa do 15 stacji** (109 m, 95%). Dziewięć dodatkowych stacji uzupełnia etap 1 bez przenoszenia żadnej istniejącej.
@@ -93,11 +94,34 @@ Siatkę strojenia przygotowano tak samo jak dla ABC: 12 ustawień, ta sama insta
 
 Krzyżowanie zachłanne wypada znacznie gorzej, bo jeden potomek kosztuje wiele ocen i w ramach wspólnego limitu powstaje ich niewiele. Oba warianty są zaimplementowane, a o wyborze zdecydowało strojenie.
 
+**Odstępstwa od klasycznego GA.** Każde służy temu, żeby osobnik zawsze był poprawnym układem `p` różnych stacji, a porównanie metod uczciwe. Szczegóły i uzasadnienia są w [DATA_MODEL.md](DATA_MODEL.md#reprezentacja-i-operatory-ga).
+
+- Zbiór `p` indeksów zamiast chromosomu binarnego.
+- Dziedziczenie stacji wspólnych i losowe uzupełnienie zamiast krzyżowania punktowego.
+- Mutacja zamieniająca jedną stację zamiast mutacji każdego bitu.
+- Tryb stanu ustalonego z zastępowaniem najgorszego zamiast wymiany pokoleń; najlepszy układ nigdy nie ginie.
+- Krzyżowanie dla każdego potomka, bez osobnego prawdopodobieństwa.
+- Wymuszona mutacja kopii i zakaz duplikatów w populacji.
+- Zakończenie po wspólnym limicie ocen zamiast po liczbie pokoleń.
+
+**Restart populacji.** Zastępowanie najgorszego osobnika sprawia, że populacja szybko się ujednolica i przestaje znajdować poprawy, zwłaszcza przy dłuższym liczeniu. Dlatego badamy też wersję z restartem: gdy przez `restart_after` kolejnych potomków nie poprawi się najlepszy układ, zostaje on w populacji, a pozostałe 99 osobników jest losowanych od nowa. To odpowiednik zwiadowczyń ABC i znany mechanizm podtrzymania różnorodności. Pozostałe ustawienia GA są takie same, więc porównanie obu wersji pokazuje wpływ samego restartu. Próg dobrano na tej samej instancji rozwojowej:
+
+| Restart po | p = 5 | p = 10 | p = 20 |
+|---|---:|---:|---:|
+| 250 potomkach | 3,26% | 11,34% | 5,25% |
+| 500 potomkach | 0,41% | 2,49% | 1,90% |
+| 1000 potomkach | 0,00% | 0,22% | 0,35% |
+| **2000 potomkach (wybrane)** | **0,00%** | **0,15%** | **0,04%** |
+| 4000 potomkach | 0,00% | 0,05% | 0,18% |
+| bez restartu (dla porównania) | 0,00% | 0,13% | 0,18% |
+
+Zbyt częsty restart niszczy postęp populacji i kosztuje 99 ocen za każdym razem.
+
 ## 5. Protokół badań
 
-Wszystkie metody korzystają z tej samej macierzy odległości i tego samego limitu ocen funkcji celu. Punkt wyjścia to 10 000 ocen. ABC, GA, losowanie i lokalne przeszukiwanie wykonują po 30 przebiegów (ziarna 0–29), a deterministyczne greedy jeden. Optimum każdej instancji dowodzi solver HiGHS.
+Wszystkie metody korzystają z tej samej macierzy odległości i tego samego limitu ocen funkcji celu. Punkt wyjścia to 10 000 ocen. ABC, obie wersje GA, losowanie i lokalne przeszukiwanie wykonują po 30 przebiegów (ziarna 0–29), a deterministyczne greedy jeden. Optimum każdej instancji dowodzi solver HiGHS.
 
-Pytanie statystyczne ustalono przed obliczeniami: czy ABC daje mniejsze dojście niż losowanie (jednostronny test Manna-Whitneya, korekta Holma). Porównanie z lokalnym przeszukiwaniem dodano po obejrzeniu wyników, aby sprawdzić, czy przewaga nad greedy nie wynika tylko z wykorzystania większego budżetu. Jest to więc analiza eksploracyjna. Przed uruchomieniem pełnego porównania ustalono też drugie pytanie: czy GA i ABC się różnią (dwustronny test Manna-Whitneya, korekta Holma). Pełny opis jest w [EXPERIMENTS.md](EXPERIMENTS.md).
+Pytanie statystyczne ustalono przed obliczeniami: czy ABC daje mniejsze dojście niż losowanie (jednostronny test Manna-Whitneya, korekta Holma). Porównanie z lokalnym przeszukiwaniem dodano po obejrzeniu wyników, aby sprawdzić, czy przewaga nad greedy nie wynika tylko z wykorzystania większego budżetu. Jest to więc analiza eksploracyjna. Przed uruchomieniem pełnego porównania ustalono też dwa kolejne pytania: czy GA i ABC się różnią oraz czy restart zmienia wynik GA (dwustronne testy Manna-Whitneya, korekta Holma). Pełny opis jest w [EXPERIMENTS.md](EXPERIMENTS.md).
 
 ## 6. Kontrola poprawności
 
@@ -110,7 +134,7 @@ Pytanie statystyczne ustalono przed obliczeniami: czy ABC daje mniejsze dojście
 | Trasy a budynki | 17 305 krawędzi, 0 przez pełny budynek poza zmapowanym przejściem; 343 krawędzie w przejściach i tunelach |
 | Rodzaj dróg na trasach | chodniki i ścieżki 79,1% długości, drogi serwisowe 18,8%, schody 0,8% |
 | Wydłużenie trasy względem linii prostej | mediana 1,36, percentyl 90 równy 1,97, maksimum 4,40 |
-| Testy automatyczne | 139 testów, lint, build frontendu, próbne badania w CI |
+| Testy automatyczne | 147 testów, lint, build frontendu, próbne badania w CI |
 
 Trasy nie „latają” nad budynkami: model i mapa używają najkrótszych ścieżek po grafie pieszym. Wyjątkiem są krótkie proste łączniki od wejścia do grafu. W 3% użytych dojść nie potwierdzono, że łącznik omija budynki, a łączniki nie są sprawdzane względem ogrodzeń.
 
@@ -120,28 +144,31 @@ Trasy nie „latają” nad budynkami: model i mapa używają najkrótszych ści
 
 | p | Optimum | Metoda | Najlepszy | Średnia ± odch. | Trafienia | Strata | Oceny | Czas |
 |---:|---:|---|---:|---:|---:|---:|---:|---:|
-| 3 | 272,95 | ABC | 272,95 | 273,29 ± 1,12 | 27/30 | 0,13% | 10 000 | 962 ms |
-| | | GA | 272,95 | 272,95 ± 0,00 | 30/30 | 0,00% | 10 000 | 1254 ms |
-| | | Losowanie | 274,65 | 279,48 ± 2,33 | 0/30 | 2,39% | 10 000 | 441 ms |
-| | | Greedy | 277,25 | — | 0/1 | 1,58% | 582 | 14 ms |
-| 5 | 207,66 | ABC | 207,66 | 207,66 ± 0,00 | 30/30 | 0,00% | 10 000 | 966 ms |
-| | | GA | 207,66 | 207,66 ± 0,00 | 30/30 | 0,00% | 10 000 | 1227 ms |
-| | | Losowanie | 215,33 | 229,73 ± 5,25 | 0/30 | 10,63% | 10 000 | 441 ms |
-| | | Greedy | 207,66 | — | 1/1 | 0,00% | 2365 | 60 ms |
-| 8 | 159,00 | ABC | 159,00 | 159,28 ± 0,42 | 18/30 | 0,17% | 10 000 | 1038 ms |
-| | | GA | 159,00 | 159,49 ± 0,66 | 19/30 | 0,31% | 10 000 | 1309 ms |
-| | | Losowanie | 178,38 | 188,53 ± 4,32 | 0/30 | 18,57% | 10 000 | 468 ms |
-| | | Greedy | 160,34 | — | 0/1 | 0,84% | 4404 | 116 ms |
+| 3 | 272,95 | ABC | 272,95 | 273,29 ± 1,12 | 27/30 | 0,13% | 10 000 | 325 ms |
+| | | GA | 272,95 | 272,95 ± 0,00 | 30/30 | 0,00% | 10 000 | 423 ms |
+| | | GA z restartem | 272,95 | 272,95 ± 0,00 | 30/30 | 0,00% | 10 000 | 401 ms |
+| | | Losowanie | 274,65 | 279,48 ± 2,33 | 0/30 | 2,39% | 10 000 | 131 ms |
+| | | Greedy | 277,25 | — | 0/1 | 1,58% | 582 | 4 ms |
+| 5 | 207,66 | ABC | 207,66 | 207,66 ± 0,00 | 30/30 | 0,00% | 10 000 | 328 ms |
+| | | GA | 207,66 | 207,66 ± 0,00 | 30/30 | 0,00% | 10 000 | 402 ms |
+| | | GA z restartem | 207,66 | 207,66 ± 0,00 | 30/30 | 0,00% | 10 000 | 396 ms |
+| | | Losowanie | 215,33 | 229,73 ± 5,25 | 0/30 | 10,63% | 10 000 | 136 ms |
+| | | Greedy | 207,66 | — | 1/1 | 0,00% | 2365 | 21 ms |
+| 8 | 159,00 | ABC | 159,00 | 159,28 ± 0,42 | 18/30 | 0,17% | 10 000 | 332 ms |
+| | | GA | 159,00 | 159,49 ± 0,66 | 19/30 | 0,31% | 10 000 | 426 ms |
+| | | GA z restartem | 159,00 | 159,26 ± 0,51 | 23/30 | 0,16% | 10 000 | 405 ms |
+| | | Losowanie | 178,38 | 188,53 ± 4,32 | 0/30 | 18,57% | 10 000 | 146 ms |
+| | | Greedy | 160,34 | — | 0/1 | 0,84% | 4404 | 43 ms |
 
 ABC jest istotnie lepsze od losowania dla każdego `p` (skorygowane p < 10⁻¹¹). Wszystkie przebiegi ABC są co najmniej tak dobre jak greedy. Czasy pochodzą z jednego komputera i zależą od jego obciążenia. GA jest około 1,3 raza wolniejsze od ABC, a solver dokładny liczy optimum w około 0,15 s poza wspólnym budżetem.
 
-**GA a ABC** (dwustronny test Manna-Whitneya z korektą Holma):
+**GA a ABC oraz GA z restartem a GA** (dwustronne testy Manna-Whitneya z korektą Holma):
 
-| p | ABC: średnia | GA: średnia | Skorygowane p |
-|---:|---:|---:|---:|
-| 3 | 273,29 m | 272,95 m | 0,24 |
-| 5 | 207,66 m | 207,66 m | 1,00 |
-| 8 | 159,28 m | 159,49 m | 1,00 |
+| p | ABC | GA | GA z restartem | GA a ABC, p | Restart a GA, p |
+|---:|---:|---:|---:|---:|---:|
+| 3 | 273,29 m | 272,95 m | 272,95 m | 0,24 | 1,00 |
+| 5 | 207,66 m | 207,66 m | 207,66 m | 1,00 | 1,00 |
+| 8 | 159,28 m | 159,49 m | 159,26 m | 1,00 | 0,58 |
 
 Żadna z tych różnic nie jest istotna statystycznie.
 
@@ -149,29 +176,35 @@ ABC jest istotnie lepsze od losowania dla każdego `p` (skorygowane p < 10⁻¹�
 
 **Porównanie z tym samym budżetem.** Greedy zatrzymuje się w pierwszym optimum lokalnym, zużywając tylko część ocen. Dlatego dodaliśmy metodę, która wydaje cały budżet: losowy start, zamiany typu najlepsza poprawa i restart.
 
-| p | ABC: strata | ABC: trafienia | GA: strata | GA: trafienia | Lokalne przeszukiwanie: strata | Trafienia | ABC a lokalne, p |
-|---:|---:|---:|---:|---:|---:|---:|---:|
-| 3 | 0,126% | 27/30 | 0,000% | 30/30 | 0,000% | 30/30 | 0,081 |
-| 5 | 0,000% | 30/30 | 0,000% | 30/30 | 0,068% | 29/30 | 0,334 |
-| 8 | 0,172% | 18/30 | 0,308% | 19/30 | 0,852% | 17/30 | 0,159 |
-| 10 | 0,329% | 9/30 | 0,182% | 23/30 | 0,792% | 5/30 | 0,0002 |
-| 15 | 0,023% | 28/30 | 0,019% | 29/30 | 14,451% | 0/30 | < 10⁻¹¹ |
-| 20 | 0,020% | 29/30 | 0,045% | 28/30 | 25,052% | 0/30 | < 10⁻¹¹ |
+| p | ABC | GA | GA z restartem | Lokalne przeszukiwanie | ABC a lokalne, p |
+|---:|---:|---:|---:|---:|---:|
+| 3 | 0,126% (27/30) | 0,000% (30/30) | 0,000% (30/30) | 0,000% (30/30) | 0,081 |
+| 5 | 0,000% (30/30) | 0,000% (30/30) | 0,000% (30/30) | 0,068% (29/30) | 0,334 |
+| 8 | 0,172% (18/30) | 0,308% (19/30) | 0,159% (23/30) | 0,852% (17/30) | 0,159 |
+| 10 | 0,329% (9/30) | 0,182% (23/30) | 0,246% (21/30) | 0,792% (5/30) | 0,0002 |
+| 15 | 0,023% (28/30) | 0,019% (29/30) | 0,063% (28/30) | 14,451% (0/30) | < 10⁻¹¹ |
+| 20 | 0,020% (29/30) | 0,045% (28/30) | 0,000% (30/30) | 25,052% (0/30) | < 10⁻¹¹ |
+
+W nawiasach liczba przebiegów, które trafiły w optimum.
 
 Do `p = 8` różnice nie są istotne. Przy `p = 10` ABC jest lepsze, ale jest to wynik analizy dodanej po obejrzeniu danych. Straty 14–25% przy `p = 15` i `20` nie świadczą o sile ABC. Wariant z najlepszą poprawą sprawdza całe sąsiedztwo przed każdym ruchem, co kosztuje tam 1260–1580 ocen, więc w budżecie 10 000 ocen mieści się tylko 6–8 kroków z losowego startu. Silniejszy rywal, np. przyjmujący pierwszą znalezioną poprawę, mógłby ten wynik zmienić.
 
 **Większa liczba stacji** (strata do optimum; 30 przebiegów przy 10 000 ocen, 10 przy 30 000):
 
-| p | ABC, 10 000 | Trafienia ABC | GA, 10 000 | Trafienia GA | Greedy, 10 000 | Oceny greedy | ABC, 30 000 | GA, 30 000 | Greedy, 30 000 |
-|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 10 | 0,329% | 9/30 | 0,182% | 23/30 | 0,994% | 4505 | 0,015% | 0,199% | 0,994% |
-| 15 | 0,023% | 28/30 | 0,019% | 29/30 | 0,000% | 8940 | 0,000% | 0,000% | 0,000% |
-| 20 | 0,020% | 29/30 | 0,045% | 28/30 | 0,434% (koniec budżetu) | 10 000 | 0,000% | 0,000% | 0,000% |
-| 25 | 0,001% | 28/30 | 0,000% | 30/30 | 0,060% (koniec budżetu) | 10 000 | 0,000% | 0,000% | 0,000% |
-| 30 | 0,006% | 29/30 | 0,000% | 30/30 | 0,000% (koniec budżetu) | 10 000 | 0,000% | 0,000% | 0,000% |
-| 40 | 0,000% | 28/30 | 0,007% | 29/30 | 0,000% | 7900 | 0,000% | 0,000% | 0,000% |
+Przy 10 000 ocen (30 przebiegów):
 
-GA i ABC wymieniają się prowadzeniem. Największa różnica przypada na `p = 10`: przy 10 000 ocen lepsze jest GA (0,18% wobec 0,33%), a przy 30 000 ocen ABC (0,015% wobec 0,199%).
+| p | ABC | GA | GA z restartem | Greedy | Oceny greedy |
+|---:|---:|---:|---:|---:|---:|
+| 10 | 0,329% | 0,182% | 0,246% | 0,994% | 4505 |
+| 15 | 0,023% | 0,019% | 0,063% | 0,000% | 8940 |
+| 20 | 0,020% | 0,045% | 0,000% | 0,434% (koniec budżetu) | 10 000 |
+| 25 | 0,001% | 0,000% | 0,083% | 0,060% (koniec budżetu) | 10 000 |
+| 30 | 0,006% | 0,000% | 0,073% | 0,000% (koniec budżetu) | 10 000 |
+| 40 | 0,000% | 0,007% | 0,014% | 0,000% | 7900 |
+
+Przy 30 000 ocen (10 przebiegów) wszystkie metody poza greedy trafiają w optimum dla `p ≥ 15`. Różnica jest tylko przy `p = 10`: ABC 0,015%, GA 0,199%, GA z restartem 0,000% (10/10), greedy 0,994%.
+
+GA i ABC wymieniają się prowadzeniem. Restart działa tak, jak przewiduje teoria: przy dłuższym liczeniu usuwa stagnację GA, ale przy 10 000 ocen bywa kosztem, np. przy `p = 25` i `30` (0,07–0,08% wobec 0,00%), bo każdy restart zużywa 99 ocen i odrzuca postęp populacji.
 
 ABC wygrywa z greedy w dwóch sytuacjach: gdy greedy utyka w optimum lokalnym (`p = 3, 8, 10`) i gdy kończy mu się budżet (`p = 20, 25`). W pozostałych przypadkach greedy znajduje optimum, a ABC traci najwyżej 0,03%. Przy 30 000 ocen dla `p ≥ 15` obie metody są równe, więc przewaga przy `p = 20` i `25` wynika wyłącznie z ciasnego budżetu. Losowanie traci 20–52%. Wynik zależy też od danych: przy poprzedniej regule wag greedy trafiało w optimum dla `p = 3` i `8`.
 
@@ -303,7 +336,7 @@ Zagęszczenie do 35 m poprawia optimum tylko o 1,6–3,1%, a wymaga sprawdzenia 
 Aplikacja FastAPI + React + MapLibre działa w całości offline i korzysta z tych samych solverów co badania. Pozwala wybrać liczbę stacji od 1 do liczby kandydatów, scenariusz, listę kandydatów, próg zasięgu, budżet i ziarno. Pokazuje:
 
 - mapę z budynkami 3D, popytem i trasami po sieci pieszej, z wyróżnieniem dojść poza zasięgiem,
-- odtwarzanie zapisu popraw oraz porównanie ABC, GA, losowania, greedy i optimum,
+- odtwarzanie zapisu popraw oraz porównanie ABC, GA bez restartu i z restartem, losowania, greedy i optimum,
 - krzywą wartości kolejnych stacji, wyniki grup budynków, stratę w porach dnia, układ odporny, najdłuższe dojścia i obciążenie stacji,
 - serię 10–30 ziaren, szczegóły po kliknięciu budynku lub stacji i porównanie dwóch układów.
 
@@ -315,7 +348,7 @@ Odtwarzanie pokazuje rzeczywiste poprawy po zakończeniu obliczeń, a nie transm
 
 1. **Obie metody inspirowane naturą działają na realnym problemie.** Przy 10 000 ocen znajdują układy bardzo bliskie dowiedzionemu optimum. ABC jest istotnie lepsze od losowania, a GA daje wyniki tego samego rzędu.
 2. **Nie wykazaliśmy ogólnej przewagi ABC nad prostymi metodami.** Do `p = 8` lokalne przeszukiwanie jest równie dobre. ABC bywa lepsze od greedy, gdy greedy utyka lub ma za mały budżet, ale przy `p = 15` to greedy jest dokładniejsze. Wyniki przy dużym `p` wobec lokalnego przeszukiwania zależą od jego słabego wariantu, a cała ocena dotyczy jednej instancji z założonym popytem.
-3. **GA i ABC są praktycznie równorzędne.** Dla `p ∈ {3, 5, 8}` różnice nie są istotne, a przy większym `p` prowadzenie zależy od liczby stacji i budżetu. Krzyżowanie zachłanne okazało się przy wspólnym budżecie wyraźnie gorsze od losowego.
+3. **GA i ABC są praktycznie równorzędne.** Dla `p ∈ {3, 5, 8}` różnice nie są istotne, a przy większym `p` prowadzenie zależy od liczby stacji i budżetu. Krzyżowanie zachłanne okazało się przy wspólnym budżecie wyraźnie gorsze od losowego. Restart populacji pomaga GA przy dłuższym liczeniu, a przy ciasnym budżecie bywa kosztem.
 4. **Na tej skali solver dokładny jest najlepszym narzędziem.** Dowodzi optimum w około 0,15 s. Metaheurystyki miałyby przewagę praktyczną dopiero przy znacznie większych instancjach lub funkcji celu, której nie da się zapisać liniowo.
 5. **O jakości ABC decydują limit porzucenia i pobieranie stacji z innych źródeł.** Faza obserwatorek ma tu niewielki wpływ.
 6. **Rozsądny układ to 6 stacji, a potem rozbudowa do 15.** Dalsze stacje skracają dojście o mniej niż 5 m każda.

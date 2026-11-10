@@ -16,7 +16,7 @@ export default function Convergence({
                 Uruchom eksperyment, aby zobaczyć przebieg optymalizacji.
             </div>
         );
-    const methods: Method[] = ["abc", "ga", "random", "greedy"];
+    const methods: Method[] = ["abc", "ga", "ga_restart", "random", "greedy"];
     const values = methods.flatMap((m) =>
         run.methods[m].steps.map((s) => s.mean_distance_m),
     );

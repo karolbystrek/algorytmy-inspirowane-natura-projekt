@@ -16,7 +16,8 @@
     "chosen_ga": {
       "population": 100,
       "mutation": 0.4,
-      "crossover": "union"
+      "crossover": "union",
+      "restart_after": 2000
     }
   },
   "candidates": 99,
