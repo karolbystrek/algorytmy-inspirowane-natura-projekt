@@ -29,6 +29,6 @@ Zadania mają proponowanych właścicieli zgodnie z [roadmapą](ROADMAP.md). To 
 | I03 | Raport i prezentacja końcowa / Osoba A + wszyscy | 04.12, P0 | E03, V03 | problem, metoda, wyniki, ograniczenia, wkład 6 osób; odtworzenie na drugim komputerze |
 | X01 | Ablacja operatora / Osoba D | po E03, P2 | E03 | porównanie na tym samym budżecie, bez zmiany końcowego protokołu |
 | X02 | FastAPI dla obliczeń na żywo / Osoba A | po V03, P2 | V03 | walidacja, limit ocen, ID danych i wyników; brak pobierania OSM w żądaniu |
-| X03 | Dyskretny Firefly / zainteresowana osoba | po I03, P2 | I03 | ten sam kontrakt, reprezentacja i protokół; ukończone minimum |
+| X03 | Algorytm genetyczny | gotowe | I03 | ten sam kontrakt, reprezentacja, budżet i protokół co ABC |
 
 Proponowane etykiety to `area:*`, `type:*` i `priority:*` z [.github/labels.json](../.github/labels.json). Właściciela i recenzenta uzgadniamy przy rozpoczęciu zadania. Zadanie przekraczające 1–2 krótkie sesje warto rozbić na konkretny produkt, np. „lista wejść”, „warstwa poprawek”, „test spójności”.

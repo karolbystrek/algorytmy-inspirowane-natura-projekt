@@ -101,4 +101,4 @@ W ramach istniejącego V03 należy zachować te tagi przy przetwarzaniu oraz eks
 
 Na 9 listopada warto dodać do istniejącego scenariusza **jedną planszę z P90/maksimum i kompromisem dzień–wieczór** oraz krzywą `p=3/4/5`. Obliczenia są gotowe; omówienie zmieści się w obecnym bloku wyników. Pytanie o solver MILP i benchmark OR-Library dopisujemy do listy do uzgodnienia.
 
-Przed końcem projektu najwięcej da audyt danych i sprawdzenie wpływu listy punktów. FA, API do obliczeń na żywo, pojemności, relokacja floty, ankieta masowa, prognoza ML i rozbudowa 3D poza wyciąganie obrysów pozostają rozszerzeniami. Nowy algorytm warto dodać dopiero, jeśli wymaga go prowadzący lub minimum jest ukończone.
+Przed końcem projektu najwięcej da audyt danych i sprawdzenie wpływu listy punktów. API do obliczeń na żywo, pojemności, relokacja floty, ankieta masowa, prognoza ML i rozbudowa 3D poza wyciąganie obrysów pozostają rozszerzeniami.
