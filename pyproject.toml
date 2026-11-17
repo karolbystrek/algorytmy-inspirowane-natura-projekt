@@ -7,10 +7,10 @@ name = "agh-stations"
 version = "0.1.0"
 description = "Discrete ABC for an OSM-based station location demonstrator at AGH"
 requires-python = ">=3.12,<3.14"
-dependencies = ["numpy>=2.2,<3"]
+dependencies = ["numpy>=2.2,<3", "scipy>=1.15,<2"]
 
 [project.optional-dependencies]
-geo = ["osmnx>=2.1,<3"]
+geo = ["osmnx>=2.1,<3", "osmium>=4.0,<5"]
 report = ["matplotlib>=3.10,<4"]
 demo = ["fastapi>=0.115,<1", "uvicorn>=0.34,<1"]
 

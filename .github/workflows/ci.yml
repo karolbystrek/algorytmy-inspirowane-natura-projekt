@@ -36,7 +36,8 @@ jobs:
         run: |
           uv run agh-stations benchmark --p 4 --runs 2 --budget 200 --exact
           uv run agh-stations report
+          uv run agh-stations study --ps 2,3 --budget 3000 --runs 2 --tuning-runs 1 --output outputs/study
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: pilot-smoke-report
-          path: outputs/demo/
+          name: smoke-reports
+          path: outputs/

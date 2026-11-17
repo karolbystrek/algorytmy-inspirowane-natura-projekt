@@ -1,0 +1,33 @@
+{
+  "dataset_id": "agh-v2-draft",
+  "problem_sha256": "feddef0290d0ff3eb1e1a9af503e1538949ff8932ba348673d5e1d7978b971b0",
+  "development_sha256": "2a5783fd26379f72ec445cbf1a8452565be5d5b915636301f03a43890c715011",
+  "parameters": {
+    "ps": [
+      3,
+      5,
+      8
+    ],
+    "budget": 10000,
+    "runs": 30,
+    "tuning_runs": 10,
+    "chosen_foods": 8,
+    "chosen_limit_rule": "foods*p",
+    "chosen_ga": {
+      "population": 100,
+      "mutation": 0.4,
+      "crossover": "union",
+      "restart_after": 2000
+    }
+  },
+  "candidates": 99,
+  "candidates_reviewed": 0,
+  "demand_points": 101,
+  "draft": true,
+  "versions": {
+    "python": "3.12.12",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1"
+  },
+  "rng": "numpy.random.default_rng (PCG64), seeds 0..runs-1"
+}

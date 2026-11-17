@@ -14,7 +14,7 @@ DATA = ROOT / "data/processed/agh-pilot"
 
 
 def test_snapshot_hashes_and_matrix():
-    manifest = json.loads((DATA / "manifest.json").read_text())
+    manifest = json.loads((DATA / "manifest.json").read_text(encoding="utf-8"))
     for name, expected in manifest["files_sha256"].items():
         assert hashlib.sha256((DATA / name).read_bytes()).hexdigest() == expected
     p = Problem.load(DATA / "problem.json")
@@ -25,8 +25,8 @@ def test_snapshot_hashes_and_matrix():
 
 def test_matrix_matches_exported_walking_graph():
     nx = pytest.importorskip("networkx")
-    features = json.loads((DATA / "map.geojson").read_text())["features"]
-    raw_problem = json.loads((DATA / "problem.json").read_text())
+    features = json.loads((DATA / "map.geojson").read_text(encoding="utf-8"))["features"]
+    raw_problem = json.loads((DATA / "problem.json").read_text(encoding="utf-8"))
     graph = nx.MultiDiGraph()
     for feature in features:
         props = feature["properties"]

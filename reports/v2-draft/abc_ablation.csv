@@ -1,0 +1,16 @@
+p,variant,mean_gap_percent,optimum_hits,runs
+5,wybrane ABC,0.1622694396437011,9,10
+5,bez inspiracji innym źródłem,1.8379118423885121,1,10
+5,obserwatorki rangowe,0.01137594722485228,8,10
+5,bez obserwatorek,-1.6561453599454485e-14,10,10
+5,greedy + zamiany (deterministyczne),0.0,1,1
+10,wybrane ABC,0.045379030927058264,6,10
+10,bez inspiracji innym źródłem,5.726212223898254,0,10
+10,obserwatorki rangowe,0.10147148319226175,2,10
+10,bez obserwatorek,0.05651334319428305,5,10
+10,greedy + zamiany (deterministyczne),0.11344757731764565,0,1
+20,wybrane ABC,0.10944470910258426,5,10
+20,bez inspiracji innym źródłem,2.6710430414428163,0,10
+20,obserwatorki rangowe,0.4453618831895672,5,10
+20,bez obserwatorek,0.14887432471610826,5,10
+20,greedy + zamiany (deterministyczne),1.264180776006973,0,1
