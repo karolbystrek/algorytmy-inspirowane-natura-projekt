@@ -438,8 +438,8 @@ export default function App() {
                 <div className="page-heading">
                     <div>
                         <p className="eyebrow">
-                            Miasteczko studenckie AGH <span> / </span> Przed
-                            audytem terenowym
+                            Miasteczko studenckie AGH <span> / </span> Algorytmy
+                            inspirowane naturą
                         </p>
                         <h1>Rozmieszczenie stacji</h1>
                         <p>
@@ -908,13 +908,6 @@ export default function App() {
                                                     ? "parking w OSM"
                                                     : "węzeł przy budynkach"}
                                             </dd>
-                                            <dt>Audyt</dt>
-                                            <dd>
-                                                {focusedCandidate?.status ===
-                                                "reviewed"
-                                                    ? "sprawdzona"
-                                                    : "do sprawdzenia"}
-                                            </dd>
                                         </dl>
                                         <button
                                             aria-label="Zamknij szczegóły"
@@ -988,7 +981,7 @@ export default function App() {
                                             <span
                                                 key={id}
                                                 className="station-chip"
-                                                title={`${id} · wymaga weryfikacji w terenie`}
+                                                title={`${id} · wybrana stacja`}
                                             >
                                                 {id.replace("candidate-", "")}
                                             </span>
@@ -1252,9 +1245,9 @@ export default function App() {
                 <footer className="page-footer">
                     <Info size={16} />
                     <p>
-                        <strong>Model demonstracyjny.</strong> Wagi są założone,
-                        a lokalizacje wymagają weryfikacji w terenie, dopóki
-                        audyt ich nie potwierdzi.
+                        <strong>Model demonstracyjny.</strong> Wagi popytu są
+                        założeniami opartymi na funkcji i wielkości budynków, a
+                        nie pomiarami ruchu.
                     </p>
                 </footer>
             </main>

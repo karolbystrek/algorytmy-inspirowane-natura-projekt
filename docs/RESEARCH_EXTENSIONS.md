@@ -2,9 +2,9 @@
 
 Uzupełniający research: **29.10.2026**. Przeanalizowano obecną roadmapę, kod, wyniki pilota, dokumentację optymalizacji i źródła lokalne. Poniższe propozycje nie oznaczają, że funkcje zostały już zaimplementowane. Role pozostają robocze: Osoba A–F.
 
-> **Stan na 09.11.2026.** Tekst pochodzi z 29.10 i opisuje pilota. Z propozycji wykonano: P90 i wyniki grup (`groups.csv`), wpływ listy kandydatów i popytu (`point_lists.csv`), metadane wysokości dla 3D oraz solver MILP. Otwarte pozostają: benchmark OR-Library, wariant zamknięcia jednego przejścia i porównanie ze źródłami AGH/ZTP podczas audytu.
+> **Stan na 09.11.2026.** Tekst pochodzi z 29.10 i opisuje pilota. Z propozycji wykonano: P90 i wyniki grup (`groups.csv`), wpływ listy kandydatów i popytu (`point_lists.csv`), metadane wysokości dla 3D oraz solver MILP. Otwarte pozostają: benchmark OR-Library, wariant zamknięcia jednego przejścia i porównanie ze źródłami AGH/ZTP.
 
-**Rekomendacja:** dołożyć ocenę najdłuższych dojść, sprawdzenie wpływu doboru punktów oraz zachować metadane potrzebne do 3D. Największy etap już jest w planie: audyt wejść, barier i kandydatów. Dla większego modelu przyda się solver MILP jako niezależny wzorzec. Dodatkowe metaheurystyki zostają za tymi zadaniami w kolejności prac.
+**Rekomendacja:** dołożyć ocenę najdłuższych dojść, sprawdzenie wpływu doboru punktów oraz zachować metadane potrzebne do 3D. Największy etap już jest w planie: sprawdzenie wejść, barier i kandydatów. Dla większego modelu przyda się solver MILP jako niezależny wzorzec. Dodatkowe metaheurystyki zostają za tymi zadaniami w kolejności prac.
 
 ## Nowe obserwacje na istniejącym pilocie
 
@@ -19,7 +19,7 @@ Obliczenia dotyczą tego samego snapshotu i najlepszego układu ABC z zapisanego
 | Średnia w kategorii `teaching` | 269,628 m |
 | Średnia w kategorii `other` | 614,350 m |
 
-Percentyl oznacza najmniejszą odległość obejmującą co najmniej 90% **założonej masy popytu**. Nie jest pomiarem dojścia 90% studentów. Kategorie pochodzą z roboczej klasyfikacji budynków i wymagają audytu. Różnica między średnią a maksimum uzasadnia obejrzenie odległych punktów, ich wag i tras.
+Percentyl oznacza najmniejszą odległość obejmującą co najmniej 90% **założonej masy popytu**. Nie jest pomiarem dojścia 90% studentów. Kategorie pochodzą z roboczej klasyfikacji budynków i wymagają sprawdzenia. Różnica między średnią a maksimum uzasadnia obejrzenie odległych punktów, ich wag i tras.
 
 | Scenariusz | Stały układ [m] | Osobne optimum dla tego scenariusza [m] | Wzrost kosztu stałego układu |
 |---|---:|---:|---:|
@@ -40,12 +40,12 @@ Szacunki oznaczają roboczogodziny zespołu; wymagają potwierdzenia przez wykon
 | Percentyl 90 i rozbicie wyników na kategorie | maksimum już jest liczone, ale nie ma P90 ani zestawienia kategorii w standardowym raporcie | dodać do raportu E03 | 1–2 h |
 | Wpływ listy kandydatów i punktów popytu | obecna wrażliwość bada wagi i p, a pomija samo próbkowanie miejsc i budynków | dodać przed końcową serią, E04 | 3–5 h |
 | Metadane wysokości dla 3D | obecny eksport budynków zawiera geometrię i ID, bez źródeł wysokości | doprecyzować istniejące D03/V03 | 1–2 h |
-| Źródła AGH i mapa ZTP do audytu | konkretne źródła funkcji budynków i lokalnego kontekstu | włączyć w istniejące D03, bez osobnego dużego etapu | w ramach audytu |
+| Źródła AGH i mapa ZTP do sprawdzenia danych | konkretne źródła funkcji budynków i lokalnego kontekstu | włączyć w istniejące D03, bez osobnego dużego etapu | w ramach D03 |
 | MILP / HiGHS jako wzorzec | ocena jakości większego modelu po przekroczeniu możliwości enumeracji | opcjonalne X04, jeśli obszar urośnie | 4–6 h |
 | Trzy zewnętrzne instancje OR-Library | sprawdzenie solvera poza jedną geometrią AGH | opcjonalne X05 po minimum | 3–5 h |
-| Zamknięcie jednego zweryfikowanego przejścia | odporność układu na zmianę sieci dojść | opcjonalnie po audycie, z jawnym opisem wariantu | 2–3 h |
+| Zamknięcie jednego zweryfikowanego przejścia | odporność układu na zmianę sieci dojść | opcjonalnie, z jawnym opisem wariantu | 2–3 h |
 
-Do 9 listopada wykorzystujemy gotowe tabele z diagnostyki i plan audytu. Do 4 grudnia rekomendowany dodatkowy koszt trzech pierwszych pozycji to **5–9 h**. Pokrywamy go z rezerwy 30 h, pozostawiając **21–25 h**. Jeśli wybierzemy MILP, rezerwa zmniejszy się do **15–21 h**; OR-Library i wariant zamknięcia przejścia wymagają kolejnej decyzji o czasie. Nie uruchamiamy wszystkich rozszerzeń równocześnie.
+Do 9 listopada wykorzystujemy gotowe tabele z diagnostyki i plan dalszych prac. Do 4 grudnia rekomendowany dodatkowy koszt trzech pierwszych pozycji to **5–9 h**. Pokrywamy go z rezerwy 30 h, pozostawiając **21–25 h**. Jeśli wybierzemy MILP, rezerwa zmniejszy się do **15–21 h**; OR-Library i wariant zamknięcia przejścia wymagają kolejnej decyzji o czasie. Nie uruchamiamy wszystkich rozszerzeń równocześnie.
 
 ## 1. Wiarygodność wyniku zależy od punktów wejściowych
 
@@ -101,4 +101,4 @@ W ramach istniejącego V03 należy zachować te tagi przy przetwarzaniu oraz eks
 
 Na 9 listopada warto dodać do istniejącego scenariusza **jedną planszę z P90/maksimum i kompromisem dzień–wieczór** oraz krzywą `p=3/4/5`. Obliczenia są gotowe; omówienie zmieści się w obecnym bloku wyników. Pytanie o solver MILP i benchmark OR-Library dopisujemy do listy do uzgodnienia.
 
-Przed końcem projektu najwięcej da audyt danych i sprawdzenie wpływu listy punktów. API do obliczeń na żywo, pojemności, relokacja floty, ankieta masowa, prognoza ML i rozbudowa 3D poza wyciąganie obrysów pozostają rozszerzeniami.
+Przed końcem projektu najwięcej da sprawdzenie danych i wpływu listy punktów. API do obliczeń na żywo, pojemności, relokacja floty, ankieta masowa, prognoza ML i rozbudowa 3D poza wyciąganie obrysów pozostają rozszerzeniami.

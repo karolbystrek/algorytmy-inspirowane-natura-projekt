@@ -1,5 +1,5 @@
 [
-  {"name":"area:data","color":"1d76db","description":"OSM, graf pieszy, audyt i snapshoty"},
+  {"name":"area:data","color":"1d76db","description":"OSM, graf pieszy i snapshoty"},
   {"name":"area:model","color":"5319e7","description":"Funkcja celu, popyt, kandydaci i kontrakty"},
   {"name":"area:abc","color":"fbca04","description":"Dyskretny Artificial Bee Colony"},
   {"name":"area:experiments","color":"0e8a16","description":"Baseline'y, protokół i analiza wyników"},

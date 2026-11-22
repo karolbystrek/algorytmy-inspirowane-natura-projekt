@@ -33,7 +33,7 @@ Szukamy miejsc na `p` stacji rowerów lub punktów postoju hulajnóg tak, aby ś
 - Restart populacji usuwa stagnację GA przy dłuższym liczeniu, a przy ciasnym budżecie bywa kosztem.
 - **Rekomendacja:** 6 stacji w pierwszym etapie (184 m średniego dojścia, 75% popytu w zasięgu 250 m), a potem rozbudowa do 15 bez przenoszenia istniejących (109 m, 95%).
 
-> **Założenie:** audyt terenowy jeszcze się nie odbył. Wnioski o konkretnych miejscach przyjmują, że potwierdzi on obecne dane. Popyt jest założeniem modelu, a nie pomiarem ruchu studentów.
+> **Założenie:** popyt jest założeniem modelu opartym na funkcji i wielkości budynków, a nie pomiarem ruchu studentów.
 
 ## Uruchomienie aplikacji
 
@@ -84,23 +84,15 @@ uv run --extra geo agh-stations prepare-v2 --pbf ścieżka/malopolskie-latest.os
 | `data/processed/agh-v2` | dane kampusu używane w aplikacji i badaniach, z manifestem i hashami plików |
 | `data/processed/agh-development` | losowa instancja na tym samym grafie, wyłącznie do strojenia parametrów |
 | `data/processed/agh-pilot` | pierwszy, mały zestaw (18 budynków, 30 miejsc); zostaje do testów i odtwarzania historii projektu |
-| `data/audit/agh-v2-audit.csv` | arkusz audytu terenowego |
 
-Po audycie decyzje wpisuje się do arkusza, buduje nowy zestaw i ponownie uruchamia badania:
-
-```sh
-uv run agh-stations apply-audit --strict
-uv run agh-stations study --problem data/processed/agh-v2-audited/problem.json --output outputs/study
-```
-
-Szczegóły są w [DATA_MODEL.md](docs/DATA_MODEL.md#audyt-terenowy). Aplikację można przełączyć na inny zestaw zmienną `AGH_DATASET`, np. `AGH_DATASET=agh-pilot`.
+Aplikację można przełączyć na inny zestaw zmienną `AGH_DATASET`, np. `AGH_DATASET=agh-pilot`.
 
 ## Dokumentacja
 
 | Dokument | Zawartość |
 |---|---|
 | [Raport](docs/REPORT.md) | pełny opis problemu, danych, metod, wyników, rekomendacji i wniosków |
-| [Model i dane](docs/DATA_MODEL.md) | funkcja celu, popyt, reprezentacja i operatory ABC i GA, odstępstwa od klasycznego GA, audyt |
+| [Model i dane](docs/DATA_MODEL.md) | funkcja celu, popyt, reprezentacja i operatory ABC i GA, odstępstwa od klasycznego GA |
 | [Eksperymenty](docs/EXPERIMENTS.md) | protokół badań, budżety, ziarna, testy i lista plików wynikowych |
 | [Architektura](docs/ARCHITECTURE.md) | komponenty, przepływ danych i endpointy API |
 | [Research](docs/RESEARCH.md) | źródła naukowe i techniczne oraz wynikające z nich decyzje |
@@ -113,7 +105,7 @@ Dokumenty z etapu planowania ([roadmapa](docs/ROADMAP.md), [backlog](docs/BACKLO
 
 ```text
 configs/            obszar kampusu, reguły popytu, kandydatów i tras
-data/               zamrożone zestawy danych i arkusz audytu
+data/               zamrożone zestawy danych
 src/agh_stations/   model, solvery, przygotowanie danych, badania, API i CLI
 frontend/           interfejs React/TypeScript z mapą MapLibre
 scripts/            analizy wymagające wyciągu OSM i narzędzia pomocnicze

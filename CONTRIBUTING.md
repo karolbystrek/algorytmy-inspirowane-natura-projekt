@@ -1,6 +1,6 @@
 # Praca z repozytorium
 
-Główna gałąź to `main`. Zmiany wprowadzamy przez krótkie gałęzie i pull requesty (odpowiednik MR na GitHubie). Dla zmian przygotowywanych przez Codex używamy prefiksu `codex/`; dla zespołu np. `feat/osm-audit`, `fix/distance-units`, `docs/experiment-protocol`.
+Główna gałąź to `main`. Zmiany wprowadzamy przez krótkie gałęzie i pull requesty (odpowiednik MR na GitHubie). Dla zmian przygotowywanych przez Codex używamy prefiksu `codex/`; dla zespołu np. `feat/osm-data`, `fix/distance-units`, `docs/experiment-protocol`.
 
 ## Mały cykl pracy
 
@@ -27,6 +27,6 @@ Proponowane kamienie milowe Issues: `M1 — 2026-11-09`, `M2 — 2026-11-13`, `M
 
 ## Tagi Git i wydania
 
-Proponowana konwencja: `v0.1.0-pilot` po przyjęciu pierwszego modelu, `v0.2.0` po audycie danych, `v0.3.0` po interfejsie, `v1.0.0` dla projektu końcowego. **Tagujemy zaakceptowany commit na `main`**, po zielonym CI i krótkim opisie danych oraz ograniczeń. Sam PR nie jest wydaniem i nie oznacza ukończenia audytu. W pakiecie wydania umieszczamy konfigurację, snapshot, metryki i raport; większe surowe pliki przechowujemy jako artefakty.
+Proponowana konwencja: `v0.1.0-pilot` po przyjęciu pierwszego modelu, `v0.2.0` po danych v2, `v0.3.0` po interfejsie, `v1.0.0` dla projektu końcowego. **Tagujemy zaakceptowany commit na `main`**, po zielonym CI i krótkim opisie danych oraz ograniczeń. Sam PR nie jest wydaniem. W pakiecie wydania umieszczamy konfigurację, snapshot, metryki i raport; większe surowe pliki przechowujemy jako artefakty.
 
 Właściciel repo może dodatkowo ustawić wymóg review i obowiązkowego CI dla `main`. Ustawienia ochrony gałęzi oraz topics wymagają odpowiednich uprawnień i pozostają decyzją właściciela; instrukcja nie twierdzi, że zostały zmienione.

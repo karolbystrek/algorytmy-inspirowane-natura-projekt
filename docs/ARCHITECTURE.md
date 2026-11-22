@@ -20,7 +20,7 @@
 
 ```mermaid
 flowchart LR
-    OSM[Wyciąg OpenStreetMap] --> PREP[Przygotowanie i audyt danych]
+    OSM[Wyciąg OpenStreetMap] --> PREP[Przygotowanie danych]
     TEAM[Zespół: obserwacje i założenia] --> PREP
     PREP --> FILES[Wersjonowane dane i manifest]
     FILES --> MODEL[Model p-median i ABC]
@@ -98,7 +98,7 @@ Trasy nie są rysowane jako odcinki proste: `Router` odtwarza z `map.geojson` ci
 | Decyzja | Uzasadnienie | Kiedy wrócić do decyzji |
 |---|---|---|
 | Dyskretny wybór kandydatów | łatwo zachować `p` różnych punktów i kontrolować teren | jeśli prowadzący wymaga współrzędnych ciągłych |
-| Długość dojścia, nie dystans w linii prostej | uwzględnienie topologii sieci w modelu | jeśli audyt ujawni niekompletność ścieżek |
+| Długość dojścia, nie dystans w linii prostej | uwzględnienie topologii sieci w modelu | jeśli w OSM zabraknie ścieżek |
 | Pliki + manifest | mały zespół, łatwe eksperymenty i odtwarzanie | jeśli wyniki przekroczą wygodny rozmiar repo |
 | Lokalny Python, bez GPU | obliczenia macierzowe i mały obszar | po pomiarze wąskiego gardła |
 | 3D w warstwie prezentacji | wysokości budynków nie wpływają na funkcję celu | przy dodaniu nachylenia lub schodów do kosztu ruchu |
@@ -106,4 +106,4 @@ Trasy nie są rysowane jako odcinki proste: `Router` odtwarza z `map.geojson` ci
 
 ## Kontrole jakości
 
-Warstwa danych odpowiada za dostępność i pochodzenie, model za jednostki i wagi, solver za wykonalność i budżet, runner za niezależne ziarna i porównywalność. CI nie kontaktuje się z OSM. Test snapshotu ponownie liczy odległości z wyeksportowanych krawędzi. Pozostaje obowiązek audytu terenowego: testy matematyczne nie potwierdzają fizycznej dostępności wejścia ani miejsca na stację.
+Warstwa danych odpowiada za dostępność i pochodzenie, model za jednostki i wagi, solver za wykonalność i budżet, runner za niezależne ziarna i porównywalność. CI nie kontaktuje się z OSM. Test snapshotu ponownie liczy odległości z wyeksportowanych krawędzi. Testy matematyczne nie potwierdzają fizycznej dostępności wejścia ani miejsca na stację.

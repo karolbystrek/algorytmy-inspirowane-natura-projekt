@@ -25,7 +25,7 @@ Dokumentacja [OSMnx](https://osmnx.readthedocs.io/en/stable/user-reference.html)
 
 [NetworkX: Dijkstra](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.shortest_paths.weighted.single_source_dijkstra_path_length.html) oblicza odległości ważone od węzła. Jawnie wskazujemy `length`, bo domyślna brakująca waga może oznaczać jednostkowy koszt. Wyniki zapisujemy raz w macierzy; ABC pracuje na tablicy NumPy.
 
-[Dokumentacja OSM dotycząca dostępu](https://wiki.openstreetmap.org/wiki/Key:access) opisuje m.in. `access`, `foot` i wyjątki dla sposobu podróży. To materiał do audytu grafu. Sam brak zakazu w danych nie stanowi w naszym modelu potwierdzenia dostępności w terenie.
+[Dokumentacja OSM dotycząca dostępu](https://wiki.openstreetmap.org/wiki/Key:access) opisuje m.in. `access`, `foot` i wyjątki dla sposobu podróży. To materiał do kontroli grafu. Sam brak zakazu w danych nie stanowi w naszym modelu potwierdzenia dostępności w terenie.
 
 [Overpass: współdzielone zasoby](https://dev.overpass-api.de/overpass-doc/en/preface/commons.html) opisuje ograniczenia zasobów i odpowiedzi 429. Przyjęta praktyka projektu: mały obszar, pamięć podręczna i ponowienia dopiero po sprawdzeniu przyczyny błędu. Usługa nie jest zależnością uruchomienia eksperymentu ani testów.
 
@@ -39,7 +39,7 @@ Wybieramy Python 3.12, NumPy, OSMnx/NetworkX/GeoPandas/Shapely, pliki JSON/CSV/G
 
 To decyzja wykonawcza dla 6 osób i terminu początku grudnia: dane oraz algorytm mają niezależne testy, a interfejs powstaje na stałym kontrakcie. Nie potrzebujemy bazy danych, GPU ani infrastruktury kolejkowej w podstawowym zakresie.
 
-Na pierwsze spotkanie wystarczy empiryczny dowód, że cały łańcuch działa: realna sieć OSM, mały model p-median, wyniki porównania, kontrola optimum oraz mapa. Największym zagrożeniem jakości jest jakość punktów i dojść, więc następny etap przeznaczamy na ich audyt. Jest to wniosek projektowy z przeglądu i zakresu prac, a nie twierdzenie o przewadze konkretnej metody.
+Na pierwsze spotkanie wystarczy empiryczny dowód, że cały łańcuch działa: realna sieć OSM, mały model p-median, wyniki porównania, kontrola optimum oraz mapa. Największym zagrożeniem jakości jest jakość punktów i dojść, więc następny etap przeznaczamy na ich sprawdzenie. Jest to wniosek projektowy z przeglądu i zakresu prac, a nie twierdzenie o przewadze konkretnej metody.
 
 ## Uzupełnienie
 

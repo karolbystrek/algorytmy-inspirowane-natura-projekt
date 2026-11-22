@@ -2,8 +2,6 @@
 
 Raport z projektu · Algorytmy inteligentne inspirowane naturą · semestr zimowy 2026/2027
 
-> **Założenie raportu.** Audyt terenowy nie został jeszcze wykonany: w arkuszu audytu wszystkie punkty mają status `requires_review`. Raport przyjmuje roboczo, że audyt potwierdzi wszystkie 99 lokalizacji kandydackich, 101 punktów popytu i przebieg dojść. Wnioski o konkretnych miejscach obowiązują tylko przy tym założeniu. Jeśli audyt coś zmieni, badania przelicza się jedną komendą (rozdział 12).
-
 ## 1. Streszczenie
 
 Projekt wybiera `p` lokalizacji stacji rowerów lub punktów postoju hulajnóg na Miasteczku Studenckim AGH i w przyległej części kampusu, tak aby średnie ważone dojście piesze do najbliższej stacji było jak najkrótsze. Stosujemy dwie metody inspirowane naturą: dyskretną adaptację sztucznej kolonii pszczół (ABC) i algorytm genetyczny (GA) w dwóch wersjach, bez restartu i z restartem populacji. Porównujemy je z losowaniem, metodą zachłanną z zamianami, lokalnym przeszukiwaniem z restartami i dokładnym optimum z programowania całkowitoliczbowego.
@@ -15,7 +13,7 @@ Najważniejsze wyniki na instancji kampusowej (101 punktów popytu, 99 kandydat�
 - **Restart populacji.** Usuwa stagnację GA przy dłuższym liczeniu: przy 10 stacjach i 30 000 ocen GA z restartem trafia w optimum w 10 z 10 przebiegów, a GA bez restartu w 8. Przy ciasnym budżecie restart bywa kosztem, a dla `p ∈ {3, 5, 8}` różnica nie jest istotna.
 - **ABC a proste metody.** Nie wykazaliśmy ogólnej przewagi ABC. Do `p = 8` nie różni się istotnie od lokalnego przeszukiwania z tym samym budżetem. Z greedy wygrywa tylko wtedy, gdy greedy utyka w optimum lokalnym albo kończy mu się budżet, a przy `p = 15` greedy jest od niego dokładniejsze. Większy zysk przy dużym `p` wynika w dużej mierze ze słabości wybranego wariantu lokalnego przeszukiwania.
 - **Potrzeba metaheurystyki.** Solver dokładny rozwiązuje tę instancję w około 0,15 s, więc na tej skali metaheurystyki nie są potrzebne praktycznie. Wartością projektu jest zbadanie ich zachowania na realnym problemie.
-- **Rekomendacja.** Jeśli audyt potwierdzi dane: **6 stacji w pierwszym etapie** (184 m średnio, 75% popytu w zasięgu 250 m) i **rozbudowa do 15 stacji** (109 m, 95%). Dziewięć dodatkowych stacji uzupełnia etap 1 bez przenoszenia żadnej istniejącej.
+- **Rekomendacja.** **6 stacji w pierwszym etapie** (184 m średnio, 75% popytu w zasięgu 250 m) i **rozbudowa do 15 stacji** (109 m, 95%). Dziewięć dodatkowych stacji uzupełnia etap 1 bez przenoszenia żadnej istniejącej.
 - **Największa niepewność.** Wynik zależy przede wszystkim od tego, które budynki modelujemy i jaką mają powierzchnię, a nie od dokładnych wag kategorii.
 
 ## 2. Problem
@@ -253,7 +251,7 @@ Zachowanie etapu 1 kosztuje 9,0% średniego dojścia względem układu 15 stacji
 | 2 | 047 | 50,06815; 19,91265 | parking rowerowy | Centrum Informatyki AGH | 4 | 2,7% |
 | 2 | 039 | 50,06305; 19,90640 | parking rowerowy | hala sportowa bez nazwy w OSM | 2 | 1,6% |
 
-Priorytety audytu wyznacza [candidates_to_check.csv](../reports/v2-draft/candidates_to_check.csv), które porządkuje 49 kandydatów według częstości występowania w układach optymalnych.
+Plik [candidates_to_check.csv](../reports/v2-draft/candidates_to_check.csv) porządkuje 49 kandydatów według częstości występowania w układach optymalnych.
 
 ## 9. Wrażliwość
 
@@ -329,7 +327,7 @@ Zagęszczenie do 35 m poprawia optimum tylko o 1,6–3,1%, a wymaga sprawdzenia 
 | Budynki uczelni | 71 | 241 m | 417 m | 709 m | 53,0% |
 | Inne cele | 8 | 443 m | 855 m | 856 m | 38,4% |
 
-**Bramy.** W grafie zostało 597 bram, których stanu OSM nie opisuje. Gdyby wszystkie były zamknięte jednocześnie, 10,8% ważonego popytu (14 budynków) straciłoby drogę do najbliższej wybranej stacji, a dla pozostałych średnia wzrosłaby o 3,5–5,8%. To skrajny scenariusz, ale wskazuje bramy do sprawdzenia w terenie.
+**Bramy.** W grafie zostało 597 bram, których stanu OSM nie opisuje. Gdyby wszystkie były zamknięte jednocześnie, 10,8% ważonego popytu (14 budynków) straciłoby drogę do najbliższej wybranej stacji, a dla pozostałych średnia wzrosłaby o 3,5–5,8%. To skrajny scenariusz, ale pokazuje, jak bardzo wynik zależy od drożności bram.
 
 ## 10. Aplikacja
 
@@ -359,7 +357,7 @@ Odtwarzanie pokazuje rzeczywiste poprawy po zakończeniu obliczeń, a nie transm
 
 **Ograniczenia:**
 
-- Wnioski o miejscach zakładają pozytywny audyt, który nie został wykonany. OSM może nie odzwierciedlać ogrodzeń, bram i własności terenu.
+- Lokalizacji nie sprawdzono w terenie, więc rekomendacja miejsc jest warunkowa. OSM może nie odzwierciedlać ogrodzeń, bram i własności terenu.
 - Wagi nie pochodzą z pomiarów ruchu, a natężenia na metr kwadratowy są założeniem zespołu.
 - Model nie ma pojemności stacji: jedna stacja może przejąć dowolną część popytu.
 - Obszar jest prostokątem przyjętym przez zespół; akademiki na zachodzie MS leżą blisko jego granicy.
@@ -375,7 +373,7 @@ uv sync --locked --all-extras
 uv run agh-stations study --output outputs/study
 ```
 
-Dane są zamrożone w repozytorium, a ich hashe zapisuje manifest. Wyniki tego raportu są w [reports/v2-draft](../reports/v2-draft). Tabele wymagające wyciągu OSM odtwarzają `scripts/candidate_spacing.py` i `scripts/verify_routes.py`. Po audycie: wpisać decyzje do arkusza, uruchomić `uv run agh-stations apply-audit --strict`, przeliczyć badania na powstałym katalogu i zaktualizować liczby. Procedura jest opisana w [DATA_MODEL.md](DATA_MODEL.md#audyt-terenowy).
+Dane są zamrożone w repozytorium, a ich hashe zapisuje manifest. Wyniki tego raportu są w [reports/v2-draft](../reports/v2-draft). Tabele wymagające wyciągu OSM odtwarzają `scripts/candidate_spacing.py` i `scripts/verify_routes.py`.
 
 ## 13. Wkład członków zespołu
 

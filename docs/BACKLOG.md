@@ -1,11 +1,11 @@
 # Backlog do Issues
 
-**Aktualizacja 09.11:** V02, V03, M02 (bez sprawdzenia w terenie), E02, X01 i X02 mają implementację, a E03 ma wersję roboczą. D03, audyt wag i I03 czekają na zespół. Poniższy akapit opisuje stan z 08.11.
+**Aktualizacja 09.11:** V02, V03, M02 (bez sprawdzenia w terenie), E02, X01 i X02 mają implementację, a E03 ma wersję roboczą. D03 i I03 czekają na zespół. Poniższy akapit opisuje stan z 08.11.
 
 **Stan techniczny 08.11:** [aktualny opis projektu](STATUS.md). V01 ma działający
 widok mapy i wyników, V02 jest częściowo zrealizowane w React/Leaflet (docelowe dane
 i wizualizacja nadal wymagają pracy), a X02 ma implementację lokalnego synchronicznego
-API. V03, audyt danych i końcowe badania pozostają otwarte. Poniższa tabela zachowuje
+API. V03 i końcowe badania pozostają otwarte. Poniższa tabela zachowuje
 plan bazowy; nie potwierdza review ani organizacyjnego odbioru zadań.
 
 Zadania mają proponowanych właścicieli zgodnie z [roadmapą](ROADMAP.md). To lista planistyczna; nie utworzono automatycznych przypisań ani powiadomień do członków zespołu. `P0` oznacza blokadę etapu, `P1` pozostałe minimum, `P2` rozszerzenie.
@@ -21,7 +21,7 @@ Zadania mają proponowanych właścicieli zgodnie z [roadmapą](ROADMAP.md). To 
 | V01 | Przygotować widok wyników na spotkanie / Osoba F | 05.11, P0 | D02, E01 | mapa pokazuje różnicę między kandydatem, popytem i wyborem; atrybucja; jawne ograniczenia |
 | I02 | Zamrozić demo i przećwiczyć / Osoba A + wszyscy | 06.11, P0 | A01, E01, V01 | raport 30 ziaren, pliki offline, 10-minutowa próba, pytania do prowadzącego |
 | D03 | Zweryfikować wejścia i kandydatów / Osoba B + Osoba C | 13.11, P0 | uwagi 09.11 | każdy punkt docelowy reviewed/rejected z powodem; legalny i fizyczny dostęp sprawdzony; poprawki lokalne |
-| M02 | Popyt i dane v2 / Osoba C | 13.11, P0 | D03 | kategorie budynków sprawdzone; jawne wagi; 3 scenariusze i normalizacja; macierz po audycie |
+| M02 | Popyt i dane v2 / Osoba C | 13.11, P0 | D03 | kategorie budynków sprawdzone; jawne wagi; 3 scenariusze i normalizacja; macierz odległości |
 | V02 | Interaktywna mapa wyników / Osoba F | 18.11, P0 | M01, zapis wyników | TypeScript/MapLibre czyta pliki; wybór p, scenariusza i metody; punkty oraz metryki |
 | V03 | Trasy i budynki 3D / Osoba F + Osoba B | 20.11, P1 | V02, D03 | rzeczywiste sekwencje krawędzi; `height_source`; przybliżenia widoczne; wynik modelu niezależny od 3D |
 | E02 | Zamrozić protokół końcowy / Osoba E + Osoba D | 20.11, P0 | M02 | budżet, p, parametry, ziarna i czas; oddzielone strojenie i ocena; pilotaż kosztu serii |
