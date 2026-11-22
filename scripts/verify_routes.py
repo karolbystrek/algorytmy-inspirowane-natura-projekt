@@ -24,7 +24,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pbf", required=True)
     parser.add_argument("--dataset", default="data/processed/agh-v2")
-    parser.add_argument("--config", default="configs/agh-v2.json")
+    parser.add_argument("--config", default="configs/agh.json")
     parser.add_argument("--reports", default="reports/results")
     args = parser.parse_args()
     dataset = Path(args.dataset)

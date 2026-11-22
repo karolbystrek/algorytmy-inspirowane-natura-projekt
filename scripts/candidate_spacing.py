@@ -22,7 +22,7 @@ VARIANTS = {
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pbf", required=True)
-    parser.add_argument("--config", default="configs/agh-v2.json")
+    parser.add_argument("--config", default="configs/agh.json")
     parser.add_argument("--output", default="reports/results/candidate_spacing.csv")
     args = parser.parse_args()
     base = json.loads(Path(args.config).read_text(encoding="utf-8"))
