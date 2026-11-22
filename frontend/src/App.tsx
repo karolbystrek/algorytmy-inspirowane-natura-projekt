@@ -438,8 +438,8 @@ export default function App() {
                 <div className="page-heading">
                     <div>
                         <p className="eyebrow">
-                            Miasteczko studenckie AGH <span> / </span> Wersja
-                            robocza
+                            Miasteczko studenckie AGH <span> / </span> Przed
+                            audytem terenowym
                         </p>
                         <h1>Rozmieszczenie stacji</h1>
                         <p>

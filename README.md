@@ -1,37 +1,43 @@
-# Rozmieszczenie stacji na MS AGH
+# Rozmieszczenie stacji rowerów i hulajnóg na Miasteczku Studenckim AGH
 
-Projekt na przedmiot **Algorytmy inteligentne inspirowane naturą**, zespół 6 osób, semestr 2026/2027. Wybieramy `p` stacji rowerowych / punktów postoju hulajnóg, minimalizując średnie ważone dojście po grafie pieszym OpenStreetMap. Główna metoda: dyskretny **Artificial Bee Colony (ABC)**.
+Projekt na przedmiot **Algorytmy inteligentne inspirowane naturą** (AGH, semestr zimowy 2026/2027, zespół 6 osób).
 
-**Pierwszy pokaz: 9 listopada 2026. Gotowy projekt: 4 grudnia; rezerwa do około 15 grudnia.**
+Szukamy miejsc na `p` stacji rowerów lub punktów postoju hulajnóg tak, aby średnie dojście piesze od budynków do najbliższej stacji było jak najkrótsze. Odległości liczymy po rzeczywistej sieci pieszej z OpenStreetMap, od wejść do budynków. Problem rozwiązujemy dwiema metodami inspirowanymi naturą, **sztuczną kolonią pszczół (ABC)** i **algorytmem genetycznym (GA)**, a wyniki porównujemy z metodami odniesienia i z dowiedzionym optimum.
 
-## Stan na 9 listopada
+![Aplikacja: mapa kampusu z wybranymi stacjami i trasami dojścia](reports/demo/ui-v2.jpg)
 
-**Działa cały łańcuch na danych v2:** 101 punktów popytu, 99 kandydatów, ABC i metody odniesienia, dokładne optimum, aplikacja z trasami dojścia i budynkami 3D oraz komenda pełnych badań. Pełny raport zakłada, że audyt terenowy potwierdzi obecne dane, bo żaden punkt nie został jeszcze sprawdzony w terenie. Próba na docelowym laptopie wymaga potwierdzenia.
+**[Raport z projektu →](docs/REPORT.md)**
 
-**[Jak to działa, co osiągnęliśmy i co zostało →](docs/STATUS.md)** · **[Raport z projektu →](docs/REPORT.md)**
+## Co zawiera projekt
 
-![Lokalne demo rozmieszczenia stacji](reports/demo/ui-v2.jpg)
+- **Dane kampusu** z datowanego wyciągu OSM: 101 budynków generujących ruch (akademiki, budynki uczelni, biblioteka, hale, przychodnia), 99 możliwych lokalizacji stacji oraz macierz najkrótszych dojść pieszych.
+- **Model p-median** z popytem dla poranka, dnia i wieczoru. Waga budynku to jego powierzchnia użytkowa razy założone natężenie ruchu dla funkcji budynku.
+- **Pięć metod porównywanych z tym samym limitem ocen funkcji celu:** ABC, GA, GA z restartem populacji, losowanie oraz metoda zachłanna z zamianami. Optimum każdej instancji dowodzi solver programowania całkowitoliczbowego (MILP).
+- **Pełny protokół badań w jednej komendzie:** strojenie na osobnej instancji rozwojowej, 30 przebiegów na metodę, testy statystyczne, krzywa wartości kolejnych stacji, rekomendacja etapowa i analizy wrażliwości.
+- **Aplikacja webowa** (FastAPI + React + MapLibre), działająca w całości offline: mapa 3D kampusu, trasy dojścia, odtwarzanie przebiegu optymalizacji i porównanie metod.
 
-## Od czego zacząć
+## Najważniejsze wyniki
 
-| Dokument | Zawartość |
-|---|---|
-| [Stan projektu 08.11](docs/STATUS.md) | gotowe elementy, przebieg działania demo, wyniki pilota i rzeczywisty postęp względem planu |
-| [Roadmapa](docs/ROADMAP.md) | etapy, proponowane role 6 osób, zależności i kryteria ukończenia |
-| [Spotkanie 09.11](docs/MEETING_2026-11-09.md) | co pokazać, scenariusz prezentacji, pytania i plan awaryjny |
-| [Research](docs/RESEARCH.md) | źródła naukowe i techniczne oraz decyzje dla projektu |
-| [Dodatkowy research](docs/RESEARCH_EXTENSIONS.md) | dodatkowe propozycje, źródła lokalne i diagnostyka pilota |
-| [Architektura](docs/ARCHITECTURE.md) | diagramy kontekstu, komponentów i przebiegu eksperymentu |
-| [Model i dane](docs/DATA_MODEL.md) | funkcja celu, reprezentacja ABC, kontrakty i ograniczenia |
-| [Eksperymenty](docs/EXPERIMENTS.md) | uczciwe porównanie metod, budżety, ziarna i metryki |
-| [Backlog](docs/BACKLOG.md) | zadania gotowe do przeniesienia do Issues |
-| [Praca z repo](CONTRIBUTING.md) | PR, CI, etykiety i wersjonowanie |
+Średnia strata do dowiedzionego optimum przy 10 000 ocen (30 przebiegów, wagi dla całego dnia):
 
-## Działający pilot
+| Metoda | 3 stacje | 5 stacji | 8 stacji |
+|---|---:|---:|---:|
+| ABC | 0,13% | 0,00% | 0,17% |
+| GA | 0,00% | 0,00% | 0,31% |
+| GA z restartem | 0,00% | 0,00% | 0,16% |
+| Greedy + zamiany | 1,58% | 0,00% | 0,84% |
+| Losowanie | 2,39% | 10,63% | 18,57% |
 
-### Demo FastAPI + React na prezentację
+- ABC i obie wersje GA znajdują układy bardzo bliskie optimum i nie różnią się między sobą istotnie statystycznie. ABC jest istotnie lepsze od losowania.
+- Nie wykazaliśmy ogólnej przewagi metod inspirowanych naturą nad prostymi metodami. Solver dokładny rozwiązuje to zadanie w około 0,15 s, więc wartość projektu leży w zbadaniu zachowania tych metod na realnym problemie.
+- Restart populacji usuwa stagnację GA przy dłuższym liczeniu, a przy ciasnym budżecie bywa kosztem.
+- **Rekomendacja:** 6 stacji w pierwszym etapie (184 m średniego dojścia, 75% popytu w zasięgu 250 m), a potem rozbudowa do 15 bez przenoszenia istniejących (109 m, 95%).
 
-Jednorazowe przygotowanie (wymaga internetu, Node.js 22+ i uv):
+> **Założenie:** audyt terenowy jeszcze się nie odbył. Wnioski o konkretnych miejscach przyjmują, że potwierdzi on obecne dane. Popyt jest założeniem modelu, a nie pomiarem ruchu studentów.
+
+## Uruchomienie aplikacji
+
+Wymagania: [uv](https://docs.astral.sh/uv/getting-started/installation/) (sam pobiera Pythona 3.12) i Node.js 22+. Przygotowanie, jednorazowo i z dostępem do internetu:
 
 ```sh
 uv sync --locked --all-extras
@@ -39,71 +45,85 @@ npm --prefix frontend ci
 npm --prefix frontend run build
 ```
 
-Uruchomienie przygotowanego demo, również offline, z głównego katalogu repo:
+Uruchomienie z głównego katalogu repozytorium, działa też bez internetu:
 
 ```sh
 uv run --locked --extra demo uvicorn agh_stations.api:app --host 127.0.0.1 --port 8001
 ```
 
-Otwórz **http://127.0.0.1:8001**. Jeden serwer obsługuje API i zbudowany interfejs.
-Demo pozwala zmieniać `p` (od 1 do liczby kandydatów), scenariusz, listę kandydatów, akceptowalne
-dojście, budżet i ziarno; porównuje ABC, algorytm genetyczny bez restartu i z restartem, losowanie i greedy. Mapa MapLibre korzysta wyłącznie
-z lokalnej geometrii, bez kafelków, CDN i kluczy API, pokazuje trasy dojścia w zasięgu i poza
-nim oraz wielkość popytu. Kliknięcie budynku lub stacji pokazuje szczegóły i trasy, a układ można
-zapamiętać i porównać z kolejnym. Przycisk z kostką włącza budynki 3D (wymaga WebGL). Odtwarzanie
-pokazuje zapis rzeczywistych popraw najlepszego układu po obliczeniach — nie transmisję roju na
-żywo. Pod mapą są krzywa wartości kolejnych stacji, wyniki grup budynków, strata układu w porach
-dnia, układ odporny, najdłuższe dojścia, obciążenie stacji i seria 10–30 ziaren. Eksport JSON
-zawiera parametry, hash danych, wyniki, kroki i analizy. Dokładne optimum liczy solver MILP poza
-budżetem ocen. Domyślnie używane są dane `agh-v2`; zmienna
-`AGH_DATASET=agh-pilot` przełącza na zestaw pilota.
+Aplikacja jest pod adresem **http://127.0.0.1:8001**. Pozwala:
 
-Scenariusz pokazu: uruchom domyślne 4 stacje → odtwórz poprawy ABC → przełącz
-metody → włącz widok 3D → zmień na 3 stacje i poranek → uruchom ponownie → omów
-zmianę wyniku. Przed prezentacją zbuduj interfejs i przećwicz na laptopie docelowym.
+- ustawić liczbę stacji (1–99), porę dnia, listę możliwych miejsc, akceptowalne dojście, budżet ocen i ziarno losowe,
+- porównać na mapie wynik każdej metody oraz dokładne optimum,
+- odtworzyć kolejne poprawy znalezione przez algorytm,
+- obejrzeć trasy dojścia (w zasięgu i poza nim), budynki 3D i szczegóły po kliknięciu budynku lub stacji,
+- zobaczyć krzywą wartości kolejnych stacji, wyniki grup budynków, stratę w porach dnia, układ odporny, najdłuższe dojścia i obciążenie stacji,
+- uruchomić serię 10–30 ziaren i porównać rozrzut wyników metod,
+- zapamiętać układ i porównać go z kolejnym, a wynik wyeksportować do JSON.
 
-Rozwój interfejsu: backend jak wyżej oraz w drugim terminalu `npm --prefix frontend run dev`.
-Vite działa na http://127.0.0.1:5173 i przekazuje `/api` do portu 8001.
-Dokumentacja API: http://127.0.0.1:8001/docs (jej zewnętrzne zasoby wymagają internetu).
+Odtwarzanie pokazuje zapis rzeczywistych popraw po zakończeniu obliczeń, a nie transmisję roju na żywo. Dokumentacja API jest pod `/docs` (jej zasoby wymagają internetu). Przy pracy nad interfejsem można dodatkowo uruchomić `npm --prefix frontend run dev`: Vite działa na porcie 5173 i przekazuje `/api` do portu 8001.
 
-### Pełne badania na danych v2
+## Badania
 
 ```sh
-uv sync --locked --all-extras
 uv run agh-stations study --output outputs/study
 ```
 
-Protokół jest opisany w [EXPERIMENTS.md](docs/EXPERIMENTS.md), a wyniki raportu znajdują się w [reports/v2-draft](reports/v2-draft). Przebudowa danych v2 wymaga wyciągu OSM (np. `malopolskie-latest.osm.pbf` z Geofabrik, poza repozytorium):
+Komenda działa offline i odtwarza wszystkie tabele i wykresy raportu: strojenie ABC i GA, porównanie metod z testami statystycznymi, większą liczbę stacji, krzywą stacji, rekomendację, pory dnia, próg dostępności, wagi, listy punktów i bramy. Wyniki użyte w raporcie są w [reports/v2-draft](reports/v2-draft), a protokół w [EXPERIMENTS.md](docs/EXPERIMENTS.md).
+
+Dwie analizy wymagają wyciągu OSM (np. `malopolskie-latest.osm.pbf` z Geofabrik, poza repozytorium): `scripts/verify_routes.py` sprawdza, że trasy nie przechodzą przez budynki, a `scripts/candidate_spacing.py` bada gęstość kandydatów. Z tego samego wyciągu można odtworzyć dane:
 
 ```sh
 uv run --extra geo agh-stations prepare-v2 --pbf ścieżka/malopolskie-latest.osm.pbf
 ```
 
-Bez `--pbf` generator korzysta z Overpass. Audyt terenowy opisuje [DATA_MODEL.md](docs/DATA_MODEL.md#audyt-terenowy).
+## Dane
 
-### Eksperymenty CLI na pilocie
+| Katalog | Zawartość |
+|---|---|
+| `data/processed/agh-v2` | dane kampusu używane w aplikacji i badaniach, z manifestem i hashami plików |
+| `data/processed/agh-development` | losowa instancja na tym samym grafie, wyłącznie do strojenia parametrów |
+| `data/processed/agh-pilot` | pierwszy, mały zestaw (18 budynków, 30 miejsc); zostaje do testów i odtwarzania historii projektu |
+| `data/audit/agh-v2-audit.csv` | arkusz audytu terenowego |
 
-Repo zawiera też pierwszy snapshot: 18 zastępczych punktów popytu i 30 kandydatów. Zachowujemy go, żeby wyniki pilota dało się odtworzyć. Dane i założenia są opisane w [data/README.md](data/README.md).
-
-**To demonstrator modelu:** wagi popytu są założone, a kandydaci wymagają weryfikacji w terenie.
-
-Wymagania: [uv](https://docs.astral.sh/uv/getting-started/installation/) i Python 3.12 (uv może pobrać interpreter). Po instalacji zależności poniższe obliczenia działają offline:
-
-```sh
-uv sync --locked --all-extras
-uv run agh-stations benchmark --p 4 --budget 1000 --runs 30 --exact
-uv run agh-stations report
-```
-
-W `outputs/demo/` powstaną `runs.csv`, `history.csv`, `results.json`, `map.png/svg` i `convergence.png/svg`. Gotowy zapis pilota znajduje się w [reports/pilot](reports/pilot/README.md).
-
-Ponowne pobranie OSM wymaga internetu; jest oddzielone od eksperymentów:
+Po audycie decyzje wpisuje się do arkusza, buduje nowy zestaw i ponownie uruchamia badania:
 
 ```sh
-uv run --extra geo agh-stations prepare-osm
+uv run agh-stations apply-audit --strict
+uv run agh-stations study --problem data/processed/agh-v2-audited/problem.json --output outputs/study
 ```
 
-Kontrole przed PR:
+Szczegóły są w [DATA_MODEL.md](docs/DATA_MODEL.md#audyt-terenowy). Aplikację można przełączyć na inny zestaw zmienną `AGH_DATASET`, np. `AGH_DATASET=agh-pilot`.
+
+## Dokumentacja
+
+| Dokument | Zawartość |
+|---|---|
+| [Raport](docs/REPORT.md) | pełny opis problemu, danych, metod, wyników, rekomendacji i wniosków |
+| [Model i dane](docs/DATA_MODEL.md) | funkcja celu, popyt, reprezentacja i operatory ABC i GA, odstępstwa od klasycznego GA, audyt |
+| [Eksperymenty](docs/EXPERIMENTS.md) | protokół badań, budżety, ziarna, testy i lista plików wynikowych |
+| [Architektura](docs/ARCHITECTURE.md) | komponenty, przepływ danych i endpointy API |
+| [Research](docs/RESEARCH.md) | źródła naukowe i techniczne oraz wynikające z nich decyzje |
+| [Stan projektu](docs/STATUS.md) | co jest gotowe i co zostało do zrobienia |
+| [Praca z repozytorium](CONTRIBUTING.md) | gałęzie, pull requesty i CI |
+
+Dokumenty z etapu planowania ([roadmapa](docs/ROADMAP.md), [backlog](docs/BACKLOG.md), [spotkanie 09.11](docs/MEETING_2026-11-09.md), [dodatkowy research](docs/RESEARCH_EXTENSIONS.md)) zostają jako zapis przebiegu prac.
+
+## Struktura repozytorium
+
+```text
+configs/            obszar kampusu, reguły popytu, kandydatów i tras
+data/               zamrożone zestawy danych i arkusz audytu
+src/agh_stations/   model, solvery, przygotowanie danych, badania, API i CLI
+frontend/           interfejs React/TypeScript z mapą MapLibre
+scripts/            analizy wymagające wyciągu OSM i narzędzia pomocnicze
+tests/              testy modelu, solverów, danych, badań i API
+reports/v2-draft/   wyniki badań użyte w raporcie
+reports/pilot/      zapis wyników pierwszego zestawu danych
+docs/               raport i dokumentacja projektu
+```
+
+## Kontrola jakości
 
 ```sh
 uv run ruff check .
@@ -111,20 +131,8 @@ uv run ruff format --check .
 uv run pytest
 ```
 
-## Struktura
+CI na GitHubie uruchamia lint, 147 testów, build interfejsu i skrócone badania przy każdym pull requeście.
 
-```text
-configs/                  granica obszaru i założenia przygotowania danych
-data/raw/                 lokalny cache, poza Git
-data/processed/agh-pilot/  zamrożone dane do obliczeń offline
-src/agh_stations/          model, solvery, przygotowanie OSM, CLI i wykresy
-frontend/                 React/TypeScript, MapLibre i build interfejsu
-tests/                    model, budżety, routing ze snapshotu i kontrakt API
-docs/                     roadmapa, research, architektura i backlog
-reports/pilot/            zapis wyników i ilustracje pierwszego modelu
-reports/demo/             podgląd interfejsu prezentacyjnego
-outputs/                  nowe wyniki lokalne, poza Git
-.github/                  CI, szablony Issues/PR i definicje etykiet
-```
+## Licencja danych
 
-Geometria i sieć: **© OpenStreetMap contributors**, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/), [informacja OSM](https://www.openstreetmap.org/copyright). Licencja danych jest opisana oddzielnie od kodu; zespół powinien ustalić licencję kodu przed wydaniem końcowym.
+Geometria i sieć: **© OpenStreetMap contributors**, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/), [informacja OSM](https://www.openstreetmap.org/copyright). Licencja kodu nie została jeszcze ustalona.

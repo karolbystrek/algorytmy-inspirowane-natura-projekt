@@ -1,4 +1,4 @@
-# Stan projektu — 09.11.2026
+# Stan projektu — 22.11.2026
 
 **Działa cały łańcuch na danych v2: od OSM, przez model i badania, po aplikację z trasami i budynkami 3D.** Pełny raport i prezentacja zakładają, że audyt terenowy potwierdzi obecne dane. Audytu jeszcze nie wykonano, więc rekomendacja miejsc jest warunkowa, a po audycie badania trzeba przeliczyć.
 
@@ -14,7 +14,7 @@
 | Audyt | [arkusz](../data/audit/agh-v2-audit.csv) i komenda `apply-audit`; **0 punktów sprawdzonych** |
 | Kontrola | 147 testów, niezależna kontrola tras, lint, build frontendu, próbne badania w CI |
 
-## Najważniejsze wyniki robocze
+## Najważniejsze wyniki
 
 - Waga budynku wynika teraz z jego powierzchni i założonego natężenia ruchu. Kategoria „inne” ma 6,4% popytu zamiast sztucznych 25%.
 - ABC jest istotnie lepsze od losowania i trafia w optimum w 18–30 z 30 przebiegów dla `p ∈ {3, 5, 8}`.
