@@ -23,7 +23,7 @@ const NO_FEATURES: FeatureCollection = {
     type: "FeatureCollection",
     features: [],
 };
-const COMPACT_PINS_ABOVE = 12; // Numbered pins start to cover each other past this count.
+const COMPACT_PINS_ABOVE = 12;
 const NOTHING: ExpressionSpecification = ["==", ["get", "demand_id"], ""];
 
 function boundsOf(dataset: Dataset): LngLatBoundsLike {
@@ -80,7 +80,6 @@ function pointFeatures(
             properties: {
                 kind: "demand",
                 id: point.id,
-                // Area, not radius, should follow demand: hence the square root.
                 scale: Math.sqrt((weights?.[index] ?? largest) / largest),
                 label: `${!point.name || /^(way|relation)\//.test(point.name) ? "Punkt popytu" : point.name} · waga założona`,
             },
@@ -130,7 +129,6 @@ function CampusMap({
         try {
             instance = new maplibregl.Map({
                 container: element.current,
-                // No tiles and no glyphs: the map must work without internet.
                 style: {
                     version: 8,
                     sources: {},
@@ -296,7 +294,6 @@ function CampusMap({
                                 event.features?.[0]?.properties?.label;
                             if (!label) return;
                             instance.getCanvas().style.cursor = "default";
-                            // setText: names come from OSM, so never as HTML.
                             tooltip
                                 .setLngLat(event.lngLat)
                                 .setText(label)
@@ -430,7 +427,6 @@ function CampusMap({
             return;
         }
         const controller = new AbortController();
-        // Replay changes layouts quickly; ask only once a layout has settled.
         const timer = window.setTimeout(() => {
             request<FeatureCollection>("routes", {
                 method: "POST",

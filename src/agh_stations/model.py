@@ -1,5 +1,3 @@
-"""Validated p-median input and scenario-normalized objectives (distances in metres)."""
-
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -85,7 +83,6 @@ class Problem:
         }
 
     def restricted_to(self, candidate_indices):
-        """The same demand with a shorter candidate list, e.g. only existing bike parking."""
         indices = list(candidate_indices)
         return Problem(
             [self.candidate_ids[j] for j in indices],
@@ -97,7 +94,6 @@ class Problem:
 
 
 def weighted_quantile(values, weights, q=0.9):
-    """Smallest value whose cumulative demand mass reaches q (inverse weighted CDF)."""
     values, weights = np.asarray(values, dtype=float), np.asarray(weights, dtype=float)
     order = np.argsort(values, kind="stable")
     cumulative = np.cumsum(weights[order]) / weights.sum()

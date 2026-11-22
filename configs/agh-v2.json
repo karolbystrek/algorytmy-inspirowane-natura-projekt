@@ -1,5 +1,5 @@
 {
-  "name": "agh-v2-draft",
+  "name": "agh-v2",
   "bbox_wgs84": [19.902, 50.063, 19.923, 50.073],
   "routing_buffer_m": 250,
   "crs_metric": "EPSG:2180",
@@ -37,5 +37,5 @@
   },
   "assumed_level_height_m": 3,
   "assumed_building_height_m": 9,
-  "note": "Draft: built automatically from OSM tags. No point has been checked on site."
+  "note": "Built automatically from OSM tags."
 }

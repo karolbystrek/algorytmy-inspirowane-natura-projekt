@@ -1,11 +1,3 @@
-"""Independent check that routes of the reported layouts follow real paths and avoid buildings.
-
-Rebuilds each route with NetworkX, compares its length with the matrix used by the solvers and
-tests every edge against solid building outlines. Needs the geo extra and a local OSM extract:
-
-    uv run --extra geo python scripts/verify_routes.py --pbf malopolskie-latest.osm.pbf
-"""
-
 import argparse
 import csv
 import json
@@ -33,7 +25,7 @@ def main():
     parser.add_argument("--pbf", required=True)
     parser.add_argument("--dataset", default="data/processed/agh-v2")
     parser.add_argument("--config", default="configs/agh-v2.json")
-    parser.add_argument("--reports", default="reports/v2-draft")
+    parser.add_argument("--reports", default="reports/results")
     args = parser.parse_args()
     dataset = Path(args.dataset)
     raw = json.loads((dataset / "problem.json").read_text(encoding="utf-8"))

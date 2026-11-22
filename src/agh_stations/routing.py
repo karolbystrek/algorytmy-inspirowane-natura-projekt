@@ -1,5 +1,3 @@
-"""Real walking routes on the exported graph, so the map shows what the objective measures."""
-
 import json
 from pathlib import Path
 
@@ -14,7 +12,6 @@ def read_walk_edges(map_path):
 
 
 def walking_matrix(edges):
-    """Sparse directed graph; parallel edges keep their shortest length, as routing would."""
     properties = [edge["properties"] for edge in edges]
     nodes = sorted({e["u"] for e in properties} | {e["v"] for e in properties})
     index = {node: i for i, node in enumerate(nodes)}
@@ -28,7 +25,6 @@ def walking_matrix(edges):
 
 
 def access_points(demand):
-    """Entrances of a building, or the single graph node of a pilot demand point."""
     return demand.get("access_points") or [
         {"node_id": demand["node_id"], "access_m": 0.0, "lat": demand["lat"], "lon": demand["lon"]}
     ]
@@ -56,7 +52,6 @@ class Router:
         )
 
     def route(self, demand_index, candidate_id):
-        """Best entrance and the node sequence to the station; length includes the access leg."""
         target = self.index[self.candidates[candidate_id]["node_id"]]
         access = min(
             access_points(self.demand[demand_index]),
@@ -67,7 +62,7 @@ class Router:
         if not np.isfinite(length):
             raise ValueError(f"No walking route to {candidate_id}")
         path, current = [], target
-        while current >= 0:  # scipy marks the source with a negative predecessor.
+        while current >= 0:
             path.append(current)
             current = int(self.predecessors[row, current])
         coordinates = [self.positions[self.nodes[i]] for i in reversed(path)]

@@ -1,16 +1,14 @@
-"""The browser contract uses the same model, limits and real improvement trace."""
-
 import os
 
 import numpy as np
 import pytest
 
 pytest.importorskip("fastapi")
-os.environ["AGH_DATASET"] = "agh-pilot"  # The contract is tested on the frozen, small snapshot.
-from fastapi.testclient import TestClient  # noqa: E402
+os.environ["AGH_DATASET"] = "agh-pilot"
+from fastapi.testclient import TestClient
 
-from agh_stations import api  # noqa: E402
-from agh_stations.api import app, dataset, run_lock  # noqa: E402
+from agh_stations import api
+from agh_stations.api import app, dataset, run_lock
 
 client = TestClient(app)
 

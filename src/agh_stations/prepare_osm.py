@@ -1,5 +1,3 @@
-"""Small OSM pilot builder. Automatic locations are explicitly unreviewed proxies."""
-
 import hashlib
 import json
 import platform
@@ -14,7 +12,6 @@ def digest(path):
 
 
 def spread(nodes, count, positions):
-    """Deterministic farthest-first sampling in projected metres."""
     remaining = sorted(nodes)
     selected = [remaining.pop(0)] if remaining else []
     while remaining and len(selected) < count:
@@ -59,7 +56,6 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False):
         crs=config["crs_metric"],
         to_crs="EPSG:4326",
     )
-    # A config hash prevents accidentally reusing the cache for a different AOI.
     cache_id = digest(config_path)[:12]
     graph_path = raw_dir / f"{cache_id}-walk.graphml"
     buildings_path = raw_dir / f"{cache_id}-buildings.geojson"
@@ -75,12 +71,10 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False):
             graph = ox.graph_from_polygon(
                 routing_boundary, network_type="walk", simplify=False, retain_all=True
             )
-            # Preserve a successful graph download if the subsequent features request fails.
             ox.save_graphml(graph, graph_path)
         buildings = ox.features_from_polygon(boundary, tags={"building": True})
         buildings = buildings[buildings.geom_type.isin(["Polygon", "MultiPolygon"])].copy()
         buildings["osm_id"] = [f"{kind}/{oid}" for kind, oid in buildings.index]
-        # Keep only portable scalar columns in the raw feature snapshot.
         cols = [c for c in ["osm_id", "name", "building", "amenity", "geometry"] if c in buildings]
         buildings = buildings[cols].reset_index(drop=True)
         buildings.to_file(buildings_path, driver="GeoJSON")
@@ -169,7 +163,6 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False):
                 "proxy_offset_m": round(Point(*positions[node]).distance(centroid), 3),
             }
         )
-    # Take a mix of functions, then fill unused places; prioritize larger footprints per class.
     demand_options.sort(key=lambda d: (-d["area_m2"], d["id"]))
     demand, used_nodes = [], set()
     quota = max(1, config["demand_count"] // 3)

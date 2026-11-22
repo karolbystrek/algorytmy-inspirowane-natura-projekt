@@ -1,5 +1,3 @@
-"""Recompute routing from the exported graph, without any OSM service calls."""
-
 import hashlib
 import json
 from pathlib import Path

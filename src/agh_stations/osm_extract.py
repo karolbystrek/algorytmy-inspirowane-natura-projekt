@@ -1,9 +1,3 @@
-"""Read the study area from a dated OSM extract, as an alternative to the shared Overpass service.
-
-The walking graph follows the same rules as OSMnx ``network_type="walk"`` with
-``simplify=False`` and ``retain_all=True``, so both sources describe the same network.
-"""
-
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -11,7 +5,6 @@ from typing import Any
 BIKE_AMENITIES = {"bicycle_parking", "bicycle_rental", "kick-scooter_parking"}
 OBSTACLE_LEISURE = {"pitch", "track", "stadium", "swimming_pool"}
 BUILDING_COLUMNS = ("building", "name", "amenity", "leisure", "height", "building:levels")
-# Copied from osmnx._overpass._get_network_filter("walk"), OSMnx 2.1.
 WALK_EXCLUSIONS = {
     "area": "yes",
     "access": "private",
@@ -26,7 +19,7 @@ WALK_EXCLUSIONS = {
     "sidewalk:left": "separate",
     "sidewalk:right": "separate",
 }
-BOUNDS_MARGIN_DEG = 0.01  # Coarse pre-check; buildings never extend further than this.
+BOUNDS_MARGIN_DEG = 0.01
 
 
 @dataclass
@@ -40,7 +33,6 @@ class Extract:
 
 
 def is_walkable(tags):
-    """Overpass semantics: a missing key passes, and !~ is an unanchored regex search."""
     return "highway" in tags and not any(
         key in tags and re.search(pattern, tags[key]) for key, pattern in WALK_EXCLUSIONS.items()
     )
@@ -62,7 +54,6 @@ def _in_bounds(lon, lat, bounds):
 
 
 def read_extract(path, boundary, routing_boundary):
-    """Everything the v2 builder needs from an .osm.pbf (or .osm XML) file."""
     import networkx as nx
     import osmium
     import osmnx as ox
@@ -71,9 +62,16 @@ def read_extract(path, boundary, routing_boundary):
     from shapely.prepared import prep
 
     with_tags = osmium.filter.KeyFilter(
-        "highway", "barrier", "access", "foot", "entrance", "amenity", "building", "natural",
+        "highway",
+        "barrier",
+        "access",
+        "foot",
+        "entrance",
+        "amenity",
+        "building",
+        "natural",
         "leisure",
-    )  # fmt: skip
+    )
     processor = (
         osmium.FileProcessor(str(path))
         .with_locations()
@@ -121,14 +119,14 @@ def read_extract(path, boundary, routing_boundary):
         obstacle = tags.get("natural") == "water" or tags.get("leisure") in OBSTACLE_LEISURE
         if not (building or bike_parking or obstacle):
             return
-        if not obstacle:  # Water can be huge, so only compact objects get the quick rejection.
+        if not obstacle:
             first = next(iter(area.outer_rings()), None)
             if first is None or not _in_bounds(first[0].lon, first[0].lat, near):
                 return
         try:
             shape = wkb.loads(factory.create_multipolygon(area), hex=True)
         except RuntimeError:
-            return  # Broken OSM geometry cannot be used by any later step.
+            return
         if not boundary_shape.intersects(shape):
             return
         if len(shape.geoms) == 1:

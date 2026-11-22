@@ -1,10 +1,3 @@
-"""Does the candidate list limit the result? Rebuild it with other rules and compare optima.
-
-Needs the geo extra and a local OSM extract, so it is not part of the offline study:
-
-    uv run --extra geo python scripts/candidate_spacing.py --pbf malopolskie-latest.osm.pbf
-"""
-
 import argparse
 import copy
 import csv
@@ -30,7 +23,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pbf", required=True)
     parser.add_argument("--config", default="configs/agh-v2.json")
-    parser.add_argument("--output", default="reports/v2-draft/candidate_spacing.csv")
+    parser.add_argument("--output", default="reports/results/candidate_spacing.csv")
     args = parser.parse_args()
     base = json.loads(Path(args.config).read_text(encoding="utf-8"))
     rows = []

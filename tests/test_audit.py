@@ -1,5 +1,3 @@
-"""The audit step may only remove points a person rejected, and must re-hash what it writes."""
-
 import csv
 import json
 

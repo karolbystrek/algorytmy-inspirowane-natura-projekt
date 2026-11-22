@@ -1,5 +1,5 @@
 {
-  "dataset_id": "agh-v2-draft",
+  "dataset_id": "agh-v2",
   "schema_version": 1,
   "source": {
     "retrieved_at_utc": "2026-11-09T18:30:49.442963+00:00",
@@ -10,7 +10,7 @@
     "license": "https://opendatacommons.org/licenses/odbl/1-0/"
   },
   "config": {
-    "name": "agh-v2-draft",
+    "name": "agh-v2",
     "bbox_wgs84": [
       19.902,
       50.063,
@@ -119,11 +119,11 @@
     },
     "assumed_level_height_m": 3,
     "assumed_building_height_m": 9,
-    "note": "Draft: built automatically from OSM tags. No point has been checked on site."
+    "note": "Built automatically from OSM tags."
   },
-  "config_sha256": "9d5941f7bed1d25f54376ddb89533782ac9125dc9d4f368910ec8750614fcb89",
+  "config_sha256": "11f4f12765efc89189854257880e3a6b6895aac03f8df4d5e52ea9aeb68764d6",
   "files_sha256": {
-    "problem.json": "feddef0290d0ff3eb1e1a9af503e1538949ff8932ba348673d5e1d7978b971b0",
+    "problem.json": "108665bb1228b51dfba64b22b262714b4b982788f949355a7b0e943d8d56fa9b",
     "map.geojson": "38cbb906702a4e38772c32393535453190d6e2b0f6f0a5746f272d3a88da30d5"
   },
   "versions": {

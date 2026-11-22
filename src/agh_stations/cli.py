@@ -1,5 +1,3 @@
-"""Repeatable command-line experiments; no network is used by benchmark or report."""
-
 import argparse
 import csv
 import hashlib
@@ -158,7 +156,7 @@ def main():
         make_development_instance(args.dataset, args.output)
 
     develop.set_defaults(func=develop_command)
-    study_parser = sub.add_parser("study", help="Run the full protocol from docs/EXPERIMENTS.md")
+    study_parser = sub.add_parser("study", help="Run the full study protocol")
     study_parser.add_argument("--problem", default="data/processed/agh-v2/problem.json")
     study_parser.add_argument(
         "--development", default="data/processed/agh-development/problem.json"

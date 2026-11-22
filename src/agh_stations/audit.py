@@ -1,9 +1,3 @@
-"""Field-audit workflow: a spreadsheet of points and a filtered, re-hashed dataset built from it.
-
-Only people who checked a place on site may mark it ``reviewed`` or ``rejected``; the code never
-changes a status on its own. No network or geo dependency is needed here.
-"""
-
 import csv
 import hashlib
 import json
@@ -35,7 +29,6 @@ def digest(path):
 
 
 def write_lf(path, text):
-    """Always LF: .gitattributes normalizes checkouts, and hashes must survive that."""
     Path(path).write_text(text, encoding="utf-8", newline="\n")
 
 
@@ -48,13 +41,11 @@ def _load(dataset_dir):
 
 
 def write_template(dataset_dir, audit_csv):
-    """Create the sheet; refuses to overwrite because it may hold field observations."""
     audit_csv = Path(audit_csv)
     if audit_csv.exists():
         raise ValueError(f"{audit_csv} already exists; it may contain field work")
     problem = _load(dataset_dir)
     audit_csv.parent.mkdir(parents=True, exist_ok=True)
-    # utf-8-sig lets Excel on Windows open Polish names correctly.
     with audit_csv.open("w", newline="", encoding="utf-8-sig") as handle:
         writer = csv.DictWriter(handle, COLUMNS, lineterminator="\n")
         writer.writeheader()
@@ -109,7 +100,6 @@ def _read_audit(audit_csv, problem):
 
 
 def apply(input_dir, audit_csv, output_dir, strict=False):
-    """Drop rejected points (and, when strict, everything not yet reviewed) and re-hash."""
     input_dir, output_dir = Path(input_dir), Path(output_dir)
     if input_dir.resolve() == output_dir.resolve():
         raise ValueError("Output must differ from input; the source snapshot stays frozen")
@@ -144,7 +134,7 @@ def apply(input_dir, audit_csv, output_dir, strict=False):
     problem["distances_m"] = (
         np.asarray(problem["distances_m"])[np.ix_(demand_indices, candidate_indices)]
     ).tolist()
-    if "distances_m_gates_closed" in problem:  # May hold nulls, so it cannot be a float array.
+    if "distances_m_gates_closed" in problem:
         problem["distances_m_gates_closed"] = [
             [problem["distances_m_gates_closed"][i][j] for j in candidate_indices]
             for i in demand_indices

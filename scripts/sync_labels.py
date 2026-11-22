@@ -1,5 +1,3 @@
-"""Create only missing project labels using gh; default is a dry run."""
-
 import argparse
 import json
 import subprocess

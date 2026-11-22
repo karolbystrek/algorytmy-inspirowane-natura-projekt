@@ -1,5 +1,3 @@
-"""Protocol helpers: statistics, weight variants, and a complete miniature study."""
-
 import csv
 import json
 import socket
@@ -388,7 +386,7 @@ def test_complete_miniature_study_writes_consistent_artifacts(tmp_path, monkeypa
     assert {row["method"] for row in comparison} >= {"abc", "random"}
     assert all(float(row["best_m"]) >= float(row["optimum_m"]) - 1e-6 for row in comparison)
     metadata = json.loads((output / "study.json").read_text(encoding="utf-8"))
-    assert metadata["draft"] is True
+    assert metadata["parameters"]["runs"] == 3
     with (output / "stations_curve.csv").open(encoding="utf-8") as handle:
         distances = [float(row["mean_distance_m"]) for row in csv.DictReader(handle)]
     assert all(a >= b - 1e-9 for a, b in zip(distances, distances[1:], strict=False))

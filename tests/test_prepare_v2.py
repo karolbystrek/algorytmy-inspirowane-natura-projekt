@@ -1,5 +1,3 @@
-"""Tag rules of the v2 dataset, independent of any OSM service."""
-
 import hashlib
 import json
 from pathlib import Path
@@ -8,8 +6,8 @@ import numpy as np
 import pytest
 
 pytest.importorskip("osmnx")
-from agh_stations.model import Problem  # noqa: E402
-from agh_stations.prepare_v2 import (  # noqa: E402
+from agh_stations.model import Problem
+from agh_stations.prepare_v2 import (
     assumed_levels,
     building_height,
     classify,
@@ -17,7 +15,7 @@ from agh_stations.prepare_v2 import (  # noqa: E402
     parse_number,
     scenario_weights,
 )
-from agh_stations.routing import Router  # noqa: E402
+from agh_stations.routing import Router
 
 RULES = {
     "min_footprint_m2": 150,
@@ -67,7 +65,6 @@ def test_a_category_share_follows_how_much_of_it_exists():
     few = [{"category": "dorm", "floor_area_m2": 9000}, {"category": "other", "floor_area_m2": 100}]
     many = [*few, {"category": "other", "floor_area_m2": 100}]
     assert scenario_weights(few, intensity, ["day"])["day"] == [90.0, 2.0]
-    # A new building adds demand of its own and takes nothing away from the existing ones.
     assert scenario_weights(many, intensity, ["day"])["day"] == [90.0, 2.0, 2.0]
 
 

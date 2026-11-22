@@ -1,5 +1,3 @@
-"""Local presentation API and built React frontend; all computation stays offline."""
-
 import hashlib
 import json
 import os
@@ -23,10 +21,10 @@ from agh_stations.study import DEFAULT_GA, closed_gate_effect, gap
 ROOT = Path(__file__).resolve().parents[2]
 DATASET = ROOT / "data/processed" / os.environ.get("AGH_DATASET", "agh-v2")
 FRONTEND = ROOT / "frontend/dist"
-ABC_FOODS = 8  # Chosen on the development instance, with abandonment limit foods * p.
-GA_SETTINGS = DEFAULT_GA  # Chosen on the same development instance.
+ABC_FOODS = 8
+GA_SETTINGS = DEFAULT_GA
 METHODS = ("abc", "ga", "ga_restart", "random", "greedy")
-CURVE_STATIONS = 40  # Past this point one more station shortens the walk by about a metre.
+CURVE_STATIONS = 40
 ScenarioName = Literal["aggregate", "morning", "day", "evening"]
 PoolName = Literal["all", "existing"]
 Threshold = Field(default=250, ge=50, le=1000, strict=True)
@@ -91,7 +89,7 @@ def dataset():
 
 @lru_cache(maxsize=1)
 def map_data():
-    dataset()  # Verify the snapshot before serving its geometry.
+    dataset()
     raw = json.loads((DATASET / "map.geojson").read_text(encoding="utf-8"))
     seen, features = set(), []
     for feature in raw["features"]:
@@ -120,7 +118,6 @@ def router():
 
 @lru_cache(maxsize=2)
 def existing_parking():
-    """Candidates where OSM already records bike or scooter parking."""
     raw = dataset()[0]
     return [
         j for j, c in enumerate(raw["candidates"]) if str(c.get("source", "")).startswith("osm_")
@@ -196,7 +193,6 @@ def get_dataset():
         "pools": {
             name: {
                 "count": count,
-                # Index p - 1: the smallest budget in which greedy finishes its construction.
                 "greedy_min_budget": [
                     greedy_construction_cost(count, p) if p < count else 1
                     for p in range(1, count + 1)
@@ -218,7 +214,6 @@ def get_map():
 
 @app.post("/api/routes")
 def routes(request: RoutesRequest):
-    """Walk from every demand point to its nearest selected station."""
     _, problem, _ = dataset()
     position = {identifier: j for j, identifier in enumerate(problem.candidate_ids)}
     unknown = sorted(set(request.candidate_ids) - set(position))
@@ -249,7 +244,6 @@ def routes(request: RoutesRequest):
 
 @app.post("/api/analysis")
 def analysis(request: AnalysisRequest):
-    """Who is served how well by one layout, and how that layout fares at other times of day."""
     raw, _, _ = dataset()
     problem = pool_problem(request.candidate_pool)
     position = {identifier: j for j, identifier in enumerate(problem.candidate_ids)}
@@ -334,7 +328,6 @@ def analysis(request: AnalysisRequest):
 
 @app.post("/api/curve")
 def curve(request: CurveRequest):
-    """Proved optima for every station count: what one more station is worth."""
     problem = pool_problem(request.candidate_pool)
     rows, previous = [], None
     for p in range(1, min(request.p_max, len(problem.candidate_ids)) + 1):
@@ -353,7 +346,6 @@ def curve(request: CurveRequest):
 
 @app.post("/api/series")
 def series(request: SeriesRequest):
-    """Many seeds with the settings of one run: a single run says little about a heuristic."""
     problem = pool_problem(request.candidate_pool)
     check_size(problem, request.p, request.budget)
     if not run_lock.acquire(blocking=False):
@@ -392,7 +384,6 @@ def series(request: SeriesRequest):
 
 @app.post("/api/robust")
 def robust(request: RobustRequest):
-    """One layout for the whole day that shares the loss evenly between times of day."""
     problem = pool_problem(request.candidate_pool)
     check_size(problem, request.p)
     if len(problem.scenarios) < 2:
