@@ -142,7 +142,6 @@ export default function App() {
         setRobust(null);
     }, [run]);
 
-    // Only the final layout is analysed; replay frames change too quickly to be worth a request.
     useEffect(() => {
         if (!run || !finalLayout) return;
         const controller = new AbortController();
@@ -188,7 +187,6 @@ export default function App() {
         return () => controller.abort();
     }, [curveKey]);
 
-    // A remembered layout is always judged on the demand of the current run.
     useEffect(() => {
         if (!run || !baseline) {
             setBaselineSummary(null);
@@ -302,7 +300,6 @@ export default function App() {
     const maxStations = pool?.count ?? DEFAULTS.p;
     const minBudget = pool?.greedy_min_budget[params.p - 1] ?? 0;
 
-    // Keep the settings valid: too small a budget would only produce an error from the server.
     function changeSize(p: number, candidate_pool: Pool = params.candidate_pool) {
         const options = dataset?.pools[candidate_pool];
         const stations = Math.min(p, options?.count ?? p);

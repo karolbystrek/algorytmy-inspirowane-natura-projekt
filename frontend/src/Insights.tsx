@@ -240,7 +240,6 @@ export function SeriesPanel({
     const largest = series
         ? Math.max(1, ...METHODS.flatMap((m) => gaps(m)))
         : 1;
-    // Random search is far worse than the rest; a root scale keeps both visible.
     const x = (gap: number) =>
         left +
         (Math.sqrt(Math.max(0, gap)) / Math.sqrt(largest)) *

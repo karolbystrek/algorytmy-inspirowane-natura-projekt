@@ -4,7 +4,7 @@ Projekt na przedmiot **Algorytmy inteligentne inspirowane naturą** (AGH, semest
 
 Szukamy miejsc na `p` stacji rowerów lub punktów postoju hulajnóg tak, aby średnie dojście piesze od budynków do najbliższej stacji było jak najkrótsze. Odległości liczymy po rzeczywistej sieci pieszej z OpenStreetMap, od wejść do budynków. Problem rozwiązujemy dwiema metodami inspirowanymi naturą, **sztuczną kolonią pszczół (ABC)** i **algorytmem genetycznym (GA)**, a wyniki porównujemy z metodami odniesienia i z dowiedzionym optimum.
 
-![Aplikacja: mapa kampusu z wybranymi stacjami i trasami dojścia](reports/demo/ui-v2.jpg)
+![Aplikacja: mapa kampusu z wybranymi stacjami i trasami dojścia](reports/app.jpg)
 
 **[Raport z projektu →](docs/REPORT.md)**
 
@@ -69,7 +69,7 @@ Odtwarzanie pokazuje zapis rzeczywistych popraw po zakończeniu obliczeń, a nie
 uv run agh-stations study --output outputs/study
 ```
 
-Komenda działa offline i odtwarza wszystkie tabele i wykresy raportu: strojenie ABC i GA, porównanie metod z testami statystycznymi, większą liczbę stacji, krzywą stacji, rekomendację, pory dnia, próg dostępności, wagi, listy punktów i bramy. Wyniki użyte w raporcie są w [reports/v2-draft](reports/v2-draft), a protokół w [EXPERIMENTS.md](docs/EXPERIMENTS.md).
+Komenda działa offline i odtwarza wszystkie tabele i wykresy raportu: strojenie ABC i GA, porównanie metod z testami statystycznymi, większą liczbę stacji, krzywą stacji, rekomendację, pory dnia, próg dostępności, wagi, listy punktów i bramy. Wyniki użyte w raporcie są w [reports/results](reports/results), a protokół opisuje [raport](docs/REPORT.md).
 
 Dwie analizy wymagają wyciągu OSM (np. `malopolskie-latest.osm.pbf` z Geofabrik, poza repozytorium): `scripts/verify_routes.py` sprawdza, że trasy nie przechodzą przez budynki, a `scripts/candidate_spacing.py` bada gęstość kandydatów. Z tego samego wyciągu można odtworzyć dane:
 
@@ -91,15 +91,9 @@ Aplikację można przełączyć na inny zestaw zmienną `AGH_DATASET`, np. `AGH_
 
 | Dokument | Zawartość |
 |---|---|
-| [Raport](docs/REPORT.md) | pełny opis problemu, danych, metod, wyników, rekomendacji i wniosków |
-| [Model i dane](docs/DATA_MODEL.md) | funkcja celu, popyt, reprezentacja i operatory ABC i GA, odstępstwa od klasycznego GA |
-| [Eksperymenty](docs/EXPERIMENTS.md) | protokół badań, budżety, ziarna, testy i lista plików wynikowych |
-| [Architektura](docs/ARCHITECTURE.md) | komponenty, przepływ danych i endpointy API |
-| [Research](docs/RESEARCH.md) | źródła naukowe i techniczne oraz wynikające z nich decyzje |
-| [Stan projektu](docs/STATUS.md) | co jest gotowe i co zostało do zrobienia |
+| [Raport](docs/REPORT.md) | pełny opis problemu, danych, metod, wyników, rekomendacji, wniosków i literatury |
+| [Dane](data/README.md) | zestawy danych i ich licencja |
 | [Praca z repozytorium](CONTRIBUTING.md) | gałęzie, pull requesty i CI |
-
-Dokumenty z etapu planowania ([roadmapa](docs/ROADMAP.md), [backlog](docs/BACKLOG.md), [spotkanie 09.11](docs/MEETING_2026-11-09.md), [dodatkowy research](docs/RESEARCH_EXTENSIONS.md)) zostają jako zapis przebiegu prac.
 
 ## Struktura repozytorium
 
@@ -110,9 +104,9 @@ src/agh_stations/   model, solvery, przygotowanie danych, badania, API i CLI
 frontend/           interfejs React/TypeScript z mapą MapLibre
 scripts/            analizy wymagające wyciągu OSM i narzędzia pomocnicze
 tests/              testy modelu, solverów, danych, badań i API
-reports/v2-draft/   wyniki badań użyte w raporcie
-reports/pilot/      zapis wyników pierwszego zestawu danych
-docs/               raport i dokumentacja projektu
+reports/results/    wyniki badań użyte w raporcie
+reports/app.jpg     zrzut aplikacji
+docs/REPORT.md      raport z projektu
 ```
 
 ## Kontrola jakości

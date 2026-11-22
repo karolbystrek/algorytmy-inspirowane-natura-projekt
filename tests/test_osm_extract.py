@@ -1,12 +1,10 @@
-"""The local-extract reader must apply the same rules as an Overpass walking network."""
-
 import pytest
 
 pytest.importorskip("osmium")
 pytest.importorskip("osmnx")
-from shapely.geometry import box  # noqa: E402
+from shapely.geometry import box
 
-from agh_stations.osm_extract import is_walkable, read_extract  # noqa: E402
+from agh_stations.osm_extract import is_walkable, read_extract
 
 XML = """<?xml version='1.0' encoding='UTF-8'?>
 <osm version='0.6' generator='test'>

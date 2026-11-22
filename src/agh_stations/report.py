@@ -1,5 +1,3 @@
-"""Standalone scientific plots based only on local, frozen experiment artifacts."""
-
 import csv
 import hashlib
 import json
@@ -108,7 +106,7 @@ def render(results_dir, dataset_dir):
             values = np.array([float(r["best_m"]) for r in rows])
             indices = np.searchsorted(evaluations, grid, side="right") - 1
             curve = values[np.maximum(indices, 0)].copy()
-            curve[indices < 0] = np.nan  # No feasible incumbent yet during greedy construction.
+            curve[indices < 0] = np.nan
             curves.append(curve)
         curves = np.asarray(curves)
         valid = np.isfinite(curves).all(axis=0)

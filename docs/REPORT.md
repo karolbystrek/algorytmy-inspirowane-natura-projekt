@@ -18,7 +18,7 @@ Najważniejsze wyniki na instancji kampusowej (101 punktów popytu, 99 kandydat�
 
 ## 2. Problem
 
-Zadanie ma postać dyskretnego problemu p-median. Dla punktów popytu `I`, kandydatów `J` i odległości `d_ij` szukamy zbioru `S ⊆ J`, `|S| = p`, minimalizującego `Σ_i q_i · min_{j∈S} d_ij`, gdzie `q_i` to znormalizowana waga popytu. Docelowy układ jest stały w ciągu dnia, dlatego wagi to równa mieszanina trzech osobno znormalizowanych scenariuszy: rano, w dzień i wieczorem. Pełne definicje są w [DATA_MODEL.md](DATA_MODEL.md).
+Zadanie ma postać dyskretnego problemu p-median. Dla punktów popytu `I`, kandydatów `J` i odległości `d_ij` szukamy zbioru `S ⊆ J`, `|S| = p`, minimalizującego `Σ_i q_i · min_{j∈S} d_ij`, gdzie `q_i` to znormalizowana waga popytu. Docelowy układ jest stały w ciągu dnia, dlatego wagi to równa mieszanina trzech osobno znormalizowanych scenariuszy: rano, w dzień i wieczorem.
 
 Oprócz funkcji celu raportujemy pokrycie, czyli udział ważonego popytu w zasięgu 250 m, ważony percentyl 90 i najdłuższe dojście. Próg 250 m jest parametrem badania, a nie normą.
 
@@ -92,15 +92,19 @@ Siatkę strojenia przygotowano tak samo jak dla ABC: 12 ustawień, ta sama insta
 
 Krzyżowanie zachłanne wypada znacznie gorzej, bo jeden potomek kosztuje wiele ocen i w ramach wspólnego limitu powstaje ich niewiele. Oba warianty są zaimplementowane, a o wyborze zdecydowało strojenie.
 
-**Odstępstwa od klasycznego GA.** Każde służy temu, żeby osobnik zawsze był poprawnym układem `p` różnych stacji, a porównanie metod uczciwe. Szczegóły i uzasadnienia są w [DATA_MODEL.md](DATA_MODEL.md#reprezentacja-i-operatory-ga).
+**Odstępstwa od klasycznego GA.** Każde służy temu, żeby osobnik zawsze był poprawnym układem `p` różnych stacji, a porównanie metod uczciwe:
 
-- Zbiór `p` indeksów zamiast chromosomu binarnego.
-- Dziedziczenie stacji wspólnych i losowe uzupełnienie zamiast krzyżowania punktowego.
-- Mutacja zamieniająca jedną stację zamiast mutacji każdego bitu.
-- Tryb stanu ustalonego z zastępowaniem najgorszego zamiast wymiany pokoleń; najlepszy układ nigdy nie ginie.
-- Krzyżowanie dla każdego potomka, bez osobnego prawdopodobieństwa.
-- Wymuszona mutacja kopii i zakaz duplikatów w populacji.
-- Zakończenie po wspólnym limicie ocen zamiast po liczbie pokoleń.
+| Klasyczny GA | Nasz GA | Powód |
+|---|---|---|
+| chromosom binarny | zbiór `p` indeksów | brak układów z inną liczbą stacji, bez kar i naprawiania |
+| krzyżowanie jedno- lub dwupunktowe | dziedziczenie wspólnych stacji i losowe uzupełnienie | wynik zawsze ma dokładnie `p` różnych stacji |
+| mutacja każdego bitu osobno | zamiana jednej stacji w całym potomku | zachowanie liczby stacji |
+| wymiana całych pokoleń | jeden potomek naraz zastępuje najgorszego (stan ustalony) | elitaryzm i oszczędność ocen |
+| krzyżowanie z prawdopodobieństwem | każdy potomek z krzyżowania | jeden parametr mniej do strojenia |
+| stop po liczbie pokoleń | stop po limicie ocen celu | wspólny protokół porównania metod |
+| — | wymuszona mutacja kopii, zakaz duplikatów | nie marnujemy ocen na znane układy |
+
+Nie dodajemy lokalnego przeszukiwania do GA (wariant memetyczny), żeby porównywać czyste metody.
 
 **Restart populacji.** Zastępowanie najgorszego osobnika sprawia, że populacja szybko się ujednolica i przestaje znajdować poprawy, zwłaszcza przy dłuższym liczeniu. Dlatego badamy też wersję z restartem: gdy przez `restart_after` kolejnych potomków nie poprawi się najlepszy układ, zostaje on w populacji, a pozostałe 99 osobników jest losowanych od nowa. To odpowiednik zwiadowczyń ABC i znany mechanizm podtrzymania różnorodności. Pozostałe ustawienia GA są takie same, więc porównanie obu wersji pokazuje wpływ samego restartu. Próg dobrano na tej samej instancji rozwojowej:
 
@@ -119,7 +123,7 @@ Zbyt częsty restart niszczy postęp populacji i kosztuje 99 ocen za każdym raz
 
 Wszystkie metody korzystają z tej samej macierzy odległości i tego samego limitu ocen funkcji celu. Punkt wyjścia to 10 000 ocen. ABC, obie wersje GA, losowanie i lokalne przeszukiwanie wykonują po 30 przebiegów (ziarna 0–29), a deterministyczne greedy jeden. Optimum każdej instancji dowodzi solver HiGHS.
 
-Pytanie statystyczne ustalono przed obliczeniami: czy ABC daje mniejsze dojście niż losowanie (jednostronny test Manna-Whitneya, korekta Holma). Porównanie z lokalnym przeszukiwaniem dodano po obejrzeniu wyników, aby sprawdzić, czy przewaga nad greedy nie wynika tylko z wykorzystania większego budżetu. Jest to więc analiza eksploracyjna. Przed uruchomieniem pełnego porównania ustalono też dwa kolejne pytania: czy GA i ABC się różnią oraz czy restart zmienia wynik GA (dwustronne testy Manna-Whitneya, korekta Holma). Pełny opis jest w [EXPERIMENTS.md](EXPERIMENTS.md).
+Pytanie statystyczne ustalono przed obliczeniami: czy ABC daje mniejsze dojście niż losowanie (jednostronny test Manna-Whitneya, korekta Holma). Porównanie z lokalnym przeszukiwaniem dodano po obejrzeniu wyników, aby sprawdzić, czy przewaga nad greedy nie wynika tylko z wykorzystania większego budżetu. Jest to więc analiza eksploracyjna. Przed uruchomieniem pełnego porównania ustalono też dwa kolejne pytania: czy GA i ABC się różnią oraz czy restart zmienia wynik GA (dwustronne testy Manna-Whitneya, korekta Holma).
 
 ## 6. Kontrola poprawności
 
@@ -170,7 +174,7 @@ ABC jest istotnie lepsze od losowania dla każdego `p` (skorygowane p < 10⁻¹�
 
 Żadna z tych różnic nie jest istotna statystycznie.
 
-![Zbieżność metod](../reports/v2-draft/convergence.png)
+![Zbieżność metod](../reports/results/convergence.png)
 
 **Porównanie z tym samym budżetem.** Greedy zatrzymuje się w pierwszym optimum lokalnym, zużywając tylko część ocen. Dlatego dodaliśmy metodę, która wydaje cały budżet: losowy start, zamiany typu najlepsza poprawa i restart.
 
@@ -206,7 +210,7 @@ GA i ABC wymieniają się prowadzeniem. Restart działa tak, jak przewiduje teor
 
 ABC wygrywa z greedy w dwóch sytuacjach: gdy greedy utyka w optimum lokalnym (`p = 3, 8, 10`) i gdy kończy mu się budżet (`p = 20, 25`). W pozostałych przypadkach greedy znajduje optimum, a ABC traci najwyżej 0,03%. Przy 30 000 ocen dla `p ≥ 15` obie metody są równe, więc przewaga przy `p = 20` i `25` wynika wyłącznie z ciasnego budżetu. Losowanie traci 20–52%. Wynik zależy też od danych: przy poprzedniej regule wag greedy trafiało w optimum dla `p = 3` i `8`.
 
-![Strata do optimum przy większej liczbie stacji](../reports/v2-draft/large_p.png)
+![Strata do optimum przy większej liczbie stacji](../reports/results/large_p.png)
 
 ## 8. Ile stacji i gdzie
 
@@ -217,7 +221,7 @@ Korzyść z kolejnych stacji wyraźnie maleje. Przejście z 1 na 2 stacje skraca
 | Średnie dojście [m] | 649 | 327 | 273 | 240 | 208 | 184 | 159 | 140 | 122 | 100 | 82 | 61 | 51 |
 | Pokrycie 250 m | 3,8% | 44,7% | 50,8% | 51,2% | 62,8% | 75,2% | 76,8% | 82,5% | 85,5% | 94,1% | 96,4% | 99,3% | 100% |
 
-![Korzyść z kolejnych stacji](../reports/v2-draft/stations_curve.png)
+![Korzyść z kolejnych stacji](../reports/results/stations_curve.png)
 
 ### Rekomendacja
 
@@ -231,7 +235,7 @@ Reguły ustalono na krzywej, a nie na konkretnych miejscach. Etap 1 to najmniejs
 
 Zachowanie etapu 1 kosztuje 9,0% średniego dojścia względem układu 15 stacji projektowanego od zera, ale nie obniża pokrycia.
 
-![Rekomendowany układ etapowy](../reports/v2-draft/layout_recommended.png)
+![Rekomendowany układ etapowy](../reports/results/layout_recommended.png)
 
 | Etap | Stacja | Szerokość, długość | Pochodzenie | Największy obsługiwany budynek | Budynki | Popyt po obu etapach |
 |---:|---|---|---|---|---:|---:|
@@ -251,7 +255,7 @@ Zachowanie etapu 1 kosztuje 9,0% średniego dojścia względem układu 15 stacji
 | 2 | 047 | 50,06815; 19,91265 | parking rowerowy | Centrum Informatyki AGH | 4 | 2,7% |
 | 2 | 039 | 50,06305; 19,90640 | parking rowerowy | hala sportowa bez nazwy w OSM | 2 | 1,6% |
 
-Plik [candidates_to_check.csv](../reports/v2-draft/candidates_to_check.csv) porządkuje 49 kandydatów według częstości występowania w układach optymalnych.
+Plik [candidates_to_check.csv](../reports/results/candidates_to_check.csv) porządkuje 49 kandydatów według częstości występowania w układach optymalnych.
 
 ## 9. Wrażliwość
 
@@ -338,7 +342,7 @@ Aplikacja FastAPI + React + MapLibre działa w całości offline i korzysta z ty
 - krzywą wartości kolejnych stacji, wyniki grup budynków, stratę w porach dnia, układ odporny, najdłuższe dojścia i obciążenie stacji,
 - serię 10–30 ziaren, szczegóły po kliknięciu budynku lub stacji i porównanie dwóch układów.
 
-![Aplikacja](../reports/demo/ui-v2.jpg)
+![Aplikacja](../reports/app.jpg)
 
 Odtwarzanie pokazuje rzeczywiste poprawy po zakończeniu obliczeń, a nie transmisję roju na żywo.
 
@@ -373,7 +377,7 @@ uv sync --locked --all-extras
 uv run agh-stations study --output outputs/study
 ```
 
-Dane są zamrożone w repozytorium, a ich hashe zapisuje manifest. Wyniki tego raportu są w [reports/v2-draft](../reports/v2-draft). Tabele wymagające wyciągu OSM odtwarzają `scripts/candidate_spacing.py` i `scripts/verify_routes.py`.
+Dane są zamrożone w repozytorium, a ich hashe zapisuje manifest. Wyniki tego raportu są w [reports/results](../reports/results). Tabele wymagające wyciągu OSM odtwarzają `scripts/candidate_spacing.py` i `scripts/verify_routes.py`.
 
 ## 13. Wkład członków zespołu
 

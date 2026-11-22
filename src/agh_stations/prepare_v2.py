@@ -1,9 +1,3 @@
-"""Second dataset: every relevant building, its entrances, and candidates close to real demand.
-
-Everything here is derived from OSM tags and stated assumptions. Each point stays
-``requires_review`` until a person records a field decision in the audit sheet.
-"""
-
 import json
 import platform
 import re
@@ -19,7 +13,6 @@ CONNECTOR_NEIGHBOURS = 30
 
 
 def retrying(fetch, attempts=5, first_wait_s=30):
-    """Overpass is a shared service: back off when it reports that it is at capacity."""
     import osmnx as ox
     import requests
 
@@ -35,7 +28,6 @@ def retrying(fetch, attempts=5, first_wait_s=30):
 
 
 def features(polygon, tags):
-    """A query with no matches is a valid, empty answer rather than a failure."""
     import geopandas as gpd
     import osmnx as ox
 
@@ -56,7 +48,6 @@ def parse_number(value):
 
 
 def classify(row, footprint, rules):
-    """Category from OSM function tags, or None when the building creates no modelled demand."""
     name = text_value(row, "name") or ""
     if footprint < rules["min_footprint_m2"] or any(
         pattern in name for pattern in rules["excluded_name_patterns"]
@@ -75,17 +66,11 @@ def classify(row, footprint, rules):
 
 
 def assumed_levels(row, category_median, rules):
-    """Levels when OSM has none: a sports hall is one tall room, not a typical campus building."""
     default = rules["default_levels_by_leisure"].get(text_value(row, "leisure"))
     return (default, "function_default") if default else (category_median, "category_median")
 
 
 def scenario_weights(demand, intensity, scenarios):
-    """Trips per scenario: floor area times an intensity for the building's function.
-
-    A category's share of demand is a result of how much of it exists on campus. Fixing that
-    share in advance would give a few small buildings the weight of the whole category.
-    """
     return {
         scenario: [
             round(intensity[item["category"]][scenario] * item["floor_area_m2"] / 1000, 6)
@@ -96,7 +81,6 @@ def scenario_weights(demand, intensity, scenarios):
 
 
 def building_height(row, config):
-    """Height with its origin, so the map can mark what is only approximate."""
     height = parse_number(row.get("height"))
     if height and height > 0:
         return height, "height"
@@ -107,7 +91,6 @@ def building_height(row, config):
 
 
 def crosses_footprint_legitimately(tags):
-    """Mapped passages, underpasses and bridges really do cross a building outline."""
     return (
         tags.get("tunnel") not in (None, "no")
         or tags.get("bridge") not in (None, "no")
@@ -116,7 +99,6 @@ def crosses_footprint_legitimately(tags):
 
 
 def choose_connector(start, polygon, own_index, node_tree, node_ids, node_xy, tree, canopies):
-    """Nearest graph node whose straight connector does not pass through a solid building."""
     from shapely.geometry import LineString, Point
 
     count = min(CONNECTOR_NEIGHBOURS, len(node_ids))
@@ -216,7 +198,6 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
     blocked_edges = [(u, v, k) for u, v, k, d in graph.edges(keys=True, data=True) if blocked(d)]
     graph.remove_edges_from(blocked_edges)
 
-    # A mapped roof is a canopy: paths may run beneath it and stations may stand under it.
     metric_buildings = buildings.to_crs(crs)
     roof_rows = metric_buildings["building"] == "roof"
     canopies = {int(i) for i in np.flatnonzero(roof_rows.to_numpy())}
@@ -400,7 +381,6 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
         chosen.append((allowed[position][0], source))
         chosen_xy.append(xy)
 
-    # Places already equipped for parking bikes come first: they are the most plausible sites.
     if len(bike):
         metric_bike = bike.to_crs(crs).copy()
         metric_bike["osm_id"] = [f"{kind}/{identifier}" for kind, identifier in metric_bike.index]
@@ -439,7 +419,6 @@ def prepare(config_path, output_dir, raw_dir="data/raw", refresh=False, pbf=None
         ]
         for d in demand
     ]
-    # OSM rarely says whether a gate is locked, so measure the worst case instead of guessing.
     unverified_gates = routing_rules["unverified_gates"]
     gate_nodes = {
         n for n, tags in graph.nodes(data=True) if tags.get("barrier") in unverified_gates

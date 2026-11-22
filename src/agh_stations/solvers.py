@@ -1,5 +1,3 @@
-"""Budgeted discrete ABC, random search, greedy + swaps, and a tiny exact oracle."""
-
 from dataclasses import dataclass
 from itertools import combinations
 from math import comb
@@ -50,7 +48,6 @@ class Evaluator:
 
 
 def greedy_construction_cost(candidate_count, p):
-    """Evaluations greedy spends before it has one complete layout."""
     return sum(candidate_count - k for k in range(p))
 
 
@@ -86,7 +83,7 @@ def solve(
         raise ValueError("foods must be >= 2 and limit >= 1")
     if onlooker not in {"inverse", "rank", "none"} or not 0 <= peer_probability <= 1:
         raise ValueError("onlooker must be inverse/rank/none and peer_probability within [0, 1]")
-    problem.weights(scenario)  # Validate before starting the clock.
+    problem.weights(scenario)
     rng = np.random.default_rng(seed)
     evaluator = Evaluator(problem, p, budget, scenario, on_improvement)
 
@@ -99,7 +96,6 @@ def solve(
         for _ in range(budget):
             evaluator.evaluate(random_selection())
     elif method == "greedy":
-        # Partial configurations count against the same cap but are never reported as incumbents.
         construction_cost = greedy_construction_cost(n, p)
         if budget < construction_cost:
             raise ValueError(
@@ -109,7 +105,6 @@ def solve(
         for _ in range(p):
             choices = [tuple(sorted((*chosen, j))) for j in range(n) if j not in chosen]
             chosen = min(choices, key=evaluator.evaluate)
-        # Best-improvement 1-swap search; a partial final neighbourhood still updates the incumbent.
         while evaluator.calls < budget:
             old = evaluator.best
             current = evaluator.selection
@@ -124,7 +119,6 @@ def solve(
             if evaluator.best >= old:
                 break
     elif method == "multistart":
-        # Random restarts of best-improvement 1-swap: a plain local search that uses the budget.
         while evaluator.calls < budget:
             current = random_selection()
             value = evaluator.evaluate(current)
@@ -146,8 +140,6 @@ def solve(
                 if evaluator.calls == budget:
                     return evaluator.result()
     elif method in {"ga", "ga_restart"}:
-        # Steady-state GA on sets: every offspring replaces the worst member if it is better.
-        # "ga_restart" also restarts a stagnant population around its best layout.
         size = min(population, budget)
         members = [random_selection() for _ in range(size)]
         scores = [evaluator.evaluate(member) for member in members]
@@ -165,7 +157,6 @@ def solve(
         best_seen, stale = min(scores), 0
         while evaluator.calls < budget:
             if method == "ga_restart" and stale >= restart_after:
-                # Keep the best layout and draw the rest anew, as ABC scouts replace sources.
                 keep = int(np.argmin(scores))
                 for index in range(size):
                     if index == keep:
@@ -182,7 +173,7 @@ def solve(
                 differing = sorted(parent_a ^ parent_b)
                 inherited = rng.choice(differing, size=p - len(shared), replace=False)
                 child = tuple(sorted(shared | {int(j) for j in inherited}))
-            else:  # Drop the least useful station of the parents' union until p remain.
+            else:
                 current = parent_a | parent_b
                 while len(current) > p:
                     trials = {}
@@ -193,7 +184,6 @@ def solve(
                     dropped = min(trials, key=trials.get)
                     current, known = current - {dropped}, trials[dropped]
                 child = tuple(sorted(current))
-            # A copy of a current member would spend an evaluation without teaching anything.
             if child in members or rng.random() < mutation:
                 child, known = mutated(child), None
             if known is None:
@@ -230,16 +220,14 @@ def solve(
                 trials[index] += 1
 
         while evaluator.calls < budget:
-            # Employed phase: one attempt for each source.
             for i in range(source_count):
                 if evaluator.calls == budget:
                     return evaluator.result()
                 attempt(i)
-            # Onlooker phase: fitness-proportional selection of promising sources.
             if onlooker != "none":
                 if onlooker == "inverse":
                     fitness = 1 / (1 + np.asarray(values))
-                else:  # Rank fitness does not depend on the scale of the objective.
+                else:
                     fitness = np.empty(source_count)
                     fitness[np.argsort(-np.asarray(values))] = np.arange(1.0, source_count + 1)
                 probabilities = fitness / fitness.sum()
@@ -247,7 +235,6 @@ def solve(
                     if evaluator.calls == budget:
                         return evaluator.result()
                     attempt(int(rng.choice(source_count, p=probabilities)))
-            # Scout phase: replace at most one abandoned source; keep the global best separately.
             i = int(np.argmax(trials))
             if trials[i] >= limit and evaluator.calls < budget:
                 sources[i] = random_selection()
@@ -271,12 +258,6 @@ def exact(problem: Problem, p, scenario="aggregate", max_combinations=200_000):
 
 
 def optimal(problem: Problem, p, scenario="aggregate", fixed=()):
-    """Prove the p-median optimum with an integer program, for instances too big to enumerate.
-
-    Variables: y_j (open candidate j) and x_ij (demand i served by j), with x_ij <= y_j.
-    Stations in ``fixed`` must stay open, which models extending an existing layout.
-    ``evaluations`` is 0 because the solver never calls the objective used by the heuristics.
-    """
     from scipy.optimize import Bounds, LinearConstraint, milp
     from scipy.sparse import coo_matrix
 
@@ -303,7 +284,6 @@ def optimal(problem: Problem, p, scenario="aggregate", fixed=()):
 
 
 def _assignment_constraints(n, m, p):
-    """Open exactly p stations and serve every demand point once, from an open station."""
     rows, columns, values = [0] * m, list(range(m)), [1.0] * m
     lower, upper = [p], [p]
     row = 1
@@ -335,18 +315,13 @@ def _opened_stations(outcome, m, p):
 
 
 def robust_optimal(problem: Problem, p, time_limit_s=60.0):
-    """One layout minimizing the worst relative loss across the separate times of day.
-
-    Each scenario's loss is measured against that scenario's own proved optimum. Stops at the
-    time limit with the best layout found, and reports whether optimality was proved.
-    """
     from scipy.optimize import Bounds, LinearConstraint, milp
     from scipy.sparse import coo_matrix
 
     n, m = problem.distances.shape
     best = {name: optimal(problem, p, name).objective for name in problem.scenarios}
     started = perf_counter()
-    worst = m + n * m  # The last variable is the worst scenario's ratio to its own optimum.
+    worst = m + n * m
     rows, columns, values, lower, upper = _assignment_constraints(n, m, p)
     row = len(lower)
     for name, optimum in best.items():

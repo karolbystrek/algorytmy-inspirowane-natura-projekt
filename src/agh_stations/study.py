@@ -1,9 +1,3 @@
-"""The full experiment protocol from docs/EXPERIMENTS.md, as one repeatable offline command.
-
-ABC settings are chosen on a separate development instance, so tuning never looks at the dataset
-used for the reported ranking. Every optimum is proved with the integer program.
-"""
-
 import csv
 import hashlib
 import json
@@ -28,7 +22,7 @@ GA_POPULATIONS = (20, 50, 100)
 GA_MUTATIONS = (0.1, 0.4)
 GA_CROSSOVERS = ("union", "greedy")
 GA_RESTART_AFTER = (250, 500, 1000, 2000, 4000)
-DEFAULT_GA = {  # Tuned result.
+DEFAULT_GA = {
     "population": 100,
     "mutation": 0.4,
     "crossover": "union",
@@ -49,7 +43,6 @@ def write_rows(path, rows):
 
 
 def make_development_instance(dataset_dir, output_dir, n=60, m=150, seed=2026):
-    """Random points on the real graph: realistic geometry, unrelated to the reported instance."""
     dataset_dir, output_dir = Path(dataset_dir), Path(output_dir)
     graph, nodes, _ = walking_matrix(read_walk_edges(dataset_dir / "map.geojson"))
     rng = np.random.default_rng(seed)
@@ -74,7 +67,6 @@ def make_development_instance(dataset_dir, output_dir, n=60, m=150, seed=2026):
 
 
 def holm(p_values):
-    """Holm-Bonferroni adjusted p-values, in the input order."""
     order = np.argsort(p_values)
     adjusted = np.empty(len(p_values))
     running = 0.0
@@ -101,7 +93,6 @@ def gap(value, reference):
 
 
 def tune(problem, ps, budget, runs):
-    """Grid of colony size and abandonment limit, then an ablation of the two ABC mechanisms."""
     rows = []
     for p in ps:
         best = optimal(problem, p).objective
@@ -131,7 +122,6 @@ def tune(problem, ps, budget, runs):
 
 
 def choose_parameters(rows):
-    """Lowest average gap across development p values; ties go to the first grid position."""
     scores = {}
     for row in rows:
         scores.setdefault((row["foods"], row["limit_rule"]), []).append(row["mean_gap_percent"])
@@ -140,7 +130,6 @@ def choose_parameters(rows):
 
 
 def tune_ga(problem, ps, budget, runs):
-    """The same search effort as ABC gets: 12 settings on the development instance."""
     rows = []
     for p in ps:
         best = optimal(problem, p).objective
@@ -176,7 +165,6 @@ def tune_ga(problem, ps, budget, runs):
 
 
 def choose_ga_parameters(rows):
-    """Lowest average gap across development p values; ties go to the first grid position."""
     scores = {}
     for row in rows:
         key = (row["population"], row["mutation"], row["crossover"])
@@ -188,7 +176,6 @@ def choose_ga_parameters(rows):
 
 
 def tune_ga_restart(problem, ps, budget, runs, ga):
-    """Only the restart threshold is new; the rest of GA keeps its tuned settings."""
     rows = []
     for p in ps:
         best = optimal(problem, p).objective
@@ -212,7 +199,6 @@ def tune_ga_restart(problem, ps, budget, runs, ga):
 
 
 def choose_restart(rows):
-    """Lowest average gap across development p values; ties go to the first threshold."""
     scores = {}
     for row in rows:
         scores.setdefault(row["restart_after"], []).append(row["mean_gap_percent"])
@@ -268,7 +254,6 @@ def ablation(problem, ps, budget, runs, foods, rule):
 
 
 def compare(problem, ps, budget, runs, foods, rule, threshold=250, ga=None):
-    """E1: same budget for every heuristic, proved optimum as the reference."""
     rows, summary, histories = [], [], {}
     ga = ga or DEFAULT_GA
     for p in ps:
@@ -289,7 +274,7 @@ def compare(problem, ps, budget, runs, foods, rule, threshold=250, ga=None):
                         **ga,
                     )
                 except ValueError:
-                    continue  # Greedy construction alone can exceed a very small budget.
+                    continue
                 runs_by_method[method].append(result)
                 histories.setdefault((p, method), []).append(result.history)
                 rows.append(
@@ -349,7 +334,6 @@ def compare(problem, ps, budget, runs, foods, rule, threshold=250, ga=None):
 
 
 def method_pair_tests(rows, ps, first, second, question):
-    """E1: two-sided Mann-Whitney per p, Holm-corrected across p; fixed before the runs."""
     tests = []
     for p in ps:
         one, two = (
@@ -373,7 +357,6 @@ def method_pair_tests(rows, ps, first, second, question):
 
 
 def station_curve(problem, p_max, threshold=250):
-    """E2: what one more station is worth."""
     rows, previous = [], None
     for p in range(1, p_max + 1):
         result = optimal(problem, p)
@@ -393,7 +376,6 @@ def station_curve(problem, p_max, threshold=250):
 
 
 def scenario_regret(problem, ps, threshold=250):
-    """E3: one fixed aggregate layout against a layout optimized separately for each time of day."""
     rows = []
     for p in ps:
         fixed = optimal(problem, p).selection
@@ -415,7 +397,6 @@ def scenario_regret(problem, ps, threshold=250):
 
 
 def robust_layouts(problem, ps):
-    """E3: can one layout share the loss between times of day, and what does that cost?"""
     rows = []
     for p in ps:
         fixed = optimal(problem, p).selection
@@ -440,7 +421,6 @@ def robust_layouts(problem, ps):
 
 
 def large_station_counts(problem, ps, budgets, runs, foods, rule, ga=None):
-    """E1b: larger p, and whether greedy still fits in the budget that ABC is given."""
     rows = []
     ga = ga or DEFAULT_GA
     m = len(problem.candidate_ids)
@@ -491,7 +471,6 @@ def large_station_counts(problem, ps, budgets, runs, foods, rule, ga=None):
 
 
 def multistart_comparison(problem, ps, budget, runs, foods, rule, ga=None):
-    """E1c: greedy stops early, so compare ABC with a local search spending the same budget."""
     rows = []
     ga = ga or DEFAULT_GA
     for p in (p for p in ps if p < len(problem.candidate_ids)):
@@ -529,7 +508,6 @@ def multistart_comparison(problem, ps, budget, runs, foods, rule, ga=None):
 
 
 def candidate_count_curve(problem, raw, ps, fractions=(0.15, 0.25, 0.5, 0.75), subsets=20, seed=7):
-    """E4: how the optimum depends on the number of candidates, over random shorter lists."""
     rng = np.random.default_rng(seed)
     m = len(problem.candidate_ids)
     rows = []
@@ -558,7 +536,6 @@ def candidate_count_curve(problem, raw, ps, fractions=(0.15, 0.25, 0.5, 0.75), s
 
 
 def choose_stages(curve, coverage_target=0.75, minimum_gain_m=5.0):
-    """Stage 1: fewest stations reaching the coverage target. Stage 2: last station worth 5 m."""
     first = next((r["p"] for r in curve if r["coverage"] >= coverage_target), curve[-1]["p"])
     worthwhile = [
         r["p"]
@@ -569,7 +546,6 @@ def choose_stages(curve, coverage_target=0.75, minimum_gain_m=5.0):
 
 
 def recommendation(problem, raw, stage_one, stage_two, threshold=250):
-    """A staged layout: build the first stations, then extend them without moving any."""
     first = optimal(problem, stage_one)
     extended = optimal(problem, stage_two, fixed=first.selection)
     free = optimal(problem, stage_two)
@@ -620,7 +596,6 @@ def recommendation(problem, raw, stage_one, stage_two, threshold=250):
 
 
 def threshold_sensitivity(problem, ps):
-    """E4: same layout, different definition of “close enough”."""
     rows = []
     for p in ps:
         fixed = optimal(problem, p).selection
@@ -636,7 +611,6 @@ def threshold_sensitivity(problem, ps):
 
 
 def floor_area_variants(raw):
-    """E5: undo, one at a time, the assumptions behind weights based on floor area."""
     demand = raw["demand"]
     size = Counter(d["category"] for d in demand)
     equal, footprint, fixed = {}, {}, {}
@@ -663,7 +637,6 @@ def floor_area_variants(raw):
 
 
 def mixture_variants(raw):
-    """E5: the aggregate treats each time of day as equally busy; count one of them twice."""
     if len(raw["scenarios"]) < 2:
         return {}
     return {
@@ -676,7 +649,6 @@ def mixture_variants(raw):
 
 
 def weight_variants(raw):
-    """E5: every way of changing the assumed weights that the protocol asks about."""
     demand = raw["demand"]
     categories = sorted({d["category"] for d in demand if "category" in d})
     variants = {"jednolite": {name: [1.0] * len(demand) for name in raw["scenarios"]}}
@@ -701,7 +673,6 @@ def weight_variants(raw):
 
 
 def weight_sensitivity(problem, raw, ps):
-    """E5: re-optimize under changed weights and measure what the base layout would lose."""
     rows, layouts = [], []
     changes = [(name, s, raw["scenario_mixture"]) for name, s in weight_variants(raw).items()]
     changes += [(name, raw["scenarios"], m) for name, m in mixture_variants(raw).items()]
@@ -732,7 +703,6 @@ def weight_sensitivity(problem, raw, ps):
 
 
 def group_metrics(problem, raw, ps, threshold=250):
-    """E6: the mean can hide long walks and one badly served group of buildings."""
     weights = problem.weights()
     categories = sorted({d["category"] for d in raw["demand"] if "category" in d})
     rows = []
@@ -758,11 +728,6 @@ def group_metrics(problem, raw, ps, threshold=250):
 
 
 def list_sensitivity(problem, raw, ps, threshold=250, seed=2026):
-    """E4: does the answer depend on which points we chose to model?
-
-    Subsets are nested, fixed by the seed and judged on the complete demand list, so a shorter
-    list cannot look better merely because distant buildings were left out.
-    """
     rng = np.random.default_rng(seed)
     n, m = problem.distances.shape
     order = rng.permutation(m)
@@ -833,7 +798,6 @@ def list_sensitivity(problem, raw, ps, threshold=250, seed=2026):
 
 
 def gate_sensitivity(problem, raw, ps):
-    """E7: the same layout if every gate of unknown status turned out to be locked."""
     if "distances_m_gates_closed" not in raw:
         return []
     closed = np.array(
@@ -851,7 +815,6 @@ def gate_sensitivity(problem, raw, ps):
 
 
 def closed_gate_effect(closed, weights, open_nearest, selection):
-    """A layout's walk if every gate of unknown status were locked (NaN = no route)."""
     routes = closed[:, selection]
     reachable = ~np.isnan(routes).all(axis=1)
     if not reachable.any():
@@ -876,7 +839,6 @@ def closed_gate_effect(closed, weights, open_nearest, selection):
 
 
 def field_priority(problem, raw, curve, layouts, ps):
-    """Which candidates decide the results: the shortest useful list to check first."""
     counts = Counter()
     for row in curve:
         counts.update(row["candidate_ids"].split(";"))
@@ -978,7 +940,6 @@ def figures(output, summary, histories, curve, budget):
 
 
 def large_p_figure(output, rows):
-    """Loss to the optimum as p grows, at the tightest budget of the larger-p experiment."""
     import matplotlib
 
     matplotlib.use("Agg")
@@ -1029,7 +990,6 @@ def large_p_figure(output, rows):
 
 
 def layout_map(output, map_path, raw, layers, filename="layout_map.png"):
-    """Chosen layouts over every candidate and demand point; layers = (label, ids, color)."""
     import matplotlib
 
     matplotlib.use("Agg")
@@ -1205,7 +1165,6 @@ def run(
             ],
             "layout_recommended.png",
         )
-    reviewed = sum(c.get("status") == "reviewed" for c in raw["candidates"])
     write_json(
         output / "study.json",
         {
@@ -1222,9 +1181,7 @@ def run(
                 "chosen_ga": ga,
             },
             "candidates": len(raw["candidates"]),
-            "candidates_reviewed": reviewed,
             "demand_points": len(raw["demand"]),
-            "draft": reviewed < len(raw["candidates"]),
             "versions": {
                 "python": platform.python_version(),
                 "numpy": np.__version__,

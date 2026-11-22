@@ -4,7 +4,7 @@ Główna gałąź to `main`. Zmiany wprowadzamy przez krótkie gałęzie i pull 
 
 ## Mały cykl pracy
 
-1. Wybierz zadanie z [backlogu](docs/BACKLOG.md), uzgodnij właściciela i kryterium odbioru.
+1. Uzgodnij zadanie, właściciela i kryterium odbioru.
 2. Zaktualizuj gałąź względem `main`; nie łącz niepowiązanych zmian.
 3. Uruchom `uv sync --locked --all-extras`, lint, format i testy z README.
 4. W PR opisz problem, efekt i weryfikację; poproś jedną osobę o review. Zmianę danych zatwierdza również osoba od modelu.
@@ -23,7 +23,7 @@ python3 scripts/sync_labels.py
 python3 scripts/sync_labels.py --apply
 ```
 
-Proponowane kamienie milowe Issues: `M1 — 2026-11-09`, `M2 — 2026-11-13`, `M3 — 2026-11-20`, `M4 — 2026-11-27`, `M5 — 2026-12-04`. Backlog w Markdown pozostaje punktem startowym; zadania nie są automatycznie przypisywane członkom zespołu.
+Proponowane kamienie milowe Issues: `M1 — 2026-11-09`, `M2 — 2026-11-13`, `M3 — 2026-11-20`, `M4 — 2026-11-27`, `M5 — 2026-12-04`. Zadania nie są automatycznie przypisywane członkom zespołu.
 
 ## Tagi Git i wydania
 

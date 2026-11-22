@@ -9,7 +9,6 @@ from agh_stations.solvers import exact, optimal, solve
 
 @pytest.fixture
 def problem():
-    # Independently calculable: for p=1 the optimum is index 3, with cost 7.5 m.
     return Problem(
         ["a", "b", "c", "d"],
         ["left", "right"],

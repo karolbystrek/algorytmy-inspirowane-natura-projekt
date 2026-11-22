@@ -1,1 +1,0 @@
-"""Station location research demonstrator."""
