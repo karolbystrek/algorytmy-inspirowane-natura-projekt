@@ -121,20 +121,8 @@ def main():
     bench.add_argument("--limit", type=int, default=30)
     bench.add_argument("--exact", action="store_true")
     bench.set_defaults(func=benchmark)
-    prep = sub.add_parser("prepare-osm", help="Fetch a small OSM area; requires the geo extra")
-    prep.add_argument("--config", default="configs/agh-pilot.json")
-    prep.add_argument("--output", default="data/processed/agh-pilot")
-    prep.add_argument("--raw-dir", default="data/raw")
-    prep.add_argument("--refresh", action="store_true")
-
-    def prepare_command(args):
-        from agh_stations.prepare_osm import prepare
-
-        prepare(args.config, args.output, args.raw_dir, args.refresh)
-
-    prep.set_defaults(func=prepare_command)
     prep_v2 = sub.add_parser("prepare-v2", help="Build the v2 dataset; requires the geo extra")
-    prep_v2.add_argument("--config", default="configs/agh-v2.json")
+    prep_v2.add_argument("--config", default="configs/agh.json")
     prep_v2.add_argument("--output", default="data/processed/agh-v2")
     prep_v2.add_argument("--raw-dir", default="data/raw")
     prep_v2.add_argument("--refresh", action="store_true")

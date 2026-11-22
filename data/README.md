@@ -1,6 +1,6 @@
 # Dane
 
-`processed/agh-pilot/` zawiera mały snapshot do demonstracji i testów offline:
+`processed/agh-pilot/` to pierwszy, mały zestaw danych, zachowany do testów i CI:
 
 - `problem.json`: macierz dojść, punkty i założone wagi;
 - `map.geojson`: geometria i krawędzie grafu;
@@ -10,12 +10,12 @@
 
 `processed/agh-v2/` to dane do badania końcowego: wszystkie istotne budynki, ich wejścia i kandydaci blisko popytu. Opis danych jest w [raporcie](../docs/REPORT.md#3-dane). `processed/agh-development/` służy wyłącznie do strojenia parametrów; to losowe punkty, których nie wolno przedstawiać jako wyniku dla kampusu.
 
-`raw/` jest lokalną pamięcią podręczną, ignorowaną przez Git. Do ponownego pobrania:
+`raw/` jest lokalną pamięcią podręczną, ignorowaną przez Git. Dane `agh-v2` odtwarza się z wyciągu OSM według konfiguracji `configs/agh.json`:
 
 ```sh
-uv run --extra geo agh-stations prepare-osm
+uv run --extra geo agh-stations prepare-v2 --pbf ścieżka/malopolskie-latest.osm.pbf
 ```
 
-Konfiguracja wskazuje obszar i reguły; jej hash identyfikuje pliki podręczne. Bez `--refresh` wykorzystujemy istniejące surowe pliki. `--refresh` prosi o ponowne przetworzenie źródła, lecz OSMnx nadal może użyć własnej pamięci odpowiedzi. Aby świadomie pobrać nowy stan, wskaż **nowy** `--raw-dir` i `--output`; dotychczasowy snapshot pozostaw do odtworzenia badań. Nie uruchamiaj odświeżania podczas pokazu ani w CI.
+Bez `--pbf` generator korzysta z Overpass. Aby pobrać nowy stan OSM, wskaż **nowy** `--raw-dir` i `--output`; dotychczasowe dane pozostaw do odtworzenia badań.
 
 Gotowy snapshot wystarcza do identycznych wartości celu i wyboru stacji w tym samym środowisku. Żywe OSM zmienia się, więc ponowne pobranie po czasie nie jest odtworzeniem identycznych danych. Pełne surowe pliki można przechować z wydaniem końcowym; w repo pozostaje wyeksportowana sieć umożliwiająca ponowne sprawdzenie macierzy.
