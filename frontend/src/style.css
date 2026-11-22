@@ -471,6 +471,38 @@ select {
 .map-header h2 {
     font-size: 14px;
 }
+.map-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.view-toggle {
+    display: flex;
+    gap: 2px;
+    border: 1px solid #e1e7e2;
+    background: #f7f9f7;
+    border-radius: 7px;
+    padding: 3px;
+}
+.view-toggle button {
+    background: none;
+    border: 1px solid transparent;
+    color: #6c786e;
+    padding: 5px 9px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+.view-toggle button[aria-pressed="true"] {
+    background: #fff;
+    border-color: #d8e1da;
+    color: #223d2d;
+    box-shadow: 0 1px 2px #152f2010;
+}
+.view-toggle button:hover {
+    color: #203e2b;
+}
 .method-tabs {
     display: flex;
     align-items: center;
@@ -665,6 +697,23 @@ select {
 }
 .legend-route.far {
     background: #c2571f;
+}
+.legend-block {
+    border-radius: 1px !important;
+    width: 9px !important;
+    height: 9px !important;
+}
+.legend-block.near {
+    background: #7dbb9b;
+}
+.legend-block.far {
+    background: #e3a274;
+}
+.legend-column {
+    border-radius: 1px !important;
+    width: 4px !important;
+    height: 11px !important;
+    background: #bd833b;
 }
 .legend-baseline {
     border: 2px solid #4a7cc9;
