@@ -103,6 +103,7 @@ def map_data():
             seen.add(key)
         properties = {"kind": props["kind"]}
         if props["kind"] == "building":
+            properties["id"] = props.get("id")
             properties["height_m"] = props.get("height_m", ASSUMED_HEIGHT_M)
             properties["height_source"] = props.get("height_source", "assumed")
         features.append(

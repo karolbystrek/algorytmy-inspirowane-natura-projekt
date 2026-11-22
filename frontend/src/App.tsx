@@ -16,6 +16,7 @@ import {
     X,
 } from "lucide-react";
 import CampusMap from "./CampusMap";
+import CampusMap3D from "./CampusMap3D";
 import Convergence from "./Convergence";
 import {
     GroupsPanel,
@@ -66,6 +67,7 @@ const JSON_POST = {
     headers: { "Content-Type": "application/json" },
 };
 type Baseline = { label: string; ids: string[] };
+type MapView = "2d" | "3d";
 
 export default function App() {
     const [dataset, setDataset] = useState<Dataset | null>(null);
@@ -85,6 +87,7 @@ export default function App() {
     const [robust, setRobust] = useState<RobustResult | null>(null);
     const [robustBusy, setRobustBusy] = useState(false);
     const [focus, setFocus] = useState<Focus | null>(null);
+    const [mapView, setMapView] = useState<MapView>("2d");
     const [baseline, setBaseline] = useState<Baseline | null>(null);
     const [baselineSummary, setBaselineSummary] = useState<GroupRow | null>(
         null,
@@ -401,6 +404,7 @@ export default function App() {
             ? dataset?.candidates.find((c) => c.id === focus.id)
             : undefined;
     const threshold = run?.parameters.threshold_m ?? DEFAULTS.threshold_m;
+    const MapComponent = mapView === "3d" ? CampusMap3D : CampusMap;
 
     return (
         <div className="app-shell">
@@ -779,7 +783,29 @@ export default function App() {
                             aria-label="Wynik rozmieszczenia stacji"
                         >
                             <div className="map-header">
-                                <h2>Mapa kampusu</h2>
+                                <div className="map-title">
+                                    <h2>Mapa kampusu</h2>
+                                    <div
+                                        className="view-toggle"
+                                        role="group"
+                                        aria-label="Rodzaj mapy"
+                                    >
+                                        {(["2d", "3d"] as const).map((view) => (
+                                            <button
+                                                key={view}
+                                                aria-pressed={mapView === view}
+                                                onClick={() => setMapView(view)}
+                                                title={
+                                                    view === "2d"
+                                                        ? "Mapa płaska (domyślna)"
+                                                        : "Mapa 3D z wysokością budynków"
+                                                }
+                                            >
+                                                {view.toUpperCase()}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                                 <div
                                     className="method-tabs"
                                     role="group"
@@ -802,7 +828,7 @@ export default function App() {
                                     ))}
                                 </div>
                             </div>
-                            <CampusMap
+                            <MapComponent
                                 dataset={dataset}
                                 selected={selected}
                                 weights={run?.demand_weights}
@@ -914,7 +940,7 @@ export default function App() {
                                         </button>
                                     </aside>
                                 ) : null}
-                            </CampusMap>
+                            </MapComponent>
                             <div className="playback">
                                 <button
                                     className="playback-play"

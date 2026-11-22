@@ -2,7 +2,6 @@ import { memo, useEffect, useRef, useState, type ReactNode } from "react";
 import maplibregl, {
     type ExpressionSpecification,
     type GeoJSONSource,
-    type LngLatBoundsLike,
     type Map as MapLibre,
     type Marker,
 } from "maplibre-gl";
@@ -17,28 +16,11 @@ import {
     Square,
 } from "lucide-react";
 import { request, stationLabel, type Dataset, type Focus } from "./types";
+import { boundsOf, NO_FEATURES, OSM_ATTRIBUTION } from "./mapShared";
 
 const EMPTY: string[] = [];
-const NO_FEATURES: FeatureCollection = {
-    type: "FeatureCollection",
-    features: [],
-};
 const COMPACT_PINS_ABOVE = 12;
 const NOTHING: ExpressionSpecification = ["==", ["get", "demand_id"], ""];
-
-function boundsOf(dataset: Dataset): LngLatBoundsLike {
-    const points = [...dataset.candidates, ...dataset.demand];
-    return [
-        [
-            Math.min(...points.map((p) => p.lon)),
-            Math.min(...points.map((p) => p.lat)),
-        ],
-        [
-            Math.max(...points.map((p) => p.lon)),
-            Math.max(...points.map((p) => p.lat)),
-        ],
-    ];
-}
 
 function pointFeatures(
     dataset: Dataset,
@@ -159,8 +141,7 @@ function CampusMap({
         instance.addControl(
             new maplibregl.AttributionControl({
                 compact: false,
-                customAttribution:
-                    '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a> · ODbL',
+                customAttribution: OSM_ATTRIBUTION,
             }),
         );
         instance.addControl(

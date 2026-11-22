@@ -174,6 +174,16 @@ def test_map_exposes_a_building_height_and_its_origin():
     assert all(b["height_m"] > 0 and b["height_source"] for b in buildings)
 
 
+def test_map_buildings_carry_ids_matching_demand():
+    building_ids = {
+        f["properties"]["id"]
+        for f in client.get("/api/map").json()["features"]
+        if f["properties"]["kind"] == "building"
+    }
+    demand_ids = {d["id"] for d in client.get("/api/dataset").json()["demand"]}
+    assert demand_ids <= building_ids
+
+
 def test_large_p_optimum_without_exact_and_busy_response():
     response = client.post("/api/run", json={"p": 12, "budget": 500})
     assert response.status_code == 200
