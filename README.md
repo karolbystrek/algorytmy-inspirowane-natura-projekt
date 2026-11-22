@@ -14,7 +14,7 @@ Szukamy miejsc na `p` stacji rowerów lub punktów postoju hulajnóg tak, aby ś
 - **Model p-median** z popytem dla poranka, dnia i wieczoru. Waga budynku to jego powierzchnia użytkowa razy założone natężenie ruchu dla funkcji budynku.
 - **Pięć metod porównywanych z tym samym limitem ocen funkcji celu:** ABC, GA, GA z restartem populacji, losowanie oraz metoda zachłanna z zamianami. Optimum każdej instancji dowodzi solver programowania całkowitoliczbowego (MILP).
 - **Pełny protokół badań w jednej komendzie:** strojenie na osobnej instancji rozwojowej, 30 przebiegów na metodę, testy statystyczne, krzywa wartości kolejnych stacji, rekomendacja etapowa i analizy wrażliwości.
-- **Aplikacja webowa** (FastAPI + React + MapLibre), działająca w całości offline: mapa 3D kampusu, trasy dojścia, odtwarzanie przebiegu optymalizacji i porównanie metod.
+- **Aplikacja webowa** (FastAPI + React + MapLibre), działająca w całości offline: mapa kampusu w 2D i 3D, trasy dojścia, odtwarzanie przebiegu optymalizacji i porównanie metod.
 
 ## Najważniejsze wyniki
 
@@ -56,10 +56,23 @@ Aplikacja jest pod adresem **http://127.0.0.1:8001**. Pozwala:
 - ustawić liczbę stacji (1–99), porę dnia, listę możliwych miejsc, akceptowalne dojście, budżet ocen i ziarno losowe,
 - porównać na mapie wynik każdej metody oraz dokładne optimum,
 - odtworzyć kolejne poprawy znalezione przez algorytm,
-- obejrzeć trasy dojścia (w zasięgu i poza nim), budynki 3D i szczegóły po kliknięciu budynku lub stacji,
+- obejrzeć trasy dojścia (w zasięgu i poza nim) i szczegóły po kliknięciu budynku lub stacji, na mapie płaskiej albo 3D,
 - zobaczyć krzywą wartości kolejnych stacji, wyniki grup budynków, stratę w porach dnia, układ odporny, najdłuższe dojścia i obciążenie stacji,
 - uruchomić serię 10–30 ziaren i porównać rozrzut wyników metod,
 - zapamiętać układ i porównać go z kolejnym, a wynik wyeksportować do JSON.
+
+### Mapa 3D
+
+Przełącznik **2D | 3D** nad mapą zmienia widok. Domyślnie wyświetla się mapa płaska. Mapa 3D (MapLibre GL JS, bez zewnętrznych kafelków) pokazuje wynik w przestrzeni:
+
+- budynki mają wysokość z OSM (`height` lub liczba kondygnacji); gdy jej brak, przyjmujemy 9 m i rysujemy je jaśniej,
+- budynki generujące ruch są zielone, gdy dojście do najbliższej stacji mieści się w wybranym progu, a pomarańczowe, gdy jest dłuższe,
+- wybrane stacje to zielone słupy z numerami, a wysokość brązowych słupków odpowiada wadze popytu budynku w wybranym scenariuszu,
+- widok można obracać przyciskami albo przeciągając prawym przyciskiem myszy.
+
+Wysokości służą tylko do wizualizacji. Odległości w modelu nadal są liczone po płaskim grafie pieszym.
+
+![Mapa 3D: budynki pokolorowane według dojścia do najbliższej stacji](reports/Mapa3D.png)
 
 Odtwarzanie pokazuje zapis rzeczywistych popraw po zakończeniu obliczeń, a nie transmisję roju na żywo. Dokumentacja API jest pod `/docs` (jej zasoby wymagają internetu). Przy pracy nad interfejsem można dodatkowo uruchomić `npm --prefix frontend run dev`: Vite działa na porcie 5173 i przekazuje `/api` do portu 8001.
 
@@ -106,6 +119,7 @@ scripts/            analizy wymagające wyciągu OSM i narzędzia pomocnicze
 tests/              testy modelu, solverów, danych, badań i API
 reports/results/    wyniki badań użyte w raporcie
 reports/app.jpg     zrzut aplikacji
+reports/Mapa3D.png  zrzut mapy 3D
 docs/REPORT.md      raport z projektu
 ```
 
@@ -117,7 +131,7 @@ uv run ruff format --check .
 uv run pytest
 ```
 
-CI na GitHubie uruchamia lint, 147 testów, build interfejsu i skrócone badania przy każdym pull requeście.
+CI na GitHubie uruchamia lint, 148 testów, build interfejsu i skrócone badania przy każdym pull requeście.
 
 ## Licencja danych
 
