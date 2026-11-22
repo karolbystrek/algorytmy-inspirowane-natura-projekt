@@ -876,7 +876,7 @@ def closed_gate_effect(closed, weights, open_nearest, selection):
 
 
 def field_priority(problem, raw, curve, layouts, ps):
-    """Which candidates decide the results: the shortest useful list for the field audit."""
+    """Which candidates decide the results: the shortest useful list to check first."""
     counts = Counter()
     for row in curve:
         counts.update(row["candidate_ids"].split(";"))
@@ -1057,7 +1057,7 @@ def layout_map(output, map_path, raw, layers, filename="layout_map.png"):
         c="#6b7280",
         marker=".",
         s=30,
-        label="Kandydaci (wymagają audytu)",
+        label="Możliwe lokalizacje",
         zorder=3,
     )
     ax.scatter(
@@ -1096,9 +1096,7 @@ def layout_map(output, map_path, raw, layers, filename="layout_map.png"):
     ax.set_aspect(1 / np.cos(np.radians(np.mean([c["lat"] for c in candidates]))))
     ax.set(xlabel="Długość geograficzna [°]", ylabel="Szerokość geograficzna [°]")
     ax.legend(loc="upper right", fontsize=8)
-    fig.text(
-        0.5, 0.01, "© OpenStreetMap contributors | ODbL | stan przed audytem terenowym", ha="center"
-    )
+    fig.text(0.5, 0.01, "© OpenStreetMap contributors | ODbL", ha="center")
     fig.tight_layout(rect=(0, 0.03, 1, 1))
     fig.savefig(output / filename, dpi=160)
     plt.close(fig)

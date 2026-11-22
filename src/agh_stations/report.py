@@ -45,7 +45,7 @@ def render(results_dir, dataset_dir):
                 ax.fill(xy[:, 0], xy[:, 1], color="#e0e5ed", ec="#bdc5cf", lw=0.35)
     ax.add_collection(LineCollection(walk_segments, colors="#a7afb8", linewidths=0.45, zorder=1))
     for key, color, marker, size, label in (
-        ("candidates", "#6b7280", ".", 35, "Kandydaci (wymagają weryfikacji)"),
+        ("candidates", "#6b7280", ".", 35, "Możliwe lokalizacje"),
         ("demand", "#e78a27", "^", 65, "Popyt: punkty zastępcze, wagi założone"),
     ):
         points = problem[key]

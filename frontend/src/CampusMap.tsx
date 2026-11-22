@@ -68,7 +68,7 @@ function pointFeatures(
             },
             properties: {
                 kind: "candidate",
-                label: `${point.id} · kandydat do weryfikacji w terenie`,
+                label: `${point.id} · możliwa lokalizacja stacji`,
             },
         })),
         ...dataset.demand.map((point, index) => ({

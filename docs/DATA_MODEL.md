@@ -69,7 +69,7 @@ Wiersz `i` macierzy odnosi się do `demand[i]`, kolumna `j` do `candidates[j]`. 
 
 Granica jest roboczym prostokątem obejmującym MS AGH i część kampusu, **nie oficjalną granicą AGH**. Graf pobieramy z dodatkowym buforem, żeby nie odcinać objazdów przy krawędzi. Używamy niesimplifikowanego grafu pieszych, usuwamy jawne zakazy `foot=no/private` i `access=no/private` bez dopuszczającego wyjątku pieszego. Zachowujemy największą silnie spójną składową; jej udział i inne składowe są w manifeście. Przed wersją docelową trzeba ocenić, czy wykluczenia nie usuwają istotnego popytu.
 
-Automatycznie wybieramy 30 kandydatów w węzłach grafu, poza buforem 3 m od obrysów budynków. **Wszyscy mają `status=requires_review`**: nie sprawdzono własności, miejsca na stację, przeszkód, wody ani zgody administratora. Odstęp 3 m to filtr pilota, nie norma lokalizacyjna.
+Automatycznie wybieramy 30 kandydatów w węzłach grafu, poza buforem 3 m od obrysów budynków. Odstęp 3 m to filtr pilota, nie norma lokalizacyjna.
 
 18 punktów popytu to węzły grafu najbliższe punktom reprezentatywnym wybranych budynków. Zachowujemy ID budynku i odległość `proxy_offset_m`. **Nie są to sprawdzone wejścia**; koszt przejścia od budynku do węzła nie wchodzi do funkcji celu pilota. Odległości między samymi węzłami są rzeczywistymi najkrótszymi drogami na pobranym grafie, ale pełne dojście „od drzwi” wymaga następnego etapu.
 
@@ -111,26 +111,7 @@ Graf v2 usuwa węzły z barierą `full-height_turnstile`, krawędzie `indoor=yes
 
 Istniejący stojak rowerowy w OSM to tylko wiarygodne miejsce na stację, a nie stacja pojazdów współdzielonych.
 
-Łącznik jest odcinkiem prostym. Generator wybiera najbliższy węzeł, którego łącznik nie przecina innego budynku ani wnętrza własnego. Jeśli takiego nie ma, zapisuje `connector_verified=false`. Budynek bez dopuszczalnego łącznika do 100 m nie znika po cichu: trafia do `demand_buildings_not_connected` w manifeście. Kandydat nie może leżeć w odległości 3 m od budynku, na wodzie, boisku ani bieżni, w tunelu ani wyłącznie przy drodze głównej lub schodach. **Wszystkie punkty mają `status=requires_review`.** Wysokość budynku pochodzi kolejno z `height`, `building:levels × 3 m` lub wartości zastępczej 9 m; pole `height_source` zapisuje źródło.
-
-## Audyt terenowy
-
-```sh
-uv run agh-stations audit-template
-uv run agh-stations apply-audit
-```
-
-Pierwsza komenda tworzy `data/audit/agh-v2-audit.csv` (otwiera się w Excelu) i odmawia nadpisania istniejącego pliku. Dla każdego sprawdzonego punktu wpisujemy `status` (`reviewed` lub `rejected`), `reviewer`, `review_date` w formacie RRRR-MM-DD, a przy odrzuceniu także `reason`. Druga komenda buduje nowy katalog bez odrzuconych punktów i z nowymi hashami. Flaga `--strict` zostawia wyłącznie punkty `reviewed`; tej wersji używamy do badania końcowego. Nie ma potrzeby sprawdzać wszystkich kandydatów naraz: `candidates_to_check.csv` z badań porządkuje ich według częstości występowania w układach optymalnych. Po odrzuceniu ważnego punktu trzeba przeliczyć badania, bo najlepszy układ się zmieni.
-
-Pomocne źródła przy audycie: [wykaz domów studenckich AGH](https://www.miasteczko.agh.edu.pl/strefa-mieszkanca/domy-studenckie.html) (nazwy, adresy, opisy budynków) oraz [mapa punktów mobilności ZTP](https://ztp.krakow.pl/miasto-15-minutowe/hulajnogi-elektryczne). Oba służą do sprawdzenia danych, a nie zastępują wizji w terenie.
-
-## Audyt wymagany przed badaniem końcowym
-
-1. Zatwierdzić granicę i zachować wersję; obejrzeć odłączone składowe, bramy, przejścia przez ulice, schody i brakujące ścieżki.
-2. Dla każdego budynku wskazać dostępne wejście i zweryfikowane połączenie z siecią. Połączenia do krawędzi wymagają jej podziału i poprawnego kosztu. Sprawdzić, czy łącznik nie przecina budynku, ogrodzenia ani innej przeszkody.
-3. Dla każdego kandydata zapisać `reviewed/rejected`, przyczynę, datę oraz źródło obserwacji. W docelowym solverze dopuścić wyłącznie `reviewed`.
-4. Poprawki przechowywać lokalnie jako osobną warstwę z pochodzeniem; edycja publicznego OSM to osobna czynność zespołu po weryfikacji.
-5. Przeliczyć macierz i hashe. Niespójny punkt musi wywołać błąd lub uzasadnioną zmianę zakresu; nigdy nie znika bez wpisu w audycie.
+Łącznik jest odcinkiem prostym. Generator wybiera najbliższy węzeł, którego łącznik nie przecina innego budynku ani wnętrza własnego. Jeśli takiego nie ma, zapisuje `connector_verified=false`. Budynek bez dopuszczalnego łącznika do 100 m nie znika po cichu: trafia do `demand_buildings_not_connected` w manifeście. Kandydat nie może leżeć w odległości 3 m od budynku, na wodzie, boisku ani bieżni, w tunelu ani wyłącznie przy drodze głównej lub schodach. Wysokość budynku pochodzi kolejno z `height`, `building:levels × 3 m` lub wartości zastępczej 9 m; pole `height_source` zapisuje źródło.
 
 ## Pochodzenie i licencja danych
 

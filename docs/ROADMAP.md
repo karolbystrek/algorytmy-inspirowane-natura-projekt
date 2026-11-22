@@ -5,11 +5,11 @@ Pierwsze spotkanie: **poniedziałek 09.11.2026**.
 Cel zespołu: zakończyć projekt **04.12.2026**; **15.12.2026 to granica rezerwy**, a nie planowany termin implementacji.
 
 **Aktualizacja 08.11:** model, CLI, zapis pilota i lokalne demo FastAPI + React/Leaflet
-działają. Część interaktywna M3 powstała wcześniej; trasy, 3D, audyt danych i końcowe
+działają. Część interaktywna M3 powstała wcześniej; trasy, 3D i końcowe
 badania pozostają otwarte. Poniższe daty i role opisują plan, a nie potwierdzenie
 wykonania przeglądów, uzgodnień lub próby na drugim komputerze.
 
-**Aktualizacja 09.11:** gotowe są dane v2, trasy, widok 3D, komenda pełnych badań i szkic raportu na danych roboczych. Otwarte pozostają audyt terenowy, zatwierdzenie granicy obszaru i wag oraz przeliczenie badań po audycie. Aktualny stan: [STATUS.md](STATUS.md).
+**Aktualizacja 09.11:** gotowe są dane v2, trasy, widok 3D, komenda pełnych badań i szkic raportu na danych roboczych. Otwarte pozostają zatwierdzenie granicy obszaru i wag. Aktualny stan: [STATUS.md](STATUS.md).
 
 ## Decyzja o zakresie
 
@@ -26,8 +26,8 @@ Nie ma jeszcze uzgodnionych ról. **Osoba A–F to robocze oznaczenia sześciu r
 | Osoba | Odpowiedzialność | Do 06.11 | Dalej | Recenzent |
 |---|---|---|---|---|
 | Osoba A | Integracja i odtwarzalność | uruchomienie z czystego klona, CI, scalenie demo | integracja mapy, pakiet końcowy, próba prezentacji | Osoba B |
-| Osoba B | Dane OSM i graf pieszy | granica obszaru, kontrola spójności i przejść | audyt wejść, bram i odłączonych części, wersja danych v2 | Osoba C |
-| Osoba C | Model popytu i kandydaci | opisana lista punktów, wagi i ograniczenia | weryfikacja terenowa, scenariusze, analiza wrażliwości | Osoba B |
+| Osoba B | Dane OSM i graf pieszy | granica obszaru, kontrola spójności i przejść | kontrola wejść, bram i odłączonych części, wersja danych v2 | Osoba C |
+| Osoba C | Model popytu i kandydaci | opisana lista punktów, wagi i ograniczenia | scenariusze, analiza wrażliwości | Osoba B |
 | Osoba D | Algorytm ABC | reprezentacja, zamiany, fazy pszczół, ziarna | dobór parametrów i badanie wpływu operatorów | Osoba E |
 | Osoba E | Baseline’y i eksperymenty | losowanie, greedy, kontrola optimum | 30 uruchomień, statystyki, wykresy i porównania | Osoba D |
 | Osoba F | Wizualizacja | czytelna mapa 2D i makieta widoku wyników | TypeScript + MapLibre, dojścia, przełączanie scenariuszy, 3D | Osoba A |
@@ -59,7 +59,7 @@ gantt
     Integracja pierwszego modelu :b, 2026-11-03, 2026-11-07
     Spotkanie z prowadzącym :milestone, 2026-11-09, 0d
     section Dane i produkt
-    Audyt wejść i kandydatów :c, 2026-11-10, 2026-11-14
+    Kontrola wejść i kandydatów :c, 2026-11-10, 2026-11-14
     Mapa interaktywna i 3D :d, 2026-11-16, 2026-11-21
     section Badania i oddanie
     Eksperymenty i wnioski :e, 2026-11-23, 2026-11-28
@@ -72,22 +72,22 @@ gantt
 
 1. **30.10:** wszyscy uruchamiają pilotaż; Osoba A potwierdza CI; Osoba B i Osoba C sprawdzają granicę oraz 5 przykładowych połączeń na mapie.
 2. **02.11:** zamrażamy kontrakt `problem.json` i identyfikatory punktów. Osoba F może pracować na zapisanych wynikach bez oczekiwania na rozwój algorytmu.
-3. **03.11:** Osoba B i Osoba C przekazują wersjonowane dane i listę ograniczeń. Jeśli audyt całego obszaru nie jest gotowy, zostaje mniejszy, jawnie opisany pilotaż.
+3. **03.11:** Osoba B i Osoba C przekazują wersjonowane dane i listę ograniczeń. Jeśli dane całego obszaru nie są gotowe, zostaje mniejszy, jawnie opisany pilotaż.
 4. **04.11:** Osoba D i Osoba E pokazują wyniki na tej samej macierzy; sprawdzają budżet oraz małe optimum.
 5. **05.11:** wspólne porównanie 30 ziaren, mapa, scenariusze, zebrane pytania do prowadzącego.
 6. **06.11:** zamrożenie demo, uruchomienie na drugim laptopie, zapis wykresów i kopii offline. Próba 10-minutowego wystąpienia.
-7. **09.11:** demo według [scenariusza spotkania](MEETING_2026-11-09.md). Po uwagach aktualizujemy backlog i decyzje, bez dokładania nowych algorytmów przed audytem danych.
+7. **09.11:** demo według [scenariusza spotkania](MEETING_2026-11-09.md). Po uwagach aktualizujemy backlog i decyzje, bez dokładania nowych algorytmów przed sprawdzeniem danych.
 
 ## Zależności, ograniczenie ryzyka i decyzje
 
-Ścieżka krytyczna: **AOI i graf → zweryfikowane punkty → macierz odległości → wspólny evaluator → porównanie → raport**. Interfejs od początku czyta pliki zgodne z kontraktem. Makieta, diagramy i testy małego optimum mogą powstawać równolegle do audytu OSM.
+Ścieżka krytyczna: **AOI i graf → zweryfikowane punkty → macierz odległości → wspólny evaluator → porównanie → raport**. Interfejs od początku czyta pliki zgodne z kontraktem. Makieta, diagramy i testy małego optimum mogą powstawać równolegle do przygotowania danych OSM.
 
 | Ryzyko / sygnał | Reakcja | Właściciel |
 |---|---|---|
 | Overpass nie odpowiada | korzystamy z zamrożonego snapshotu; nowe pobranie poza CI i demo | Osoba B |
 | Wejście lub ścieżka nie istnieje w OSM | sprawdzenie terenu i lokalna poprawka z uzasadnieniem; nie dodajemy fikcyjnej trasy | Osoba B + Osoba C |
 | ABC przegrywa z greedy | raportujemy wynik, analizujemy operator i eksplorację; nie zmieniamy metryki pod zwycięzcę | Osoba D + Osoba E |
-| 13.11 nadal brak sprawdzonych danych | zmniejszamy obszar, zamrażamy listę do ręcznego audytu | Osoba A |
+| 13.11 nadal brak sprawdzonych danych | zmniejszamy obszar, zamrażamy listę do ręcznego sprawdzenia | Osoba A |
 | 20.11 interfejs opóźniony | statyczne wyniki JSON, lokalne GeoJSON; API i optymalizacja na żywo zostają poza minimum | Osoba F |
 | 27.11 brakuje kompletu badań | zamrażamy parametry; obowiązkowo 3 wartości `p`, agregacja i ocena trzech scenariuszy, reszta do ograniczeń | Osoba E |
 
